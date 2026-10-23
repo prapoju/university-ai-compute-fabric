@@ -1,0 +1,847 @@
+openapi: 3.1.0
+info:
+  title: Module 12 — AI Operations Copilot API
+  version: "2.2.0"
+  description: >
+    Ingress routes from contracts.md §2 (inbound operations). Request/response schemas mirror
+    dto.py and contracts.md §0; error responses cover the §4 Typed Error Catalog (see
+    x-error-catalog). Read-only provider ports OP-1..OP-12 are outbound and are not exposed here.
+    No state-mutating route exists outside /api/v1/destructive/* and /executor/v1/* (AD-13).
+  x-contracts: planning/detailed-design/contracts.md
+  x-architecture: planning/ARCHITECTURE.md
+servers:
+  - url: http://127.0.0.1:8000
+    description: Prototype — single FastAPI process (ARCHITECTURE §1.12)
+
+tags:
+  - name: sessions
+  - name: state
+  - name: evidence
+  - name: runbooks
+  - name: audit
+  - name: destructive
+  - name: executor
+
+paths:
+  /api/v1/sessions:
+    post:
+      operationId: create_session
+      tags: [sessions]
+      summary: create_session — POST /api/v1/sessions (contracts §2)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateSessionRequest' }
+      responses:
+        "201":
+          description: Session created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Session' }
+        "400": { $ref: '#/components/responses/Response400' }
+        "500": { $ref: '#/components/responses/Response500' }
+        "503": { $ref: '#/components/responses/Response503' }
+      x-error-codes: [VALIDATION_MALFORMED_BODY, CLOCK_UNAVAILABLE, AUDIT_WRITE_FAILED, PROVIDER_UNAVAILABLE]
+
+  /api/v1/sessions/{sid}/queries:
+    post:
+      operationId: submit_query
+      tags: [sessions]
+      summary: submit_query — POST /api/v1/sessions/{sid}/queries (contracts §2)
+      parameters: [{ $ref: '#/components/parameters/SessionIdPath' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SubmitQueryRequest' }
+      responses:
+        "200":
+          description: >
+            AnswerEnvelope, or a canonical 200 body (ENTITY_NOT_FOUND, CANNOT_CONFIRM,
+            CLARIFICATION, INTENT_NOT_SUPPORTED, ACTION_REFUSED) per contracts §2/§4. A canonical
+            response is an ErrorBody whose `message` is the canonical literal (D58), never a bare string.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - { $ref: '#/components/schemas/AnswerEnvelope' }
+                  - { $ref: '#/components/schemas/ErrorBody' }
+        "400": { $ref: '#/components/responses/Response400' }
+        "404": { $ref: '#/components/responses/Response404' }
+        "410": { $ref: '#/components/responses/Response410' }
+        "500": { $ref: '#/components/responses/Response500' }
+        "503": { $ref: '#/components/responses/Response503' }
+      x-error-codes: [VALIDATION_EMPTY_QUERY, VALIDATION_QUERY_TOO_LONG, VALIDATION_MALFORMED_BODY, SESSION_NOT_FOUND, SESSION_EXPIRED, ENTITY_NOT_FOUND, CANNOT_CONFIRM, CLARIFICATION_REQUIRED, INTENT_NOT_SUPPORTED, PROVIDER_UNAVAILABLE, LLM_UNAVAILABLE, LLM_PROSE_REJECTED, AUDIT_WRITE_FAILED]
+
+  /api/v1/sessions/{sid}:
+    get:
+      operationId: get_session
+      tags: [sessions]
+      summary: get_session — GET /api/v1/sessions/{sid} (contracts §2)
+      parameters: [{ $ref: '#/components/parameters/SessionIdPath' }]
+      responses:
+        "200":
+          description: Session with context and turns.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SessionWithTurns' }
+        "404": { $ref: '#/components/responses/Response404' }
+      x-error-codes: [SESSION_NOT_FOUND]
+    delete:
+      operationId: reset_session
+      tags: [sessions]
+      summary: reset_session — DELETE /api/v1/sessions/{sid} (contracts §2)
+      parameters: [{ $ref: '#/components/parameters/SessionIdPath' }]
+      responses:
+        "204": { description: "No Content — session reset (contracts §2 reset_session)." }
+        "404": { $ref: '#/components/responses/Response404' }
+        "503": { $ref: '#/components/responses/Response503' }
+      x-error-codes: [SESSION_NOT_FOUND, CLOCK_UNAVAILABLE, PROVIDER_UNAVAILABLE]
+
+  /api/v1/state/{entity_type}/{id}:
+    get:
+      operationId: get_state_record
+      tags: [state]
+      summary: get_state_record — GET /api/v1/state/{entity_type}/{id} (contracts §2)
+      parameters:
+        - { $ref: '#/components/parameters/EntityTypePath' }
+        - { $ref: '#/components/parameters/EntityIdPath' }
+      responses:
+        "200":
+          description: The record rendered field-for-field.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Record' }
+        "400": { $ref: '#/components/responses/Response400' }
+        "404": { $ref: '#/components/responses/Response404' }
+        "503": { $ref: '#/components/responses/Response503' }
+      x-error-codes: [VALIDATION_BAD_ENTITY_TYPE, VALIDATION_MALFORMED_BODY, ENTITY_NOT_FOUND, PROVIDER_UNAVAILABLE]
+
+  /api/v1/state/{entity_type}:
+    get:
+      operationId: browse_state
+      tags: [state]
+      summary: browse_state — GET /api/v1/state/{entity_type}?q=&page=&page_size= (contracts §2)
+      parameters:
+        - { $ref: '#/components/parameters/EntityTypePath' }
+        - { $ref: '#/components/parameters/QueryParam' }
+        - { $ref: '#/components/parameters/PageParam' }
+        - { $ref: '#/components/parameters/PageSizeParam' }
+      responses:
+        "200":
+          description: Capped, paginated items with total.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BrowseStateResponse' }
+        "400": { $ref: '#/components/responses/Response400' }
+        "503": { $ref: '#/components/responses/Response503' }
+      x-error-codes: [VALIDATION_BAD_ENTITY_TYPE, PAGINATION_INVALID, VALIDATION_MALFORMED_BODY, PROVIDER_UNAVAILABLE]
+
+  /api/v1/answers/{aid}/evidence:
+    get:
+      operationId: get_answer_evidence
+      tags: [evidence]
+      summary: get_answer_evidence — GET /api/v1/answers/{aid}/evidence (contracts §2)
+      parameters:
+        - name: aid
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Ordered EvidenceSet (position ascending).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AnswerEvidenceResponse' }
+        "404": { $ref: '#/components/responses/Response404' }
+      x-error-codes: [ENTITY_NOT_FOUND]
+
+  /api/v1/citations/{cid}:
+    get:
+      operationId: get_citation
+      tags: [evidence]
+      summary: get_citation — GET /api/v1/citations/{cid} (contracts §2)
+      parameters:
+        - name: cid
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/CitationId' }
+      responses:
+        "200":
+          description: Source record and stored snippet.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GetCitationResponse' }
+        "404": { $ref: '#/components/responses/Response404' }
+        "503": { $ref: '#/components/responses/Response503' }
+      x-error-codes: [ENTITY_NOT_FOUND, PROVIDER_UNAVAILABLE]
+
+  /api/v1/runbooks/{error_code}:
+    get:
+      operationId: get_runbook
+      tags: [runbooks]
+      summary: get_runbook — GET /api/v1/runbooks/{error_code} (contracts §2)
+      parameters:
+        - name: error_code
+          in: path
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 64 }
+      responses:
+        "200":
+          description: "steps and provenance as two separate sections (AD-9)."
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GetRunbookResponse' }
+        "400": { $ref: '#/components/responses/Response400' }
+        "404": { $ref: '#/components/responses/Response404' }
+        "422": { $ref: '#/components/responses/Response422' }
+        "503": { $ref: '#/components/responses/Response503' }
+      x-error-codes: [VALIDATION_MALFORMED_BODY, RUNBOOK_NOT_FOUND, RUNBOOK_TEMPLATE_EMPTY, RUNBOOK_TEMPLATE_UNSOURCED, PROVIDER_UNAVAILABLE]
+
+  /api/v1/sessions/{sid}/audit:
+    get:
+      operationId: get_audit_page
+      tags: [audit]
+      summary: get_audit_page — GET /api/v1/sessions/{sid}/audit?page=&page_size= (contracts §2)
+      parameters:
+        - { $ref: '#/components/parameters/SessionIdPath' }
+        - { $ref: '#/components/parameters/PageParam' }
+        - { $ref: '#/components/parameters/PageSizeParam' }
+      responses:
+        "200":
+          description: Paged, chronological, append-only entries.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GetAuditPageResponse' }
+        "400": { $ref: '#/components/responses/Response400' }
+        "404": { $ref: '#/components/responses/Response404' }
+      x-error-codes: [PAGINATION_INVALID, SESSION_NOT_FOUND]
+
+  /api/v1/destructive/dry-runs:
+    post:
+      operationId: post_dry_run
+      tags: [destructive]
+      summary: post_dry_run — POST /api/v1/destructive/dry-runs (contracts §2; AD-4, AD-6)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PostDryRunRequest' }
+      responses:
+        "200":
+          description: >
+            Proposal with state==dry_run, or a canonical 200 body (ENTITY_NOT_FOUND, CLARIFICATION_REQUIRED)
+            per contracts §2/§4.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - { $ref: '#/components/schemas/Proposal' }
+                  - { $ref: '#/components/schemas/ErrorBody' }
+        "400": { $ref: '#/components/responses/Response400' }
+        "404": { $ref: '#/components/responses/Response404' }
+        "503": { $ref: '#/components/responses/Response503' }
+      x-error-codes: [VALIDATION_MALFORMED_BODY, VALIDATION_BAD_ACTION, SESSION_NOT_FOUND, ENTITY_NOT_FOUND, CLARIFICATION_REQUIRED, PROVIDER_UNAVAILABLE, CLOCK_UNAVAILABLE]
+
+  /api/v1/destructive/proposals:
+    post:
+      operationId: post_confirm
+      tags: [destructive]
+      summary: post_confirm — POST /api/v1/destructive/proposals (contracts §2; AD-3, AD-5, AD-6, AD-15)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PostConfirmRequest' }
+      responses:
+        "200":
+          description: "Proposal in {dispatched, executed, failed}; caption S_CAP carried in confirmation.caption."
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Proposal' }
+        "400": { $ref: '#/components/responses/Response400' }
+        "403": { $ref: '#/components/responses/Response403' }
+        "404": { $ref: '#/components/responses/Response404' }
+        "409": { $ref: '#/components/responses/Response409' }
+        "502": { $ref: '#/components/responses/Response502' }
+        "503": { $ref: '#/components/responses/Response503' }
+      x-error-codes: [VALIDATION_MALFORMED_BODY, PROPOSAL_NOT_FOUND, GATE_TOKEN_INVALID, CONFIRMATION_STALE, DRY_RUN_EMPTY_SET, CONFIRMATION_CONFLICT, PROPOSAL_STATE_INVALID, EXECUTOR_PARTIAL_APPLY, EXECUTOR_UNAVAILABLE, PROVIDER_UNAVAILABLE]
+
+  /api/v1/destructive/proposals/{pid}:
+    get:
+      operationId: get_proposal
+      tags: [destructive]
+      summary: get_proposal — GET /api/v1/destructive/proposals/{pid} (contracts §2)
+      parameters:
+        - $ref: '#/components/parameters/ProposalIdPath'
+      responses:
+        "200":
+          description: Proposal with executor_result when resolved.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Proposal' }
+        "404": { $ref: '#/components/responses/Response404' }
+      x-error-codes: [PROPOSAL_NOT_FOUND]
+
+  /api/v1/destructive/proposals/{pid}/re-dispatches:
+    post:
+      operationId: post_re_dispatch
+      tags: [destructive]
+      summary: post_re_dispatch — POST /api/v1/destructive/proposals/{pid}/re-dispatches (contracts §2; AD-3)
+      parameters:
+        - $ref: '#/components/parameters/ProposalIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PostReDispatchRequest' }
+      responses:
+        "200":
+          description: A new Proposal (state==dry_run) with supersedes_proposal_id set.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Proposal' }
+        "400": { $ref: '#/components/responses/Response400' }
+        "404": { $ref: '#/components/responses/Response404' }
+        "409": { $ref: '#/components/responses/Response409' }
+        "503": { $ref: '#/components/responses/Response503' }
+      x-error-codes: [VALIDATION_MALFORMED_BODY, PROPOSAL_NOT_FOUND, PROPOSAL_STATE_INVALID, PROVIDER_UNAVAILABLE]
+
+  /executor/v1/proposals:
+    post:
+      operationId: executor_post_proposal
+      tags: [executor]
+      summary: executor_post_proposal — POST /executor/v1/proposals (contracts §2; AD-15 frozen contract)
+      description: Simulated executor reference adapter; applies exactly the referenced snapshot's items.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ExecutorRequest' }
+      responses:
+        "200":
+          description: ExecutorResult (status, applied_records, applied_count, timestamp).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ExecutorResult' }
+        "400": { $ref: '#/components/responses/Response400' }
+        "403": { $ref: '#/components/responses/Response403' }
+        "409": { $ref: '#/components/responses/Response409' }
+        "500": { $ref: '#/components/responses/Response500' }
+        "502": { $ref: '#/components/responses/Response502' }
+      x-error-codes: [VALIDATION_MALFORMED_BODY, GATE_TOKEN_INVALID, EXECUTOR_DUPLICATE_APPLY, AUDIT_WRITE_FAILED, EXECUTOR_PARTIAL_APPLY]
+
+  /executor/v1/proposals/{pid}:
+    get:
+      operationId: executor_get_proposal
+      tags: [executor]
+      summary: executor_get_proposal — GET /executor/v1/proposals/{pid} (contracts §2)
+      parameters:
+        - $ref: '#/components/parameters/ProposalIdPath'
+      responses:
+        "200":
+          description: The stored executor result.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ExecutorResult' }
+        "404": { $ref: '#/components/responses/Response404' }
+      x-error-codes: [PROPOSAL_NOT_FOUND]
+
+components:
+  parameters:
+    SessionIdPath:
+      name: sid
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/SessionId' }
+    EntityTypePath:
+      name: entity_type
+      in: path
+      required: true
+      schema:
+        type: string
+        enum: [users, catalog, policy, groups, jobs, nodes, reservations, windows, events]
+    EntityIdPath:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, minLength: 1, maxLength: 200 }
+    ProposalIdPath:
+      name: pid
+      in: path
+      required: true
+      schema: { type: string, minLength: 1 }
+    QueryParam:
+      name: q
+      in: query
+      required: false
+      schema: { type: string, default: "" }
+    PageParam:
+      name: page
+      in: query
+      required: false
+      schema: { type: integer, minimum: 1, default: 1 }
+    PageSizeParam:
+      name: page_size
+      in: query
+      required: false
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+
+  schemas:
+    # ---- §0.1 scalars ----
+    QueryText: { type: string, minLength: 1, maxLength: 1000 }
+    Instant: { type: string, format: date-time, pattern: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$' }
+    SessionId: { type: string, pattern: '^sess-[0-9a-f]{16}$' }
+    OperatorRole: { type: string, pattern: '^role-[a-z0-9_-]{1,32}$' }
+    EntityKey: { type: string, pattern: '^(user|group|model|policy|node|job|reservation|window|event)#.+$' }
+    CitationId: { type: string, pattern: '^(user|group|model|policy|node|job|reservation|window|event|clock)#.+$' }
+    RawRef: { type: string, minLength: 1, maxLength: 200 }
+    Snippet: { type: string, minLength: 1, maxLength: 500 }
+    GateToken: { type: string, pattern: '^gt-[0-9a-f]{32}$' }
+    ActionVerb: { type: string, enum: [delete_jobs, cancel_jobs, cordon_node, drain_node] }
+    PageSize: { type: integer, minimum: 1, maximum: 100 }
+
+    AnswerStage: { type: string, enum: [observation, evidence, diagnosis, recommendation, proposal, execution] }
+    DiagnosisClass:
+      type: [string, "null"]
+      enum: [access_denial_not_in_allowlist, access_denial_quota, access_denial_window, schedule_window_restricted, schedule_no_constraint, event_denied, event_cancelled, event_cordoned, node_triage_runbook, no_runbook_available, null]
+    CanonicalCode:
+      type: [string, "null"]
+      enum: [ENTITY_NOT_FOUND, CANNOT_CONFIRM, CLARIFICATION, INTENT_NOT_SUPPORTED, ACTION_REFUSED, null]
+    ProposalState: { type: string, enum: [refused, dry_run, confirmed, dispatched, executed, failed, superseded] }
+    ExecutorStatus: { type: string, enum: [applied, partial, failed] }
+
+    # ---- errors ----
+    ErrorCode:
+      type: string
+      enum: [VALIDATION_EMPTY_QUERY, VALIDATION_QUERY_TOO_LONG, VALIDATION_MALFORMED_BODY, VALIDATION_BAD_ENTITY_TYPE, VALIDATION_BAD_ACTION, VALIDATION_BAD_ID_KIND, PAGINATION_INVALID, SESSION_NOT_FOUND, SESSION_EXPIRED, ENTITY_NOT_FOUND, CANNOT_CONFIRM, CLARIFICATION_REQUIRED, INTENT_NOT_SUPPORTED, PROVIDER_UNAVAILABLE, CLOCK_UNAVAILABLE, LLM_UNAVAILABLE, LLM_PROSE_REJECTED, AUDIT_WRITE_FAILED, ACTION_REFUSED, PROPOSAL_NOT_FOUND, PROPOSAL_STATE_INVALID, GATE_TOKEN_INVALID, CONFIRMATION_STALE, DRY_RUN_EMPTY_SET, CONFIRMATION_CONFLICT, EXECUTOR_UNAVAILABLE, EXECUTOR_PARTIAL_APPLY, EXECUTOR_DUPLICATE_APPLY, RUNBOOK_NOT_FOUND, RUNBOOK_TEMPLATE_EMPTY, RUNBOOK_TEMPLATE_UNSOURCED]
+    Explanation:
+      type: object
+      additionalProperties: false
+      required: [rule_ids, observed_values, thresholds]
+      properties:
+        rule_ids: { type: array, items: { type: string } }
+        observed_values: { type: array, items: { type: string } }
+        thresholds: { type: array, items: { type: string } }
+    ErrorBody:
+      type: object
+      additionalProperties: false
+      required: [code, status, message, retryable]
+      properties:
+        code: { $ref: '#/components/schemas/ErrorCode' }
+        status: { type: integer, minimum: 100, maximum: 599 }
+        message: { type: string }
+        retryable: { type: boolean }
+        explanation: { $ref: '#/components/schemas/Explanation' }
+
+    # ---- records (§0.3) ----
+    UserRecord:
+      type: object
+      additionalProperties: false
+      required: [id, display_name, role]
+      properties:
+        id: { type: string }
+        display_name: { type: string }
+        role: { type: string, enum: [student, staff, faculty, privileged] }
+    GroupRecord:
+      type: object
+      additionalProperties: false
+      required: [id, name, members]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        members: { type: array, items: { $ref: '#/components/schemas/EntityKey' } }
+    ModelCatalogEntry:
+      type: object
+      additionalProperties: false
+      required: [id, name, allowed_roles]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        allowed_roles: { type: array, items: { type: string, enum: [student, staff, faculty, privileged] } }
+    AccessPolicyClause:
+      type: object
+      additionalProperties: false
+      required: [clause_id, model_id, rule, reason_class, text]
+      properties:
+        clause_id: { type: string }
+        model_id: { type: string }
+        rule: { type: string }
+        reason_class: { type: string, enum: [not-in-allowlist, quota, window] }
+        text: { type: string }
+    JobRecord:
+      type: object
+      additionalProperties: false
+      required: [id, group_id, course, status, created_at]
+      properties:
+        id: { type: string }
+        group_id: { type: string }
+        course: { type: string }
+        status: { type: string, enum: [pending, running, succeeded, cancelled, failed] }
+        scheduling_constraint: { type: [string, "null"] }
+        created_at: { $ref: '#/components/schemas/Instant' }
+    NodeRecord:
+      type: object
+      additionalProperties: false
+      required: [id, hostname, gpu_memory_gb, status, cordoned, health]
+      properties:
+        id: { type: string }
+        hostname: { type: string }
+        gpu_memory_gb: { type: integer }
+        status: { type: string, enum: [available, reserved, active, fault] }
+        cordoned: { type: boolean }
+        error_code: { type: [string, "null"] }
+        health: { type: string }
+    ReservationRecord:
+      type: object
+      additionalProperties: false
+      required: [id, node_id, start, end, purpose]
+      properties:
+        id: { type: string }
+        node_id: { type: string }
+        start: { $ref: '#/components/schemas/Instant' }
+        end: { $ref: '#/components/schemas/Instant' }
+        purpose: { type: string }
+    PolicyWindow:
+      type: object
+      additionalProperties: false
+      required: [window_id, applies_to, start, end, timezone]
+      properties:
+        window_id: { type: string }
+        applies_to: { type: string }
+        start: { $ref: '#/components/schemas/Instant' }
+        end: { $ref: '#/components/schemas/Instant' }
+        timezone: { type: string }
+    OperationalEvent:
+      type: object
+      additionalProperties: false
+      required: [event_id, type, entity_ref, timestamp, outcome, recorded_reason]
+      properties:
+        event_id: { type: string }
+        type: { type: string, enum: [access_denied, job_cancelled, node_cordoned] }
+        entity_ref: { $ref: '#/components/schemas/EntityKey' }
+        timestamp: { $ref: '#/components/schemas/Instant' }
+        outcome: { type: string }
+        recorded_reason: { type: string }
+    Record:
+      oneOf:
+        - { $ref: '#/components/schemas/UserRecord' }
+        - { $ref: '#/components/schemas/GroupRecord' }
+        - { $ref: '#/components/schemas/ModelCatalogEntry' }
+        - { $ref: '#/components/schemas/AccessPolicyClause' }
+        - { $ref: '#/components/schemas/JobRecord' }
+        - { $ref: '#/components/schemas/NodeRecord' }
+        - { $ref: '#/components/schemas/ReservationRecord' }
+        - { $ref: '#/components/schemas/PolicyWindow' }
+        - { $ref: '#/components/schemas/OperationalEvent' }
+
+    # ---- answer composition (§0.4) ----
+    Evidence:
+      type: object
+      additionalProperties: false
+      required: [citation_id, source_type, snippet, position]
+      properties:
+        citation_id: { $ref: '#/components/schemas/CitationId' }
+        source_type: { type: string, enum: [user, group, model, policy, node, job, reservation, window, event, clock] }
+        snippet: { $ref: '#/components/schemas/Snippet' }
+        position: { type: integer, minimum: 0 }
+    Claim:
+      type: object
+      additionalProperties: false
+      required: [claim_id, text, claim_citations]
+      properties:
+        claim_id: { type: string }
+        text: { type: string }
+        claim_citations: { type: array, minItems: 1, items: { $ref: '#/components/schemas/CitationId' } }
+    Answer:
+      type: object
+      additionalProperties: false
+      required: [answer_id, session_id, query, intent, answer_chain, claims, evidence, prose]
+      properties:
+        answer_id: { type: string }
+        session_id: { $ref: '#/components/schemas/SessionId' }
+        query: { $ref: '#/components/schemas/QueryText' }
+        intent: { type: string }
+        answer_chain: { type: array, items: { $ref: '#/components/schemas/AnswerStage' } }
+        diagnosis_class: { $ref: '#/components/schemas/DiagnosisClass' }
+        canonical: { $ref: '#/components/schemas/CanonicalCode' }
+        claims: { type: array, items: { $ref: '#/components/schemas/Claim' } }
+        evidence: { type: array, items: { $ref: '#/components/schemas/Evidence' } }
+        recommendation: { type: [object, "null"] }
+        proposal_ref: { type: [string, "null"] }
+        prose: { type: string }
+    AnswerEnvelope:
+      type: object
+      additionalProperties: false
+      required: [answers]
+      properties:
+        answers: { type: array, minItems: 1, items: { $ref: '#/components/schemas/Answer' } }
+
+    # ---- sessions / audit ----
+    SessionContext:
+      type: object
+      additionalProperties: false
+      required: [resolved_entities, prior_intents, active_answer_ids]
+      properties:
+        resolved_entities: { type: array, items: { $ref: '#/components/schemas/EntityKey' } }
+        prior_intents: { type: array, items: { type: string } }
+        active_answer_ids: { type: array, items: { type: string } }
+    Session:
+      type: object
+      additionalProperties: false
+      required: [session_id, created_at, operator_role, context, status]
+      properties:
+        session_id: { $ref: '#/components/schemas/SessionId' }
+        created_at: { $ref: '#/components/schemas/Instant' }
+        operator_role: { $ref: '#/components/schemas/OperatorRole' }
+        context: { $ref: '#/components/schemas/SessionContext' }
+        status: { type: string, enum: [active, reset, expired] }
+    # A27: a standalone object (not allOf over Session, whose additionalProperties:false would
+    # reject `turns`); fields are the Session field set plus `turns`.
+    SessionWithTurns:
+      type: object
+      additionalProperties: false
+      required: [session_id, created_at, operator_role, context, status, turns]
+      properties:
+        session_id: { $ref: '#/components/schemas/SessionId' }
+        created_at: { $ref: '#/components/schemas/Instant' }
+        operator_role: { $ref: '#/components/schemas/OperatorRole' }
+        context: { $ref: '#/components/schemas/SessionContext' }
+        status: { type: string, enum: [active, reset, expired] }
+        turns: { type: array, items: { $ref: '#/components/schemas/Answer' } }
+    AuditRecord:
+      type: object
+      additionalProperties: false
+      required: [audit_id, timestamp, result_summary, actor]
+      properties:
+        audit_id: { type: string }
+        tool_call_id: { type: [string, "null"] }
+        session_id: { type: [string, "null"], pattern: '^sess-[0-9a-f]{16}$' }
+        operator_role: { type: [string, "null"] }
+        timestamp: { $ref: '#/components/schemas/Instant' }
+        result_summary: { type: object }
+        actor: { type: string, enum: [copilot, executor] }
+        proposal_id: { type: [string, "null"] }
+
+    # ---- safety / proposal (§0.5) ----
+    Selector:
+      type: object
+      additionalProperties: false
+      required: [method, params]
+      properties:
+        method: { type: string }
+        params: { type: object }
+    AffectedItem:
+      type: object
+      additionalProperties: false
+      required: [key, actionable, actionable_field, actionable_value]
+      properties:
+        key: { $ref: '#/components/schemas/EntityKey' }
+        actionable: { type: boolean }
+        actionable_field: { type: string }
+        actionable_value: { type: string }
+    DryRunSnapshot:
+      type: object
+      additionalProperties: false
+      required: [selector, affected_items, snapshot_timestamp]
+      properties:
+        selector: { $ref: '#/components/schemas/Selector' }
+        affected_items: { type: array, items: { $ref: '#/components/schemas/AffectedItem' } }
+        snapshot_timestamp: { $ref: '#/components/schemas/Instant' }
+    Confirmation:
+      type: object
+      additionalProperties: false
+      required: [confirmed_at]
+      properties:
+        confirmed_at: { $ref: '#/components/schemas/Instant' }
+    ExecutorResult:
+      type: object
+      additionalProperties: false
+      required: [status, applied_records, applied_count, timestamp, source]
+      properties:
+        status: { $ref: '#/components/schemas/ExecutorStatus' }
+        applied_records: { type: array, items: { $ref: '#/components/schemas/EntityKey' } }
+        applied_count: { type: integer, minimum: 0 }
+        timestamp: { $ref: '#/components/schemas/Instant' }
+        source: { type: string, const: executor }
+    Proposal:
+      type: object
+      additionalProperties: false
+      required: [proposal_id, session_id, state, action, dry_run_snapshot, gate_token]
+      properties:
+        proposal_id: { type: string }
+        session_id: { $ref: '#/components/schemas/SessionId' }
+        state: { $ref: '#/components/schemas/ProposalState' }
+        action: { $ref: '#/components/schemas/ActionVerb' }
+        supersedes_proposal_id: { type: [string, "null"] }
+        dry_run_snapshot: { $ref: '#/components/schemas/DryRunSnapshot' }
+        gate_token: { $ref: '#/components/schemas/GateToken' }
+        confirmation: { oneOf: [{ $ref: '#/components/schemas/Confirmation' }, { type: "null" }] }
+        executor_result: { oneOf: [{ $ref: '#/components/schemas/ExecutorResult' }, { type: "null" }] }
+    ExecutorRequest:
+      type: object
+      additionalProperties: false
+      required: [proposal_id, action, selector, gate_token, dry_run_ref]
+      properties:
+        proposal_id: { type: string }
+        action: { $ref: '#/components/schemas/ActionVerb' }
+        selector: { $ref: '#/components/schemas/Selector' }
+        gate_token: { $ref: '#/components/schemas/GateToken' }
+        dry_run_ref:
+          type: object
+          additionalProperties: false
+          required: [proposal_id]
+          properties: { proposal_id: { type: string } }
+
+    # ---- §2 request bodies ----
+    CreateSessionRequest:
+      type: object
+      additionalProperties: false
+      required: [operator_role]
+      properties: { operator_role: { $ref: '#/components/schemas/OperatorRole' } }
+    SubmitQueryRequest:
+      type: object
+      additionalProperties: false
+      required: [query_text]
+      properties: { query_text: { $ref: '#/components/schemas/QueryText' } }
+    PostDryRunRequest:
+      type: object
+      additionalProperties: false
+      required: [query_text, action, target_refs, session_id]
+      properties:
+        query_text: { $ref: '#/components/schemas/QueryText' }
+        action: { $ref: '#/components/schemas/ActionVerb' }
+        target_refs: { type: array, minItems: 1, items: { $ref: '#/components/schemas/RawRef' } }
+        session_id: { $ref: '#/components/schemas/SessionId' }
+    PostConfirmRequest:
+      type: object
+      additionalProperties: false
+      required: [proposal_id, gate_token]
+      properties:
+        proposal_id: { type: string }
+        gate_token: { $ref: '#/components/schemas/GateToken' }
+    PostReDispatchRequest:
+      type: object
+      additionalProperties: false
+      required: [query_text, action, target_refs]
+      properties:
+        query_text: { $ref: '#/components/schemas/QueryText' }
+        action: { $ref: '#/components/schemas/ActionVerb' }
+        target_refs: { type: array, minItems: 1, items: { $ref: '#/components/schemas/RawRef' } }
+
+    # ---- §2 response bodies ----
+    GetCitationResponse:
+      type: object
+      additionalProperties: false
+      required: [source_record, snippet]
+      properties:
+        source_record: { $ref: '#/components/schemas/Record' }
+        snippet: { $ref: '#/components/schemas/Snippet' }
+    GetRunbookResponse:
+      type: object
+      additionalProperties: false
+      required: [steps, provenance]
+      properties:
+        steps: { type: array, items: { type: string } }
+        provenance: { type: object }
+    AnswerEvidenceResponse:
+      type: object
+      additionalProperties: false
+      required: [evidence]
+      properties:
+        evidence: { type: array, items: { $ref: '#/components/schemas/Evidence' } }
+    BrowseStateResponse:
+      type: object
+      additionalProperties: false
+      required: [items, page, page_size, total]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Record' } }
+        page: { type: integer, minimum: 1 }
+        page_size: { $ref: '#/components/schemas/PageSize' }
+        total: { type: integer, minimum: 0 }
+    GetAuditPageResponse:
+      type: object
+      additionalProperties: false
+      required: [entries, page, page_size, total, has_more]
+      properties:
+        entries: { type: array, items: { $ref: '#/components/schemas/AuditRecord' } }
+        page: { type: integer, minimum: 1 }
+        page_size: { $ref: '#/components/schemas/PageSize' }
+        total: { type: integer, minimum: 0 }   # retained-row count (clamped to the 10,000-row cap)
+        has_more: { type: boolean }            # E36
+
+  responses:
+    Response400:
+      description: "Validated client error. Applicable codes: VALIDATION_EMPTY_QUERY, VALIDATION_QUERY_TOO_LONG, VALIDATION_MALFORMED_BODY, VALIDATION_BAD_ENTITY_TYPE, VALIDATION_BAD_ACTION, VALIDATION_BAD_ID_KIND, PAGINATION_INVALID."
+      content:
+        application/json: { schema: { $ref: '#/components/schemas/ErrorBody' } }
+    Response403:
+      description: "GATE_TOKEN_INVALID."
+      content:
+        application/json: { schema: { $ref: '#/components/schemas/ErrorBody' } }
+    Response404:
+      description: "Not found. Codes: SESSION_NOT_FOUND, ENTITY_NOT_FOUND, PROPOSAL_NOT_FOUND, RUNBOOK_NOT_FOUND."
+      content:
+        application/json: { schema: { $ref: '#/components/schemas/ErrorBody' } }
+    Response409:
+      description: "Conflict. Codes: PROPOSAL_STATE_INVALID, CONFIRMATION_STALE, DRY_RUN_EMPTY_SET, CONFIRMATION_CONFLICT, EXECUTOR_DUPLICATE_APPLY."
+      content:
+        application/json: { schema: { $ref: '#/components/schemas/ErrorBody' } }
+    Response410:
+      description: "SESSION_EXPIRED."
+      content:
+        application/json: { schema: { $ref: '#/components/schemas/ErrorBody' } }
+    Response422:
+      description: "RUNBOOK_TEMPLATE_EMPTY, RUNBOOK_TEMPLATE_UNSOURCED."
+      content:
+        application/json: { schema: { $ref: '#/components/schemas/ErrorBody' } }
+    Response500:
+      description: "AUDIT_WRITE_FAILED."
+      content:
+        application/json: { schema: { $ref: '#/components/schemas/ErrorBody' } }
+    Response502:
+      description: "EXECUTOR_PARTIAL_APPLY."
+      content:
+        application/json: { schema: { $ref: '#/components/schemas/ErrorBody' } }
+    Response503:
+      description: "Dependency failure. Codes: PROVIDER_UNAVAILABLE, CLOCK_UNAVAILABLE, LLM_UNAVAILABLE, LLM_PROSE_REJECTED, EXECUTOR_UNAVAILABLE."
+      content:
+        application/json: { schema: { $ref: '#/components/schemas/ErrorBody' } }
+
+x-error-catalog:
+  description: >
+    Complete §4 Typed Error Catalog. Codes marked http=200 are canonical responses carried on the
+    200 path (submit_query, post_dry_run), not error statuses.
+  entries:
+    - { code: VALIDATION_EMPTY_QUERY, http: 400, retryable: false }
+    - { code: VALIDATION_QUERY_TOO_LONG, http: 400, retryable: false }
+    - { code: VALIDATION_MALFORMED_BODY, http: 400, retryable: false }
+    - { code: VALIDATION_BAD_ENTITY_TYPE, http: 400, retryable: false }
+    - { code: VALIDATION_BAD_ACTION, http: 400, retryable: false }
+    - { code: VALIDATION_BAD_ID_KIND, http: 400, retryable: false, note: "internal-only (OP-13 idgen_port); never returned by an ingress route (X-16, D67)" }
+    - { code: PAGINATION_INVALID, http: 400, retryable: false }
+    - { code: SESSION_NOT_FOUND, http: 404, retryable: false }
+    - { code: SESSION_EXPIRED, http: 410, retryable: false }
+    - { code: ENTITY_NOT_FOUND, http: 404, retryable: false, note: "200 canonical on query/dry-run routes" }
+    - { code: CANNOT_CONFIRM, http: 200, retryable: false }
+    - { code: CLARIFICATION_REQUIRED, http: 200, retryable: false }
+    - { code: INTENT_NOT_SUPPORTED, http: 200, retryable: false }
+    - { code: PROVIDER_UNAVAILABLE, http: 503, retryable: true }
+    - { code: CLOCK_UNAVAILABLE, http: 503, retryable: true }
+    - { code: LLM_UNAVAILABLE, http: 503, retryable: true }
+    - { code: LLM_PROSE_REJECTED, http: 503, retryable: true }
+    - { code: AUDIT_WRITE_FAILED, http: 500, retryable: true }
+    - { code: ACTION_REFUSED, http: 200, retryable: false }
+    - { code: PROPOSAL_NOT_FOUND, http: 404, retryable: false }
+    - { code: PROPOSAL_STATE_INVALID, http: 409, retryable: false }
+    - { code: GATE_TOKEN_INVALID, http: 403, retryable: false }
+    - { code: CONFIRMATION_STALE, http: 409, retryable: false }
+    - { code: DRY_RUN_EMPTY_SET, http: 409, retryable: false }
+    - { code: CONFIRMATION_CONFLICT, http: 409, retryable: false }
+    - { code: EXECUTOR_UNAVAILABLE, http: 503, retryable: true }
+    - { code: EXECUTOR_PARTIAL_APPLY, http: 502, retryable: false }
+    - { code: EXECUTOR_DUPLICATE_APPLY, http: 409, retryable: false }
+    - { code: RUNBOOK_NOT_FOUND, http: 404, retryable: false }
+    - { code: RUNBOOK_TEMPLATE_EMPTY, http: 422, retryable: false }
+    - { code: RUNBOOK_TEMPLATE_UNSOURCED, http: 422, retryable: false }

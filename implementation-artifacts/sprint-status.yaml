@@ -1,0 +1,78 @@
+# generated: 2026-10-16 21:34
+# last_updated: 2026-10-16 21:34
+# project: plan-2-university-ai-fabric
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts
+# epics_source: planning/epics.md (4 epics / 16 stories)
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# Action Item Status:
+#   - open: Committed during a retrospective, not yet addressed
+#   - in-progress: Actively being worked on
+#   - done: Completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - Developer typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+# - Retrospective appends its action items to action_items; sprint-status surfaces open ones
+
+generated: 2026-10-16 21:34
+last_updated: 2026-10-16 21:34
+project: plan-2-university-ai-fabric
+project_key: NOKEY
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+
+development_status:
+  epic-1: backlog
+  1-1-seed-the-fixture-estate-and-stand-up-the-read-only-adapter-ring: backlog
+  1-2-console-shell-session-store-and-conversational-intake: backlog
+  1-3-entity-resolution-and-access-denial-diagnosis-end-to-end-walking-skeleton-happy-path: backlog
+  1-4-structured-claims-citation-cards-and-evidence-level-determinism: backlog
+  1-5-tool-call-audit-log-and-state-inspection-viewer: backlog
+  epic-1-retrospective: optional
+
+  epic-2: backlog
+  2-1-destructive-intent-classification-and-refusal: backlog
+  2-2-dry-run-snapshot-with-selector-predicate-and-affected-items: backlog
+  2-3-procedural-confirmation-gate-and-snapshot-re-validation: backlog
+  2-4-propose-only-handoff-simulated-executor-and-executor-failure-safety: backlog
+  epic-2-retrospective: optional
+
+  epic-3: backlog
+  3-1-schedule-and-window-diagnosis: backlog
+  3-2-retrospective-event-log-diagnosis: backlog
+  3-3-runbook-registry-and-node-triage-runbook: backlog
+  3-4-intent-taxonomy-extension-and-session-follow-up-references: backlog
+  epic-3-retrospective: optional
+
+  epic-4: backlog
+  4-1-anti-fabrication-guardrail-and-content-data-hygiene-mandatory-edge-case: backlog
+  4-2-safe-failure-on-retrieval-dependencies: backlog
+  4-3-safe-failure-on-the-prose-runtime-and-malformed-input: backlog
+  epic-4-retrospective: optional

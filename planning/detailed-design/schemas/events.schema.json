@@ -1,0 +1,229 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://module12.example/schemas/events.schema.json",
+  "title": "Module 12 Event Envelope",
+  "description": "Every event Module 12 emits or ingests. Envelope fields eventId, occurredAt, schemaVersion are mandatory on all events (contracts.md §0.3/§0.4/§0.5; events.md).",
+  "type": "object",
+  "required": ["eventId", "occurredAt", "schemaVersion", "eventType", "payload"],
+  "additionalProperties": false,
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "pattern": "^(evt-[0-9a-f]{16}|[a-z]+#[A-Za-z0-9._-]+)$",
+      "description": "Unique, stable id; minted via the idgen_port (OP-13, IdKind 'event') as evt-<16 hex>, or an injected estate key of the form {type}#{id}. Never regenerated (D59)."
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{3})?Z$",
+      "description": "ISO-8601 UTC instant; from the Clock port only (R2/OP-10)."
+    },
+    "schemaVersion": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semver of the payload schema."
+    },
+    "eventType": {
+      "type": "string",
+      "enum": [
+        "operational_event_ingested",
+        "tool_call",
+        "audit",
+        "proposal_lifecycle",
+        "answer_produced"
+      ]
+    },
+    "sessionId": {
+      "type": ["string", "null"],
+      "pattern": "^sess-[0-9a-f]{16}$"
+    },
+    "payload": { "type": "object" }
+  },
+  "allOf": [
+    { "$ref": "#/$defs/operationalEventIngested" },
+    { "$ref": "#/$defs/toolCall" },
+    { "$ref": "#/$defs/audit" },
+    { "$ref": "#/$defs/proposalLifecycle" },
+    { "$ref": "#/$defs/answerProduced" }
+  ],
+  "$defs": {
+    "isoInstant": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{3})?Z$"
+    },
+    "entityKey": {
+      "type": "string",
+      "pattern": "^(user|group|model|policy|node|job|reservation|window|event)#.+$"
+    },
+
+    "operationalEventIngested": {
+      "title": "OperationalEvent ingested (OP-9)",
+      "if": { "properties": { "eventType": { "const": "operational_event_ingested" } } },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["event_id", "type", "entity_ref", "timestamp", "outcome", "recorded_reason"],
+            "properties": {
+              "event_id": { "type": "string", "minLength": 1 },
+              "type": { "enum": ["access_denied", "job_cancelled", "node_cordoned"] },
+              "entity_ref": { "$ref": "#/$defs/entityKey" },
+              "timestamp": { "$ref": "#/$defs/isoInstant" },
+              "outcome": { "type": "string" },
+              "recorded_reason": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+
+    "toolCall": {
+      "title": "tool_call emitted",
+      "if": { "properties": { "eventType": { "const": "tool_call" } } },
+      "then": {
+        "required": ["sessionId"],
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["tool_call_id", "session_id", "tool_name", "params_summary", "timestamp", "status"],
+            "properties": {
+              "tool_call_id": { "type": "string", "minLength": 1 },
+              "session_id": { "type": "string", "pattern": "^sess-[0-9a-f]{16}$" },
+              "tool_name": { "type": "string", "pattern": "^toolcall\\..+$" },
+              "params_summary": { "type": "object" },
+              "timestamp": { "$ref": "#/$defs/isoInstant" },
+              "status": { "enum": ["ok", "failure"] }
+            }
+          }
+        }
+      }
+    },
+
+    "audit": {
+      "title": "audit emitted",
+      "if": { "properties": { "eventType": { "const": "audit" } } },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["audit_id", "timestamp", "result_summary", "actor"],
+            "properties": {
+              "audit_id": { "type": "string", "minLength": 1 },
+              "tool_call_id": { "type": ["string", "null"] },
+              "session_id": { "type": ["string", "null"], "pattern": "^sess-[0-9a-f]{16}$" },
+              "operator_role": { "type": ["string", "null"], "pattern": "^role-[a-z0-9_-]{1,32}$" },
+              "timestamp": { "$ref": "#/$defs/isoInstant" },
+              "result_summary": { "type": "object" },
+              "actor": { "enum": ["copilot", "executor"] },
+              "proposal_id": { "type": ["string", "null"] }
+            },
+            "allOf": [
+              {
+                "if": { "properties": { "actor": { "const": "executor" } }, "required": ["actor"] },
+                "then": {
+                  "properties": { "tool_call_id": { "type": "null" } },
+                  "required": ["proposal_id"]
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+
+    "proposalLifecycle": {
+      "title": "proposal_lifecycle emitted (AD-4)",
+      "if": { "properties": { "eventType": { "const": "proposal_lifecycle" } } },
+      "then": {
+        "required": ["sessionId"],
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["proposal_id", "session_id", "action", "from_state", "to_state", "at"],
+            "properties": {
+              "proposal_id": { "type": "string", "minLength": 1 },
+              "session_id": { "type": "string", "pattern": "^sess-[0-9a-f]{16}$" },
+              "action": { "enum": ["delete_jobs", "cancel_jobs", "cordon_node", "drain_node"] },
+              "from_state": { "enum": ["refused", "dry_run", "confirmed", "dispatched", "executed", "failed", "superseded"] },
+              "to_state": { "enum": ["refused", "dry_run", "confirmed", "dispatched", "executed", "failed", "superseded"] },
+              "at": { "$ref": "#/$defs/isoInstant" },
+              "applied_count": { "type": ["integer", "null"], "minimum": 0 }
+            },
+            "allOf": [
+              { "if": { "required": ["from_state"], "properties": { "from_state": { "const": "refused" } } }, "then": { "properties": { "to_state": { "const": "dry_run" } } } },
+              { "if": { "required": ["from_state"], "properties": { "from_state": { "const": "dry_run" } } }, "then": { "properties": { "to_state": { "const": "confirmed" } } } },
+              { "if": { "required": ["from_state"], "properties": { "from_state": { "const": "confirmed" } } }, "then": { "properties": { "to_state": { "const": "dispatched" } } } },
+              { "if": { "required": ["from_state"], "properties": { "from_state": { "const": "dispatched" } } }, "then": { "properties": { "to_state": { "enum": ["executed", "failed"] } } } },
+              { "if": { "required": ["from_state"], "properties": { "from_state": { "const": "failed" } } }, "then": { "properties": { "to_state": { "const": "superseded" } } } },
+              { "if": { "required": ["from_state"], "properties": { "from_state": { "enum": ["executed", "superseded"] } } }, "then": false }
+            ]
+          }
+        }
+      }
+    },
+
+    "answerProduced": {
+      "title": "answer_produced emitted",
+      "if": { "properties": { "eventType": { "const": "answer_produced" } } },
+      "then": {
+        "required": ["sessionId"],
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["answer_id", "session_id", "intent", "answer_chain", "claim_count", "evidence_count", "prose_present", "at"],
+            "properties": {
+              "answer_id": { "type": "string", "minLength": 1 },
+              "session_id": { "type": "string", "pattern": "^sess-[0-9a-f]{16}$" },
+              "intent": { "type": "string", "minLength": 1 },
+              "answer_chain": {
+                "type": "array",
+                "minItems": 1,
+                "description": "Contiguous prefix of [observation, evidence, diagnosis, recommendation, proposal, execution]; never reordered, never skipped (E18/E50).",
+                "oneOf": [
+                  { "prefixItems": [ { "const": "observation" } ], "maxItems": 1 },
+                  { "prefixItems": [ { "const": "observation" }, { "const": "evidence" } ], "maxItems": 2 },
+                  { "prefixItems": [ { "const": "observation" }, { "const": "evidence" }, { "const": "diagnosis" } ], "maxItems": 3 },
+                  { "prefixItems": [ { "const": "observation" }, { "const": "evidence" }, { "const": "diagnosis" }, { "const": "recommendation" } ], "maxItems": 4 },
+                  { "prefixItems": [ { "const": "observation" }, { "const": "evidence" }, { "const": "diagnosis" }, { "const": "recommendation" }, { "const": "proposal" } ], "maxItems": 5 },
+                  { "prefixItems": [ { "const": "observation" }, { "const": "evidence" }, { "const": "diagnosis" }, { "const": "recommendation" }, { "const": "proposal" }, { "const": "execution" } ], "maxItems": 6 }
+                ]
+              },
+              "diagnosis_class": {
+                "type": ["string", "null"],
+                "enum": [
+                  "access_denial_not_in_allowlist", "access_denial_quota", "access_denial_window",
+                  "schedule_window_restricted", "schedule_no_constraint",
+                  "event_denied", "event_cancelled", "event_cordoned",
+                  "node_triage_runbook", "no_runbook_available", null
+                ]
+              },
+              "canonical": {
+                "type": ["string", "null"],
+                "enum": [
+                  "ENTITY_NOT_FOUND", "CANNOT_CONFIRM", "CLARIFICATION",
+                  "INTENT_NOT_SUPPORTED", "ACTION_REFUSED", null
+                ]
+              },
+              "claim_count": { "type": "integer", "minimum": 0 },
+              "evidence_count": { "type": "integer", "minimum": 0 },
+              "prose_present": { "type": "boolean" },
+              "at": { "$ref": "#/$defs/isoInstant" }
+            },
+            "allOf": [
+              {
+                "if": { "required": ["claim_count"], "properties": { "claim_count": { "minimum": 1 } } },
+                "then": { "properties": { "evidence_count": { "minimum": 1 } } }
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,77 @@
+# Module 12 — TEA CI quality gate (red phase / solutioning stop-point).
+#
+# Phase 3 deliverable (Step 3.2/Step 3.5): the gate that must stay green while the
+# product code does not exist yet. It does NOT require service/ to be written; it
+# proves the framework, schemas and red-phase ATDD suite are all wired and valid.
+#
+# Local equivalent:  make ci   (see Makefile)
+# Backend only: pytest + pytest-asyncio + hypothesis. No Playwright (no browser UI).
+#
+# Exit contract:
+#   * harness (tests/)            -> must PASS
+#   * ATDD (test/atdd/)           -> must be RED for the RIGHT reason
+#                                    (NotImplementedError, never an import/collection error)
+#   * schemas                     -> SQL runs, dto imports, openapi.yaml/events valid
+#   * coverage floors             -> enforced once service/ or module12/ exists
+
+name: module12-tea-gate
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  tea-quality-gate:
+    name: TEA quality gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install test dependencies
+        run: python -m pip install -r requirements-test.txt
+
+      # 1. Harness must be green: fixtures, builders and schema tests.
+      - name: Harness suite (green)
+        run: pytest tests -q --strict-markers
+
+      # 2. ATDD red-phase proof: every test is collected, and every failure is
+      #    NotImplementedError (the stub was called). A typo/import error is a gate FAIL.
+      - name: ATDD red-phase proof (red for the right reason)
+        run: python test/ci/red_phase_check.py
+
+      # 3. Schema / contract artifact validity.
+      - name: Validate schemas and DTOs
+        run: python test/ci/schema_check.py
+
+      # 4. Coverage floors (ADR test-design §3): applies once the implementation lands.
+      - name: Coverage gate (post-implementation)
+        if: hashFiles('module12/**/*.py', 'service/**/*.py') != ''
+        run: |
+          pytest tests -q --cov=service --cov=module12 \
+            --cov-report=term-missing --cov-fail-under=90
+
+      # 5. Gate summary artifact for the readiness report.
+      - name: Emit gate summary
+        if: always()
+        run: |
+          {
+            echo "### Module 12 TEA gate"
+            echo "- harness: pytest tests"
+            echo "- atdd: red-for-the-right-reason"
+            echo "- schemas: SQL + dto + openapi/events"
+          } > tea-gate-summary.md
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tea-gate-summary
+          path: tea-gate-summary.md
