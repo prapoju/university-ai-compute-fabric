@@ -34,6 +34,17 @@ CONTRACT_METHODS: dict[str, set[str]] = {
     "RunbookRegistryPort": {"get"},
 }
 
+# Ports for the Module-12-OWNED stores and id generation. They are not estate providers, so the
+# query-only rule (AD-1/AD-13) does not apply to them: AD-1 protects the operational estate.
+#  - IdGenPort is contract OP-13; SessionStorePort is an internal port (story 1.2, decision D6).
+OWNED_PORT_METHODS: dict[str, set[str]] = {
+    "IdGenPort": {"new_id"},
+    "SessionStorePort": {
+        "create", "get", "list_turns", "append_turn", "mark_expired", "reset", "highest_counters",
+    },
+}  # fmt: skip
+ALL_PORTS = {*CONTRACT_METHODS, *OWNED_PORT_METHODS}
+
 MUTATION_WORDS = re.compile(
     r"(register|set|add|put|post|update|patch|delete|remove|write|create|apply|save|insert"
     r"|cordon|drain|schedule|reserve|enforce|dispatch)",
@@ -55,7 +66,13 @@ def _public_methods(cls: type) -> set[str]:
 
 
 def test_there_is_exactly_one_port_per_contract_operation_group() -> None:
-    assert set(_port_classes()) == set(CONTRACT_METHODS)
+    assert set(_port_classes()) == ALL_PORTS
+    assert not set(CONTRACT_METHODS) & set(OWNED_PORT_METHODS)
+
+
+@pytest.mark.parametrize("port_name", sorted(OWNED_PORT_METHODS))
+def test_owned_store_ports_declare_exactly_their_documented_methods(port_name: str) -> None:
+    assert _public_methods(_port_classes()[port_name]) == OWNED_PORT_METHODS[port_name]
 
 
 @pytest.mark.parametrize("port_name", sorted(CONTRACT_METHODS))
@@ -69,7 +86,7 @@ def test_no_method_name_denotes_mutation_or_control_plane_action(port_name: str)
     assert offenders == []
 
 
-@pytest.mark.parametrize("port_name", sorted(CONTRACT_METHODS))
+@pytest.mark.parametrize("port_name", sorted(ALL_PORTS))
 def test_every_read_returns_a_typed_result_never_a_bare_value(port_name: str) -> None:
     cls = _port_classes()[port_name]
     for method in _public_methods(cls):
@@ -77,7 +94,7 @@ def test_every_read_returns_a_typed_result_never_a_bare_value(port_name: str) ->
         assert str(annotation).startswith("Result["), f"{port_name}.{method} -> {annotation}"
 
 
-@pytest.mark.parametrize("port_name", sorted(CONTRACT_METHODS))
+@pytest.mark.parametrize("port_name", sorted(ALL_PORTS))
 def test_ports_are_abstract_so_only_adapters_can_implement_them(port_name: str) -> None:
     cls = _port_classes()[port_name]
     assert inspect.isabstract(cls)
