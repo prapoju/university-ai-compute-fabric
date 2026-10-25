@@ -59,7 +59,7 @@ def _strip(token: str) -> str:
 
 
 def extract_access_denial_references(query: str) -> AccessDenialReferences | None:
-    """The user and model tokens of ``why was <user> denied <model>`` (and variants), or ``None``."""
+    """The user/model tokens of ``why was <user> denied <model>`` (and variants), or ``None``."""
     text = _clean(query)
     for pattern in _ACCESS_DENIAL:
         match = pattern.search(text)
