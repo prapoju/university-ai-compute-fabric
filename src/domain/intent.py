@@ -59,6 +59,24 @@ INTENT_RULES: tuple[IntentRule, ...] = (
             _rx(r"\b(?:denied|blocked|refused)\b.*\baccess\b"),
         ),
     ),
+    IntentRule(
+        intent_code="diagnose_schedule_window",
+        rule_id="RULE-INTENT-SCHEDULE-WINDOW",
+        patterns=(
+            # "why can't group 4 run their fine-tuning job right now"
+            _rx(
+                r"\bwhy\b.*\b(?:can't|cannot|can not|won't|unable to|not able to"
+                r"|(?:isn't|is not|aren't)\b.*\bable to)\b.*\b(?:run|start|launch|execute)\b"
+            ),
+            # "why is group 4's job pending / not running / waiting"
+            _rx(
+                r"\bwhy\b.*\bjobs?\b.*\b(?:not running|not starting|pending|waiting|queued|stuck)\b"
+            ),
+            # "when can group 4 run their job" / "when does the next window open"
+            _rx(r"\bwhen\b.*\b(?:can|will|could)\b.*\b(?:run|start|launch)\b"),
+            _rx(r"\bwhen\b.*\bnext\b.*\bwindow\b"),
+        ),
+    ),
 )
 
 # Base, third-person and -ing forms only: "cordoned"/"cancelled" report what happened and are

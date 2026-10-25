@@ -28,9 +28,9 @@ Source: `planning/epics.md` Story 3.1 and Annex 12.2. Requirements: FR-05, AD-2,
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1: Domain (pure)** (AC: 1-3) -> `feat(story-3.1): pure window diagnosis and group reference`
-  - [ ] 1.1 `src/domain/window_diagnosis.py`: `extract_group_reference(query)`; `diagnose_schedule_window(group, jobs, windows, clock)` returning a diagnosis (evidence, claim drafts, fact tokens, class) with the half-open rule; `parse_instant` for comparisons only.
-  - [ ] 1.2 `src/domain/intent.py`: rule `diagnose_schedule_window` (`RULE-INTENT-SCHEDULE-WINDOW`).
+- [x] **Task 1: Domain (pure)** (AC: 1-3) -> `feat(story-3.1): pure window diagnosis and group reference`
+  - [x] 1.1 `src/domain/window_diagnosis.py`: `extract_group_reference(query)`; `diagnose_schedule_window(group, jobs, windows, clock)` returning a diagnosis (evidence, claim drafts, fact tokens, class) with the half-open rule; `parse_instant` for comparisons only.
+  - [x] 1.2 `src/domain/intent.py`: rule `diagnose_schedule_window` (`RULE-INTENT-SCHEDULE-WINDOW`).
 - [ ] **Task 2: Application** (AC: 1-5) -> `feat(story-3.1): window diagnosis through the pipeline`
   - [ ] 2.1 `EntityResolver.resolve_group`; shared `write_prose` helper (guard + one retry) extracted from the 1.3 handler.
   - [ ] 2.2 `src/application/window_diagnosis_handler.py` and registration in `bootstrap.py`.

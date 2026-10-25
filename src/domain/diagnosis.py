@@ -254,3 +254,10 @@ def _fact_tokens(
     # identifiers inside the clause text and rule (course codes such as CS-480)
     tokens.update(_IDENTIFIER.findall(f"{clause.rule} {clause.text}"))
     return frozenset(t.casefold() for t in tokens if t)
+
+
+# Shared with the other diagnosers (story 3.1+): same evidence numbering, clock entry, clipping.
+number_evidence = _number
+clock_entry = _clock_entry
+clip = _clip
+bare_id = _bare

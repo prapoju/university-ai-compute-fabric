@@ -126,10 +126,10 @@ def test_two_matching_intents_are_clarified_until_decomposition_exists() -> None
 
 def test_new_intents_are_added_by_registering_a_rule_only() -> None:
     extra = IntentRule(
-        "diagnose_schedule_window", "RULE-INTENT-SCHEDULE", (re.compile(r"\bwindow\b"),)
+        "diagnose_event_history", "RULE-INTENT-HISTORY", (re.compile(r"\bhistory\b"),)
     )
-    decision = classify("why can't group-4 run in this window", [], rules=(*INTENT_RULES, extra))
-    assert decision == Routed("diagnose_schedule_window", "RULE-INTENT-SCHEDULE", 1.0)
+    decision = classify("show the history of group-4", [], rules=(*INTENT_RULES, extra))
+    assert decision == Routed("diagnose_event_history", "RULE-INTENT-HISTORY", 1.0)
 
 
 def test_unicode_lookalikes_and_case_do_not_change_routing() -> None:
@@ -138,8 +138,8 @@ def test_unicode_lookalikes_and_case_do_not_change_routing() -> None:
     )  # full-width
 
 
-def test_the_registry_has_the_s1_rule_and_nothing_that_can_mutate() -> None:
-    assert [r.intent_code for r in INTENT_RULES] == [ACCESS_DENIAL]
+def test_the_registry_has_only_read_only_diagnosis_rules() -> None:
+    assert [r.intent_code for r in INTENT_RULES] == [ACCESS_DENIAL, "diagnose_schedule_window"]
 
 
 @pytest.mark.parametrize(

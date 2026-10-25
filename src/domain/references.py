@@ -91,3 +91,8 @@ def extract_follow_up_reference(query: str) -> str | None:
     if match is None:
         return None
     return _strip(match["ref"]) or None
+
+
+# Shared with the other diagnosers (story 3.1+): same query normalisation and token cleaning.
+clean_query = _clean
+strip_token = _strip
