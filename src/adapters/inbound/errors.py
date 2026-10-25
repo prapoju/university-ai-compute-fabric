@@ -14,9 +14,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from src.domain.canonical_strings import S_PUA
 from src.dto import ErrorBody, ExplanationDTO
-
-S_PUA = "Provider unavailable — cannot answer."
 
 logger = logging.getLogger(__name__)
 

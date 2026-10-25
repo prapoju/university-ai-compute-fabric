@@ -29,6 +29,7 @@ class Failure:
 
     code: str
     observed: tuple[str, ...] = ()
+    message: str | None = None  # rendered contract message (error_catalog.fail); optional
 
     def __post_init__(self) -> None:
         if self.code not in _CATALOG_CODES:

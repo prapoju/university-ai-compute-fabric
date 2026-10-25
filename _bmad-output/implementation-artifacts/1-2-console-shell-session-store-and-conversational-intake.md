@@ -1,6 +1,10 @@
+---
+baseline_commit: ec4da8a8cc592d338aaf44fa43fdf77478c42c86
+---
+
 # Story 1.2: Console shell, session store and conversational intake
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Impl-1 scope note: the canonical story title says "console shell", but the course track is Python/FastAPI
      (no React console). This story delivers the server side of the console: the session REST API, the
@@ -85,11 +89,11 @@ Scenario: Persistence survives a restart
 
 Full Ceremony: test first, then code, per subtask. Commit per numbered task (conventional commits; **no co-author trailer**). Write files with the file-writing tool (not shell here-docs). Test every persistence path on a **file** database as well as `:memory:` (lesson from story 1.1, AD-12).
 
-- [ ] **Task 1: Domain building blocks (pure)** (AC: 2, 3, 4, 5) → `feat(story-1.2): domain rules for sessions, intents and errors`
-  - [ ] 1.1 `src/domain/canonical_strings.py`: single owner of every canonical literal (`S_ENF`, `S_CNC`, `S_PUA`, `S_ARF`, `S_RBX`, `S_CAP` byte-exact from `contracts.md` section 0 / ARCHITECTURE "Consistency Conventions", plus `Clarification required: {reason}.` and the three reason strings in this story). `src/adapters/inbound/errors.py` imports `S_PUA` from here (remove its local copy).
-  - [ ] 1.2 `src/domain/error_catalog.py`: the full section 4 catalog as data: `ErrorCode -> (http_status, retryable, message_template)`; `Failure` gains an optional `message` (backward compatible). A test asserts the catalog covers exactly the `ErrorCode` literal in `src/dto.py` and pins the statuses used here (400/404/410/503).
-  - [ ] 1.3 `src/domain/session_rules.py`: `MAX_QUERY_CHARS = 1000`, `IDLE_LIMIT = 30 min` (D51), `normalise_query(text) -> Result[str]` (strip once, empty/too-long failures with the contract messages `Query must contain between 1 and 1000 characters; received 0.` / `Query exceeds 1000 characters; received {n}.`), `is_idle_expired(last_activity, now)` (strictly `>` 30 min), `empty_context()`.
-  - [ ] 1.4 `src/domain/intent.py`: deterministic rule-based classifier (AD-11, no LLM): an `IntentRule` registry (data: `intent_code`, `matched_rule_id`, patterns) with one rule today (`diagnose_access_denial`), destructive-verb detection, and `classify(query, prior_intents) -> Routed | Clarify(reason)`. Compound destructive → `Clarify`; no match → `Clarify`; follow-up marker (`and what about …`, `how about …`) inherits the most recent **registered** intent from `prior_intents`, else clarifies. New intents (stories 3.1, 4.1, 3.4) are added by registering rules only.
+- [x] **Task 1: Domain building blocks (pure)** (AC: 2, 3, 4, 5) → `feat(story-1.2): domain rules for sessions, intents and errors`
+  - [x] 1.1 `src/domain/canonical_strings.py`: single owner of every canonical literal (`S_ENF`, `S_CNC`, `S_PUA`, `S_ARF`, `S_RBX`, `S_CAP` byte-exact from `contracts.md` section 0 / ARCHITECTURE "Consistency Conventions", plus `Clarification required: {reason}.` and the three reason strings in this story). `src/adapters/inbound/errors.py` imports `S_PUA` from here (remove its local copy).
+  - [x] 1.2 `src/domain/error_catalog.py`: the full section 4 catalog as data: `ErrorCode -> (http_status, retryable, message_template)`; `Failure` gains an optional `message` (backward compatible). A test asserts the catalog covers exactly the `ErrorCode` literal in `src/dto.py` and pins the statuses used here (400/404/410/503).
+  - [x] 1.3 `src/domain/session_rules.py`: `MAX_QUERY_CHARS = 1000`, `IDLE_LIMIT = 30 min` (D51), `normalise_query(text) -> Result[str]` (strip once, empty/too-long failures with the contract messages `Query must contain between 1 and 1000 characters; received 0.` / `Query exceeds 1000 characters; received {n}.`), `is_idle_expired(last_activity, now)` (strictly `>` 30 min), `empty_context()`.
+  - [x] 1.4 `src/domain/intent.py`: deterministic rule-based classifier (AD-11, no LLM): an `IntentRule` registry (data: `intent_code`, `matched_rule_id`, patterns) with one rule today (`diagnose_access_denial`), destructive-verb detection, and `classify(query, prior_intents) -> Routed | Clarify(reason)`. Compound destructive → `Clarify`; no match → `Clarify`; follow-up marker (`and what about …`, `how about …`) inherits the most recent **registered** intent from `prior_intents`, else clarifies. New intents (stories 3.1, 4.1, 3.4) are added by registering rules only.
 - [ ] **Task 2: Ports** (AC: 1, 5, 6) → `feat(story-1.2): session store, idgen and use-case ports`
   - [ ] 2.1 `src/ports/outbound/idgen.py`: `IdGenPort.new_id(kind: IdKind) -> Result[IdString]` exactly as contracts OP-13 (bad kind → `VALIDATION_BAD_ID_KIND`).
   - [ ] 2.2 `src/ports/outbound/session_store.py`: `SessionStorePort` for the **Module-12-owned** store (this is not an estate port, so AD-1's query-only rule does not apply; it is an internal port, see D6): `create`, `get -> StoredSession | None` (session DTO + `last_turn_at`), `list_turns`, `append_turn` (answer + new context + timestamps, atomic), `mark_expired` (idempotent), `reset` (idempotent), `highest_counters` (for id seeding). Every method returns `Result` (AD-12). Update `tests/unit/test_ports_query_only.py` so it distinguishes the 12 read-only provider ports from these two (owned-store/generator ports have their own expected method sets).
