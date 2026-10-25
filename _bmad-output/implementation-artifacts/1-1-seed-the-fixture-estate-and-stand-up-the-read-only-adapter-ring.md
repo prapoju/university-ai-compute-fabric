@@ -1,6 +1,10 @@
+---
+baseline_commit: 17a292faae21c0a4e5a29482b1a04e75c2ab8339
+---
+
 # Story 1.1: Seed the fixture estate and stand up the read-only adapter ring
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Impl-1 note: this story ALSO carries the "Foundation scaffold" required by the course task (Impl-1 §1, §4):
      runnable project skeleton, config, migrations, dependency validation, health probes, 32-node fixtures.
@@ -68,14 +72,14 @@ Scenario: Adding an entity type needs no change elsewhere (NFR-10)
 Follow the Full Ceremony: write each test **with** its code (red → green → refactor). Commit after each numbered task.
 
 - [ ] **Task 1 — Foundation scaffold** (AC: 5) → commit `feat(scaffold): ...`
-  - [ ] 1.1 `pyproject.toml` (Python ≥ 3.11; runtime deps: `fastapi`, `uvicorn[standard]`, `pydantic>=2`; dev deps: `pytest`, `pytest-asyncio`, `pytest-cov`, `hypothesis`, `httpx`, `ruff`). Resolve and record the exact versions installed; do **not** add anything else without logging it in `docs/ai-decision-log.md`. Keep `requirements-test.txt` working (or make it `-e .[dev]`).
-  - [ ] 1.2 Create the `src/` tree (see *File structure*), every package with `__init__.py`. Add `pythonpath = .` to `pytest.ini` so `from src...` imports resolve; keep `testpaths = tests` and existing markers.
-  - [ ] 1.3 `src/config.py`: `Settings` (Pydantic v2 `BaseModel`) loaded from environment (`M12_*`), validated at startup: `M12_FIXTURES_DIR`, `M12_DB_PATH` (default `:memory:`-safe path), `M12_CLOCK_START` (ISO `Instant`), `M12_LOG_LEVEL`. No extra settings library. `.env.example` documents every variable.
-  - [ ] 1.4 `src/dependency_check.py` (+ `python -m src.dependency_check`): Python ≥ 3.11, `sqlite3.sqlite_version` ≥ 3.35 (AD-10), required packages importable, fixtures dir present. Returns a list of problems; startup aborts with a readable message if non-empty.
-  - [ ] 1.4b Migrations: copy `planning/detailed-design/schemas/001_module12_copilot_schema.sql` to `migrations/001_module12_copilot_schema.sql` **verbatim** and add a tiny stdlib-`sqlite3` runner (`src/adapters/outbound/db/migrate.py`, `schema_migrations` table, idempotent). No ORM, no Alembic (ARCHITECTURE "Stack Decisions": no ORM).
-  - [ ] 1.5 `src/adapters/inbound/app.py` + `src/bootstrap.py` (composition root): `create_app(settings)`; `GET /healthz`, `GET /readyz`. Structured JSON error handler skeleton (`ErrorBody`) so no stack trace ever leaks.
+  - [x] 1.1 `pyproject.toml` (Python ≥ 3.11; runtime deps: `fastapi`, `uvicorn[standard]`, `pydantic>=2`; dev deps: `pytest`, `pytest-asyncio`, `pytest-cov`, `hypothesis`, `httpx`, `ruff`). Resolve and record the exact versions installed; do **not** add anything else without logging it in `docs/ai-decision-log.md`. Keep `requirements-test.txt` working (or make it `-e .[dev]`).
+  - [x] 1.2 Create the `src/` tree (see *File structure*), every package with `__init__.py`. Add `pythonpath = .` to `pytest.ini` so `from src...` imports resolve; keep `testpaths = tests` and existing markers.
+  - [x] 1.3 `src/config.py`: `Settings` (Pydantic v2 `BaseModel`) loaded from environment (`M12_*`), validated at startup: `M12_FIXTURES_DIR`, `M12_DB_PATH` (default `:memory:`-safe path), `M12_CLOCK_START` (ISO `Instant`), `M12_LOG_LEVEL`. No extra settings library. `.env.example` documents every variable.
+  - [x] 1.4 `src/dependency_check.py` (+ `python -m src.dependency_check`): Python ≥ 3.11, `sqlite3.sqlite_version` ≥ 3.35 (AD-10), required packages importable, fixtures dir present. Returns a list of problems; startup aborts with a readable message if non-empty.
+  - [x] 1.4b Migrations: copy `planning/detailed-design/schemas/001_module12_copilot_schema.sql` to `migrations/001_module12_copilot_schema.sql` **verbatim** and add a tiny stdlib-`sqlite3` runner (`src/adapters/outbound/db/migrate.py`, `schema_migrations` table, idempotent). No ORM, no Alembic (ARCHITECTURE "Stack Decisions": no ORM).
+  - [x] 1.5 `src/adapters/inbound/app.py` + `src/bootstrap.py` (composition root): `create_app(settings)`; `GET /healthz`, `GET /readyz`. Structured JSON error handler skeleton (`ErrorBody`) so no stack trace ever leaks.
   - [ ] 1.6 `Dockerfile` + `docker-compose.yml` (single service, port 8000, healthcheck on `/healthz`) + `README.md` quick start (`pip install -e .[dev]` → `pytest` → `uvicorn src.adapters.inbound.app:create_app --factory`). Add a `Makefile` target or keep the existing ones working.
-  - [ ] 1.7 Tests: `tests/unit/test_config.py`, `tests/unit/test_dependency_check.py`, `tests/integration/test_migrations.py`, `tests/api/test_health.py` (healthz 200; readyz 200 when ready and 503 + structured JSON when fixtures missing).
+  - [x] 1.7 Tests: `tests/unit/test_config.py`, `tests/unit/test_dependency_check.py`, `tests/integration/test_migrations.py`, `tests/api/test_health.py` (healthz 200; readyz 200 when ready and 503 + structured JSON when fixtures missing).
 - [ ] **Task 2 — Shared DTOs + domain primitives** (AC: 2, 3)
   - [ ] 2.1 Copy `planning/detailed-design/schemas/dto.py` **verbatim** to `src/dto.py` (it is the contract). Add `tests/unit/test_dto_contract.py` asserting the copy is byte-equal (modulo line endings) to the planning file so drift fails the build.
   - [ ] 2.2 `src/domain/result.py`: `Ok[T]`, `Failure` (frozen dataclasses; `Failure.code` ∈ the §4 `ErrorCode` literal), plus `is_ok` helpers. Pure — no I/O.
