@@ -1,0 +1,5 @@
+{
+  "source_id": "policy#night.2",
+  "text": "Fine-tuning and training jobs are restricted to the night window 22:00-06:00 UTC. Daytime hours are reserved for interactive teaching.",
+  "version": "2026.1"
+}

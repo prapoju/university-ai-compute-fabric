@@ -1,0 +1,50 @@
+[
+  {
+    "id": "job#job-8801",
+    "group_id": "group#group-2",
+    "course": "CS101",
+    "status": "cancelled",
+    "scheduling_constraint": null,
+    "created_at": "2026-10-15T10:05:00.000Z"
+  },
+  {
+    "id": "job#job-8812",
+    "group_id": "group#group-7",
+    "course": "CS301",
+    "status": "succeeded",
+    "scheduling_constraint": null,
+    "created_at": "2026-10-15T16:20:00.000Z"
+  },
+  {
+    "id": "job#job-8823",
+    "group_id": "group#group-4",
+    "course": "CS201",
+    "status": "pending",
+    "scheduling_constraint": "night",
+    "created_at": "2026-10-16T09:30:00.000Z"
+  },
+  {
+    "id": "job#job-8824",
+    "group_id": "group#group-2",
+    "course": "CS201",
+    "status": "pending",
+    "scheduling_constraint": "night",
+    "created_at": "2026-10-16T09:41:00.000Z"
+  },
+  {
+    "id": "job#job-8825",
+    "group_id": "group#group-7",
+    "course": "CS201",
+    "status": "pending",
+    "scheduling_constraint": null,
+    "created_at": "2026-10-16T10:02:00.000Z"
+  },
+  {
+    "id": "job#job-8830",
+    "group_id": "group#group-4",
+    "course": "CS301",
+    "status": "running",
+    "scheduling_constraint": null,
+    "created_at": "2026-10-16T11:15:00.000Z"
+  }
+]

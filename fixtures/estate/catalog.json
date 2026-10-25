@@ -1,0 +1,49 @@
+[
+  {
+    "id": "model#deepseek-coder",
+    "name": "deepseek-coder",
+    "allowed_roles": [
+      "staff",
+      "faculty",
+      "privileged"
+    ]
+  },
+  {
+    "id": "model#llama-3-8b-instruct",
+    "name": "Llama-3-8B-Instruct-Q4",
+    "allowed_roles": [
+      "student",
+      "staff",
+      "faculty",
+      "privileged"
+    ]
+  },
+  {
+    "id": "model#qwen-2.5-coder-7b",
+    "name": "Qwen-2.5-Coder-7B",
+    "allowed_roles": [
+      "student",
+      "staff",
+      "faculty",
+      "privileged"
+    ]
+  },
+  {
+    "id": "model#mistral-7b-v0.3",
+    "name": "Mistral-7B-v0.3",
+    "allowed_roles": [
+      "student",
+      "staff",
+      "faculty",
+      "privileged"
+    ]
+  },
+  {
+    "id": "model#secret-research-70b",
+    "name": "Secret-Research-70B",
+    "allowed_roles": [
+      "faculty",
+      "privileged"
+    ]
+  }
+]

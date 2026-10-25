@@ -1,0 +1,16 @@
+[
+  {
+    "id": "reservation#res-001",
+    "node_id": "node#ws-gpu-05",
+    "start": "2026-10-16T14:00:00.000Z",
+    "end": "2026-10-16T18:00:00.000Z",
+    "purpose": "CS201 lab session"
+  },
+  {
+    "id": "reservation#res-002",
+    "node_id": "node#ws-gpu-07",
+    "start": "2026-10-16T16:00:00.000Z",
+    "end": "2026-10-16T20:00:00.000Z",
+    "purpose": "Benchmark run"
+  }
+]

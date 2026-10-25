@@ -1,0 +1,22 @@
+{
+  "template_id": "rb-err-thermal-88",
+  "error_code": "ERR_THERMAL_88",
+  "steps": [
+    "Confirm the node is cordoned and no job is running on it.",
+    "Inspect the GPU fans and the chassis airflow path for obstruction or dust.",
+    "Check the room and rack ambient temperature against the lab's normal range.",
+    "Re-seat or replace a stalled fan following the approved procedure.",
+    "Wait for the GPU to cool below 75 C, then request an uncordon through the platform owner."
+  ],
+  "required_tools": [
+    "torx screwdriver",
+    "compressed air",
+    "infrared thermometer"
+  ],
+  "safety_warnings": [
+    "Power the node down and unplug it before opening the chassis."
+  ],
+  "physical_intervention": true,
+  "approved_source": "Lab Safety SOP-THERM-01",
+  "version": "1.0"
+}

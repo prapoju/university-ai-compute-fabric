@@ -1,0 +1,290 @@
+[
+  {
+    "id": "node#ws-gpu-01",
+    "hostname": "ws-gpu-01",
+    "gpu_memory_gb": 24,
+    "status": "available",
+    "cordoned": false,
+    "error_code": null,
+    "health": "healthy"
+  },
+  {
+    "id": "node#ws-gpu-02",
+    "hostname": "ws-gpu-02",
+    "gpu_memory_gb": 24,
+    "status": "available",
+    "cordoned": false,
+    "error_code": null,
+    "health": "healthy"
+  },
+  {
+    "id": "node#ws-gpu-03",
+    "hostname": "ws-gpu-03",
+    "gpu_memory_gb": 24,
+    "status": "available",
+    "cordoned": false,
+    "error_code": null,
+    "health": "healthy"
+  },
+  {
+    "id": "node#ws-gpu-04",
+    "hostname": "ws-gpu-04",
+    "gpu_memory_gb": 24,
+    "status": "available",
+    "cordoned": false,
+    "error_code": null,
+    "health": "healthy"
+  },
+  {
+    "id": "node#ws-gpu-05",
+    "hostname": "ws-gpu-05",
+    "gpu_memory_gb": 24,
+    "status": "reserved",
+    "cordoned": false,
+    "error_code": null,
+    "health": "healthy"
+  },
+  {
+    "id": "node#ws-gpu-06",
+    "hostname": "ws-gpu-06",
+    "gpu_memory_gb": 24,
+    "status": "available",
+    "cordoned": false,
+    "error_code": null,
+    "health": "healthy"
+  },
+  {
+    "id": "node#ws-gpu-07",
+    "hostname": "ws-gpu-07",
+    "gpu_memory_gb": 24,
+    "status": "reserved",
+    "cordoned": false,
+    "error_code": null,
+    "health": "healthy"
+  },
+  {
+    "id": "node#ws-gpu-08",
+    "hostname": "ws-gpu-08",
+    "gpu_memory_gb": 24,
+    "status": "available",
+    "cordoned": false,
+    "error_code": null,
+    "health": "healthy"
+  },
+  {
+    "id": "node#ws-gpu-09",
+    "hostname": "ws-gpu-09",
+    "gpu_memory_gb": 24,
+    "status": "available",
+    "cordoned": false,
+    "error_code": null,
+    "health": "healthy"
+  },
+  {
+    "id": "node#ws-gpu-10",
+    "hostname": "ws-gpu-10",
+    "gpu_memory_gb": 24,
+    "status": "available",
+    "cordoned": false,
+    "error_code": null,
+    "health": "healthy"
+  },
+  {
+    "id": "node#ws-gpu-11",
+    "hostname": "ws-gpu-11",
+    "gpu_memory_gb": 24,
+    "status": "fault",
+    "cordoned": true,
+    "error_code": "ERR_THERMAL_88",
+    "health": "fault"
+  },
+  {
+    "id": "node#ws-gpu-12",
+    "hostname": "ws-gpu-12",
+    "gpu_memory_gb": 24,
+    "status": "available",
+    "cordoned": false,
+    "error_code": null,
+    "health": "healthy"
+  },
+  {
+    "id": "node#ws-gpu-13",
+    "hostname": "ws-gpu-13",
+    "gpu_memory_gb": 24,
+    "status": "available",
+    "cordoned": false,
+    "error_code": null,
+    "health": "healthy"
+  },
+  {
+    "id": "node#ws-gpu-14",
+    "hostname": "ws-gpu-14",
+    "gpu_memory_gb": 24,
+    "status": "active",
+    "cordoned": false,
+    "error_code": null,
+    "health": "healthy"
+  },
+  {
+    "id": "node#ws-gpu-15",
+    "hostname": "ws-gpu-15",
+    "gpu_memory_gb": 24,
+    "status": "available",
+    "cordoned": false,
+    "error_code": null,
+    "health": "healthy"
+  },
+  {
+    "id": "node#ws-gpu-16",
+    "hostname": "ws-gpu-16",
+    "gpu_memory_gb": 24,
+    "status": "available",
+    "cordoned": false,
+    "error_code": null,
+    "health": "healthy"
+  },
+  {
+    "id": "node#ws-gpu-17",
+    "hostname": "ws-gpu-17",
+    "gpu_memory_gb": 24,
+    "status": "available",
+    "cordoned": false,
+    "error_code": null,
+    "health": "healthy"
+  },
+  {
+    "id": "node#ws-gpu-18",
+    "hostname": "ws-gpu-18",
+    "gpu_memory_gb": 24,
+    "status": "available",
+    "cordoned": false,
+    "error_code": null,
+    "health": "healthy"
+  },
+  {
+    "id": "node#ws-gpu-19",
+    "hostname": "ws-gpu-19",
+    "gpu_memory_gb": 24,
+    "status": "available",
+    "cordoned": false,
+    "error_code": null,
+    "health": "healthy"
+  },
+  {
+    "id": "node#ws-gpu-20",
+    "hostname": "ws-gpu-20",
+    "gpu_memory_gb": 24,
+    "status": "available",
+    "cordoned": false,
+    "error_code": null,
+    "health": "healthy"
+  },
+  {
+    "id": "node#ws-gpu-21",
+    "hostname": "ws-gpu-21",
+    "gpu_memory_gb": 24,
+    "status": "active",
+    "cordoned": false,
+    "error_code": null,
+    "health": "healthy"
+  },
+  {
+    "id": "node#ws-gpu-22",
+    "hostname": "ws-gpu-22",
+    "gpu_memory_gb": 24,
+    "status": "available",
+    "cordoned": false,
+    "error_code": null,
+    "health": "healthy"
+  },
+  {
+    "id": "node#ws-gpu-23",
+    "hostname": "ws-gpu-23",
+    "gpu_memory_gb": 24,
+    "status": "available",
+    "cordoned": false,
+    "error_code": null,
+    "health": "healthy"
+  },
+  {
+    "id": "node#ws-gpu-24",
+    "hostname": "ws-gpu-24",
+    "gpu_memory_gb": 24,
+    "status": "available",
+    "cordoned": false,
+    "error_code": null,
+    "health": "healthy"
+  },
+  {
+    "id": "node#ws-gpu-25",
+    "hostname": "ws-gpu-25",
+    "gpu_memory_gb": 24,
+    "status": "available",
+    "cordoned": false,
+    "error_code": null,
+    "health": "healthy"
+  },
+  {
+    "id": "node#ws-gpu-26",
+    "hostname": "ws-gpu-26",
+    "gpu_memory_gb": 24,
+    "status": "available",
+    "cordoned": false,
+    "error_code": null,
+    "health": "healthy"
+  },
+  {
+    "id": "node#ws-gpu-27",
+    "hostname": "ws-gpu-27",
+    "gpu_memory_gb": 24,
+    "status": "available",
+    "cordoned": false,
+    "error_code": null,
+    "health": "healthy"
+  },
+  {
+    "id": "node#ws-gpu-28",
+    "hostname": "ws-gpu-28",
+    "gpu_memory_gb": 24,
+    "status": "available",
+    "cordoned": false,
+    "error_code": null,
+    "health": "healthy"
+  },
+  {
+    "id": "node#ws-gpu-29",
+    "hostname": "ws-gpu-29",
+    "gpu_memory_gb": 24,
+    "status": "available",
+    "cordoned": false,
+    "error_code": null,
+    "health": "healthy"
+  },
+  {
+    "id": "node#ws-gpu-30",
+    "hostname": "ws-gpu-30",
+    "gpu_memory_gb": 24,
+    "status": "available",
+    "cordoned": false,
+    "error_code": null,
+    "health": "healthy"
+  },
+  {
+    "id": "node#ws-gpu-31",
+    "hostname": "ws-gpu-31",
+    "gpu_memory_gb": 24,
+    "status": "available",
+    "cordoned": false,
+    "error_code": null,
+    "health": "healthy"
+  },
+  {
+    "id": "node#ws-gpu-32",
+    "hostname": "ws-gpu-32",
+    "gpu_memory_gb": 96,
+    "status": "available",
+    "cordoned": false,
+    "error_code": null,
+    "health": "healthy"
+  }
+]

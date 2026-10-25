@@ -1,0 +1,42 @@
+[
+  {
+    "id": "user#alex",
+    "display_name": "Alex Rivera",
+    "role": "student"
+  },
+  {
+    "id": "user#mateo",
+    "display_name": "Mateo Gomez",
+    "role": "student"
+  },
+  {
+    "id": "user#sofia",
+    "display_name": "Sofia Lindqvist",
+    "role": "student"
+  },
+  {
+    "id": "user#lucas",
+    "display_name": "Lucas Ferreira",
+    "role": "student"
+  },
+  {
+    "id": "user#nadia",
+    "display_name": "Nadia Okafor",
+    "role": "staff"
+  },
+  {
+    "id": "user#carlos",
+    "display_name": "Carlos Medina",
+    "role": "staff"
+  },
+  {
+    "id": "user#prof-zhang",
+    "display_name": "Professor Zhang",
+    "role": "faculty"
+  },
+  {
+    "id": "user#dr-vance",
+    "display_name": "Dr. Marcus Vance",
+    "role": "privileged"
+  }
+]

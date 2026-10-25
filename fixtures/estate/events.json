@@ -1,0 +1,26 @@
+[
+  {
+    "event_id": "event#evt-4711",
+    "type": "access_denied",
+    "entity_ref": "user#alex",
+    "timestamp": "2026-10-16T13:42:10.000Z",
+    "outcome": "denied",
+    "recorded_reason": "not-in-allowlist: policy#catalog.4.2"
+  },
+  {
+    "event_id": "event#evt-4712",
+    "type": "job_cancelled",
+    "entity_ref": "job#job-8801",
+    "timestamp": "2026-10-15T10:31:00.000Z",
+    "outcome": "cancelled",
+    "recorded_reason": "cancelled by owner"
+  },
+  {
+    "event_id": "event#evt-4720",
+    "type": "node_cordoned",
+    "entity_ref": "node#ws-gpu-11",
+    "timestamp": "2026-10-16T14:05:00.000Z",
+    "outcome": "cordoned",
+    "recorded_reason": "ERR_THERMAL_88: GPU temperature reached the 88 C absolute threshold"
+  }
+]

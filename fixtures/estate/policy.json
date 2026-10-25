@@ -1,0 +1,30 @@
+[
+  {
+    "clause_id": "policy#catalog.4.1",
+    "model_id": "model#llama-3-8b-instruct",
+    "rule": "allowlist: student, staff, faculty, privileged",
+    "reason_class": "not-in-allowlist",
+    "text": "Llama-3-8B-Instruct is available to every campus role."
+  },
+  {
+    "clause_id": "policy#catalog.4.2",
+    "model_id": "model#deepseek-coder",
+    "rule": "allowlist: staff, faculty, privileged",
+    "reason_class": "not-in-allowlist",
+    "text": "deepseek-coder is restricted to staff, faculty and privileged roles; the student role is not on the allowlist."
+  },
+  {
+    "clause_id": "policy#catalog.4.3",
+    "model_id": "model#secret-research-70b",
+    "rule": "allowlist: faculty, privileged",
+    "reason_class": "not-in-allowlist",
+    "text": "Secret-Research-70B is restricted to research faculty and privileged roles."
+  },
+  {
+    "clause_id": "policy#quota.1",
+    "model_id": "model#qwen-2.5-coder-7b",
+    "rule": "daily token quota applies",
+    "reason_class": "quota",
+    "text": "Qwen-2.5-Coder-7B requests count against the per-user daily token quota."
+  }
+]

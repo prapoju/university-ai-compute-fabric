@@ -1,0 +1,9 @@
+[
+  {
+    "window_id": "window#night",
+    "applies_to": "fine-tuning",
+    "start": "2026-10-16T22:00:00.000Z",
+    "end": "2026-10-17T06:00:00.000Z",
+    "timezone": "UTC"
+  }
+]

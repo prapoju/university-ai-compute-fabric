@@ -1,0 +1,26 @@
+[
+  {
+    "id": "group#group-2",
+    "name": "Group 2",
+    "members": [
+      "user#sofia"
+    ]
+  },
+  {
+    "id": "group#group-4",
+    "name": "Group 4",
+    "members": [
+      "user#mateo",
+      "user#lucas",
+      "user#alex"
+    ]
+  },
+  {
+    "id": "group#group-7",
+    "name": "Group 7",
+    "members": [
+      "user#sofia",
+      "user#lucas"
+    ]
+  }
+]

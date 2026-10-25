@@ -1,0 +1,5 @@
+{
+  "source_id": "policy#catalog.4",
+  "text": "Model access is granted by role allowlist. A role that is not on a model's allowlist is denied with reason class not-in-allowlist.",
+  "version": "2026.1"
+}
