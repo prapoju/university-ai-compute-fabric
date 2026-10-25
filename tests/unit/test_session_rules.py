@@ -79,3 +79,14 @@ def test_valid_operator_roles(role: str) -> None:
 )
 def test_invalid_operator_roles(role: str) -> None:
     assert not is_valid_operator_role(role)
+
+
+@pytest.mark.parametrize("text", ["\x00why", "why\x00", "a\x00b", "\x00", "bad \ud800 surrogate"])
+def test_nul_and_lone_surrogates_are_malformed_not_stored(text: str) -> None:
+    result = normalise_query(text)
+    assert isinstance(result, Failure) and result.code == "VALIDATION_MALFORMED_BODY"
+    assert result.message == "Request body does not match schema SubmitQueryRequest."
+
+
+def test_ordinary_control_whitespace_inside_a_query_is_still_accepted() -> None:
+    assert normalise_query("line one\n\tline two") == Ok("line one\n\tline two")

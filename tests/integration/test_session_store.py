@@ -270,3 +270,15 @@ def test_a_file_database_survives_reopening(tmp_path: Path) -> None:
     assert _ok(second.get(sid)).session.context.prior_intents == ["i"]
     assert len(_ok(second.list_turns(sid))) == 1
     assert _ok(second.highest_counters()) == {"session": 1, "answer": 1}
+
+
+def test_applied_migrations_are_read_through_the_store_lock(store: SqliteSessionStore) -> None:
+    assert "001_module12_copilot_schema.sql" in _ok(store.applied_migrations())
+
+
+def test_applied_migrations_on_a_closed_connection_is_a_typed_failure(database: str) -> None:
+    connection = _connect(database)
+    store = SqliteSessionStore(connection)
+    connection.close()
+    result = store.applied_migrations()
+    assert isinstance(result, Failure) and result.code == "PROVIDER_UNAVAILABLE"

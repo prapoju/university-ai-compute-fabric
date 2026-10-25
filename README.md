@@ -53,7 +53,8 @@ curl -s -X DELETE localhost:8000/api/v1/sessions/sess-0000000000000001   # 204
 Errors are always the typed `ErrorBody` JSON (`code`, `status`, `message`, `retryable`): empty or
 over-1000-character queries are `400`, an unknown session `404`, a reset/expired or 30-minutes-idle
 session `410`, a dependency failure `503`. Sessions and turns live in SQLite (`M12_DB_PATH`;
-`:memory:` by default, a file in Docker) and survive restarts. Until story 1.3 a routed query
+`:memory:` by default, a file in Docker): with a file database - what Docker uses - sessions and
+turns survive restarts; with `:memory:` they do not. The session ids shown above are illustrative. Until story 1.3 a routed query
 returns an observation-only answer; the diagnosis plugs into `AnswerPipeline.register`.
 The clock is simulated (`M12_CLOCK_START`) and does not advance on its own.
 

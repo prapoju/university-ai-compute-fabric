@@ -21,11 +21,18 @@ def is_valid_operator_role(role: str) -> bool:
     return _OPERATOR_ROLE.fullmatch(role) is not None
 
 
+def _has_unstorable_character(text: str) -> bool:
+    """NUL truncates SQLite's ``length()`` and a lone surrogate cannot be encoded as UTF-8."""
+    return "\x00" in text or any(0xD800 <= ord(ch) <= 0xDFFF for ch in text)
+
+
 def normalise_query(text: str) -> Result[str]:
     """Trim once, then apply the emptiness and length tests to that same trimmed value (P1)."""
     trimmed = text.strip()
     if len(trimmed) == 0:
         return fail("VALIDATION_EMPTY_QUERY")
+    if _has_unstorable_character(trimmed):
+        return fail("VALIDATION_MALFORMED_BODY", schema_id="SubmitQueryRequest")
     if len(trimmed) > MAX_QUERY_CHARS:
         return fail("VALIDATION_QUERY_TOO_LONG", n=len(trimmed))
     return Ok(trimmed)

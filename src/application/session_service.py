@@ -7,13 +7,14 @@ updates (NFR-6). Context never authorizes anything (AD-5): there is no destructi
 
 from __future__ import annotations
 
+import logging
 import threading
 import weakref
 
 from src.application.pipeline import AnswerPipeline, TurnInput
 from src.domain.error_catalog import fail
 from src.domain.intent import classify
-from src.domain.result import Ok, Result, is_failure
+from src.domain.result import Failure, Ok, Result, is_failure
 from src.domain.session_rules import (
     empty_context,
     is_idle_expired,
@@ -23,6 +24,8 @@ from src.domain.session_rules import (
 from src.dto import AnswerEnvelopeDTO, GetSessionResponse, SessionContextDTO, SessionDTO
 from src.ports.inbound import CanonicalOutcome, SessionUseCases
 from src.ports.outbound import ClockPort, IdGenPort, SessionStorePort, StoredSession
+
+logger = logging.getLogger(__name__)
 
 
 class _Guard:
@@ -86,14 +89,10 @@ class SessionService(SessionUseCases):
     def submit_query(
         self, session_id: str, query_text: str
     ) -> Result[AnswerEnvelopeDTO | CanonicalOutcome]:
-        query = normalise_query(
-            query_text
-        )  # P1 first: a rejected query reads no clock, mints no id
+        # P1 first: a rejected query reads no clock and mints no id
+        query = normalise_query(query_text)
         if is_failure(query):
             return query
-        now = self._clock.now()  # one read for the whole turn
-        if is_failure(now):
-            return now
 
         with self._guard(session_id):
             found = self._store.get(session_id)
@@ -103,10 +102,19 @@ class SessionService(SessionUseCases):
             if stored is None:
                 return fail("SESSION_NOT_FOUND", sid=session_id)
 
-            if self._is_unusable(stored, now.value.instant):  # P2: reset, expired or idle
+            # One clock read per request, taken inside the guard: turns of a session are then
+            # stamped in the order they are committed, and an unknown session never needs a clock.
+            now = self._clock.now()
+            if is_failure(now):
+                return now
+
+            usable = self._is_usable(stored, now.value.instant)
+            if is_failure(usable):
+                return usable
+            if not usable.value:  # P2: reset, expired or idle for more than 30 minutes
                 persisted = self._store.mark_expired(session_id, now.value.instant)
-                if is_failure(persisted):
-                    return persisted
+                if is_failure(persisted):  # the 410 is true either way: do not hide it
+                    logger.warning("could not persist expiry of %s: %s", session_id, persisted)
                 return fail("SESSION_EXPIRED", sid=session_id)
 
             answer_id = self._idgen.new_id("answer")
@@ -127,7 +135,11 @@ class SessionService(SessionUseCases):
                 return output
 
             turn = output.value
-            new_entities = [e for e in turn.resolved_entities if e not in context.resolved_entities]
+            new_entities = list(
+                dict.fromkeys(
+                    e for e in turn.resolved_entities if e not in context.resolved_entities
+                )
+            )  # de-duplicated, order preserved (Q2: the context only ever gains entities)
             updated = SessionContextDTO(
                 resolved_entities=[*context.resolved_entities, *new_entities],
                 prior_intents=[*context.prior_intents, turn.answer.intent],
@@ -139,20 +151,26 @@ class SessionService(SessionUseCases):
             return Ok(turn.canonical or AnswerEnvelopeDTO(answers=[turn.answer]))
 
     @staticmethod
-    def _is_unusable(stored: StoredSession, now: str) -> bool:
+    def _is_usable(stored: StoredSession, now: str) -> Result[bool]:
         if stored.session.status in ("reset", "expired"):
-            return True
+            return Ok(False)
         last_activity = stored.last_turn_at or stored.session.created_at
-        return is_idle_expired(last_activity, now)
+        try:
+            return Ok(not is_idle_expired(last_activity, now))
+        except ValueError as exc:  # a stored timestamp that is not a real instant
+            observed = (f"stored timestamp is not a valid instant: {exc}",)
+            return Failure("PROVIDER_UNAVAILABLE", observed=observed)
 
     # -- get_session ---------------------------------------------------------------------------
     def get_session(self, session_id: str) -> Result[GetSessionResponse]:
-        found = self._store.get(session_id)
-        if is_failure(found):
-            return found
-        if found.value is None:
-            return fail("SESSION_NOT_FOUND", sid=session_id)
-        turns = self._store.list_turns(session_id)
+        # under the session guard so that context and turns come from one consistent snapshot
+        with self._guard(session_id):
+            found = self._store.get(session_id)
+            if is_failure(found):
+                return found
+            if found.value is None:
+                return fail("SESSION_NOT_FOUND", sid=session_id)
+            turns = self._store.list_turns(session_id)
         if is_failure(turns):
             return turns
         session = found.value.session
@@ -169,13 +187,13 @@ class SessionService(SessionUseCases):
 
     # -- reset_session -------------------------------------------------------------------------
     def reset_session(self, session_id: str) -> Result[None]:
-        now = self._clock.now()
-        if is_failure(now):
-            return now
         with self._guard(session_id):
             found = self._store.get(session_id)
             if is_failure(found):
                 return found
             if found.value is None:
                 return fail("SESSION_NOT_FOUND", sid=session_id)
+            now = self._clock.now()  # one read, inside the guard (see submit_query)
+            if is_failure(now):
+                return now
             return self._store.reset(session_id, now.value.instant)

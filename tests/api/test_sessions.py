@@ -288,3 +288,10 @@ def test_unsupported_methods_use_the_envelope_too(api) -> None:
     assert_envelope(
         api.client.get(f"{BASE}/sess-0000000000000001/queries"), 405, "VALIDATION_MALFORMED_BODY"
     )
+
+
+def test_a_nul_character_in_a_query_is_a_400_not_a_retryable_503(api) -> None:
+    body = assert_envelope(
+        ask(api, create(api), "\u0000why was alex denied"), 400, "VALIDATION_MALFORMED_BODY"
+    )
+    assert body["retryable"] is False

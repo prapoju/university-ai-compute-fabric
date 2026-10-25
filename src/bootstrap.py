@@ -108,12 +108,14 @@ def build_container(settings: Settings) -> Container:
         """Live check: the connection answers and every migration file is recorded."""
         if database_problem or connection is None:
             return database_problem or "database connection unavailable"
-        try:
-            applied = {
-                row[0] for row in connection.execute("select filename from schema_migrations")
-            }
-        except sqlite3.Error as exc:
-            return f"schema_migrations unreadable: {exc}"
+        # The connection is shared with the API threads, so the query goes through the store
+        # (which serializes every statement) instead of touching the connection directly.
+        read = store.applied_migrations() if store is not None else None
+        if read is None:
+            return "database connection unavailable"
+        if is_failure(read):
+            return f"schema_migrations unreadable: {'; '.join(read.observed) or read.code}"
+        applied = read.value
         expected = {path.name for path in settings.migrations_dir.glob("*.sql")}
         pending = sorted(expected - applied)
         return f"pending migrations: {pending}" if pending else None

@@ -392,3 +392,122 @@ def test_parallel_queries_in_one_session_are_serialized_without_lost_updates(rig
     assert len(context.prior_intents) == 60
     assert len(set(context.active_answer_ids)) == 60
     assert len(ok(rig.store.list_turns(sid))) == 60
+
+
+# -- review patches (story 1.2 code review) ----------------------------------------------------
+class TickingClock(SimClock):
+    """A simulated clock that moves one second forward on every read, like a real one."""
+
+    def now(self):
+        result = super().now()
+        self.advance(seconds=1)
+        return result
+
+
+def build_ticking() -> Rig:
+    rig = build()
+    rig.service = SessionService(
+        store=rig.store,
+        clock=(ticking := TickingClock(START)),
+        idgen=SimIdGen(),
+        pipeline=rig.pipeline,
+    )
+    rig.clock = ticking
+    return rig
+
+
+def test_a_clock_failure_on_an_unknown_session_is_404_not_503(rig: Rig) -> None:
+    rig.clock.fail()
+    for result in (
+        ask(rig, "sess-00000000000000ff"),
+        rig.service.reset_session("sess-00000000000000ff"),
+    ):
+        assert isinstance(result, Failure) and result.code == "SESSION_NOT_FOUND"
+
+
+def test_concurrent_turns_are_stored_in_clock_order(rig: Rig) -> None:
+    ticking = build_ticking()
+    sid = new_session(ticking)
+
+    def worker() -> None:
+        for _ in range(10):
+            assert is_ok(ticking.service.submit_query(sid, S1))
+
+    threads = [threading.Thread(target=worker) for _ in range(6)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    turns = ok(ticking.store.list_turns(sid))
+    context = ok(ticking.store.get(sid)).session.context
+    assert [t.answer_id for t in turns] == context.active_answer_ids  # same order everywhere
+    stamps = [
+        row[0]
+        for row in ticking.store._connection.execute(  # noqa: SLF001
+            "select created_at from answers where session_id = ? order by answer_id", (sid,)
+        )
+    ]
+    assert stamps == sorted(stamps)  # a later answer never carries an earlier time
+
+
+def test_a_corrupt_stored_instant_is_a_typed_failure_not_a_raw_exception(rig: Rig) -> None:
+    sid = new_session(rig)
+    # matches the table's GLOB check but is not a real date
+    rig.store._connection.execute(  # noqa: SLF001
+        "update sessions set created_at = '2026-13-45T00:00:00.000Z' where session_id = ?", (sid,)
+    )
+    rig.store._connection.commit()  # noqa: SLF001
+    result = ask(rig, sid)
+    assert isinstance(result, Failure) and result.code == "PROVIDER_UNAVAILABLE"
+
+
+def test_a_failed_expiry_write_does_not_hide_the_410(rig: Rig) -> None:
+    sid = new_session(rig)
+    rig.clock.advance(minutes=31)
+    rig.store.mark_expired = lambda *args: Failure("PROVIDER_UNAVAILABLE", observed=("disk full",))
+    result = ask(rig, sid)
+    assert isinstance(result, Failure) and result.code == "SESSION_EXPIRED"
+
+
+def test_get_session_is_a_consistent_snapshot_while_turns_are_being_written(rig: Rig) -> None:
+    sid = new_session(rig)
+    stop = threading.Event()
+    problems: list[str] = []
+
+    def writer() -> None:
+        while not stop.is_set():
+            ask(rig, sid)
+
+    def reader() -> None:
+        for _ in range(150):
+            read = ok(rig.service.get_session(sid))
+            if [t.answer_id for t in read.turns] != read.context.active_answer_ids:
+                problems.append("context and turns disagree")
+
+    writers = [threading.Thread(target=writer) for _ in range(3)]
+    for thread in writers:
+        thread.start()
+    reader()
+    stop.set()
+    for thread in writers:
+        thread.join()
+    assert problems == []
+
+
+def test_duplicate_entities_from_one_handler_are_stored_once(rig: Rig) -> None:
+    def handler(turn) -> Ok:
+        answer = AnswerDTO(
+            answer_id=turn.answer_id, session_id=turn.session_id, query=turn.query,
+            intent="diagnose_access_denial", answer_chain=["observation"],
+            claims=[], evidence=[], prose="handled",
+        )  # fmt: skip
+        entities = ("user#alex", "user#alex", "model#deepseek-coder", "user#alex")
+        return Ok(TurnOutput(answer=answer, resolved_entities=entities))
+
+    rig.pipeline.register("diagnose_access_denial", handler)
+    sid = new_session(rig)
+    ok(ask(rig, sid))
+    ok(ask(rig, sid))
+    context = ok(rig.store.get(sid)).session.context
+    assert context.resolved_entities == ["user#alex", "model#deepseek-coder"]

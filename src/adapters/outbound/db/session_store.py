@@ -202,6 +202,15 @@ class SqliteSessionStore(SessionStorePort):
 
         return self._run(work)
 
+    def applied_migrations(self) -> Result[set[str]]:
+        """Filenames recorded in ``schema_migrations``, read under the store lock (readiness)."""
+
+        def work() -> set[str]:
+            rows = self._connection.execute("SELECT filename FROM schema_migrations").fetchall()
+            return {name for (name,) in rows}
+
+        return self._run(work)
+
     def highest_counters(self) -> Result[dict[str, int]]:
         def highest(table: str, column: str, prefix: str) -> int:
             rows = self._connection.execute(f"SELECT {column} FROM {table}").fetchall()
