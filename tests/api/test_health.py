@@ -108,3 +108,28 @@ def test_the_app_refuses_to_start_when_the_runtime_is_fatally_broken(monkeypatch
 def test_the_app_starts_without_fixtures_and_says_not_ready(tmp_path: Path) -> None:
     app = create_app(Settings.from_env({"M12_FIXTURES_DIR": str(tmp_path / "absent")}))
     assert TestClient(app).get("/readyz").status_code == 503
+
+
+def test_unknown_routes_and_wrong_methods_use_the_error_envelope_too() -> None:
+    client = _client()
+    missing = client.get("/nope")
+    assert missing.status_code == 404
+    assert missing.json()["code"] == "ENTITY_NOT_FOUND"
+    assert set(missing.json()) == {"code", "status", "message", "retryable", "explanation"}
+    wrong = client.post("/healthz")
+    assert wrong.status_code == 405
+    assert wrong.json()["code"] == "VALIDATION_MALFORMED_BODY"
+    assert wrong.json()["status"] == 405 and wrong.json()["retryable"] is False
+
+
+def test_unexpected_errors_are_logged_server_side_but_not_returned(caplog) -> None:
+    app = create_app(Settings.from_env({}))
+
+    @app.get("/_boom2")
+    def boom() -> None:
+        raise RuntimeError("diagnostic detail only for logs")
+
+    with caplog.at_level("ERROR", logger="src"):
+        response = TestClient(app, raise_server_exceptions=False).get("/_boom2")
+    assert "diagnostic detail only for logs" not in response.text
+    assert any("diagnostic detail only for logs" in (r.exc_text or "") for r in caplog.records)

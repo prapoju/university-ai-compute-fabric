@@ -27,7 +27,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         yield
         container.close()
 
-    app = FastAPI(title="Module 12 - AI Operations Copilot", version="2.2.0", lifespan=lifespan)
+    # The generated /docs, /redoc and /openapi.json are not in the contract, so they are off:
+    # the app serves exactly the routes declared in openapi.yaml (AD-13, zero extra endpoints).
+    app = FastAPI(
+        title="Module 12 - AI Operations Copilot",
+        version="2.2.0",  # the contract version (openapi.yaml info.version)
+        lifespan=lifespan,
+        docs_url=None,
+        redoc_url=None,
+        openapi_url=None,
+    )
     app.state.container = container
     install_error_handlers(app)
 

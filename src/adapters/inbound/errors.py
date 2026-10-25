@@ -6,15 +6,19 @@ the contract's 400, and anything unexpected degrades to the safe-failure literal
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from src.dto import ErrorBody, ExplanationDTO
 
 S_PUA = "Provider unavailable — cannot answer."
+
+logger = logging.getLogger(__name__)
 
 
 def error_body(
@@ -50,6 +54,20 @@ def install_error_handlers(app: FastAPI) -> None:
         )
         return error_response(body)
 
+    @app.exception_handler(StarletteHTTPException)
+    async def _http(_: Request, exc: StarletteHTTPException) -> JSONResponse:
+        # 404 / 405 from the router: same envelope as every other error, never {"detail": ...}
+        if exc.status_code == 404:
+            body = error_body("ENTITY_NOT_FOUND", 404, "Route not found.", retryable=False)
+        else:
+            message = str(exc.detail) or "Request not allowed."
+            body = error_body(
+                "VALIDATION_MALFORMED_BODY", exc.status_code, message, retryable=False
+            )
+        return error_response(body)
+
     @app.exception_handler(Exception)
-    async def _unexpected(_: Request, __: Exception) -> JSONResponse:
+    async def _unexpected(_: Request, exc: Exception) -> JSONResponse:
+        # the client only sees the safe-failure literal; the cause stays in the server log
+        logger.error("unhandled error", exc_info=exc)
         return error_response(error_body("PROVIDER_UNAVAILABLE", 503, S_PUA, retryable=True))
