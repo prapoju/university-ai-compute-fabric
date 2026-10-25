@@ -10,6 +10,7 @@ from src.domain.session_rules import (
     MAX_QUERY_CHARS,
     empty_context,
     is_idle_expired,
+    is_valid_operator_role,
     normalise_query,
 )
 
@@ -65,3 +66,16 @@ def test_the_empty_context_is_a_fresh_object_each_time() -> None:
     }
     first.prior_intents.append("x")
     assert second.prior_intents == []
+
+
+@pytest.mark.parametrize("role", ["role-operations", "role-a", "role-" + "x" * 32, "role-a_b-c1"])
+def test_valid_operator_roles(role: str) -> None:
+    assert is_valid_operator_role(role)
+
+
+@pytest.mark.parametrize(
+    "role",
+    ["admin", "role-", "role-UPPER", "role-" + "x" * 33, "", "role-a b", "ROLE-a", "role-a\n"],
+)
+def test_invalid_operator_roles(role: str) -> None:
+    assert not is_valid_operator_role(role)

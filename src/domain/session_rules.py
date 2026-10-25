@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from datetime import timedelta
 
 from src.domain.error_catalog import fail
@@ -11,6 +12,13 @@ from src.dto import SessionContextDTO
 
 MAX_QUERY_CHARS = 1000
 IDLE_LIMIT_MINUTES = 30
+
+_OPERATOR_ROLE = re.compile(r"role-[a-z0-9_-]{1,32}")  # contracts.md section 0.1 OperatorRole
+
+
+def is_valid_operator_role(role: str) -> bool:
+    """``OperatorRole``: a synthetic ``role-...`` id (NFR-11); fullmatch so no newline slips in."""
+    return _OPERATOR_ROLE.fullmatch(role) is not None
 
 
 def normalise_query(text: str) -> Result[str]:
