@@ -21,8 +21,46 @@ tags:
   - name: audit
   - name: destructive
   - name: executor
+  - name: ops
+    description: "Operational probes added in Impl-1 (not part of contracts.md §2): liveness/readiness for the standalone service."
 
 paths:
+  /healthz:
+    get:
+      operationId: healthz
+      tags: [ops]
+      summary: Liveness probe
+      description: "Process is up. Touches no dependency. Impl-1 addition; read-only, no state."
+      responses:
+        "200":
+          description: "Service is alive."
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status: { type: string, enum: [ok] }
+  /readyz:
+    get:
+      operationId: readyz
+      tags: [ops]
+      summary: Readiness probe
+      description: "Every readiness check (dependencies, migrations, estate, clock) passes. Impl-1 addition; read-only, no state."
+      responses:
+        "200":
+          description: "Service is ready."
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, checks]
+                properties:
+                  status: { type: string, enum: [ready] }
+                  checks:
+                    type: object
+                    additionalProperties: { type: string, enum: [ok] }
+        "503": { $ref: '#/components/responses/Response503' }
   /api/v1/sessions:
     post:
       operationId: create_session
