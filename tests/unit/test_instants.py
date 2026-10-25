@@ -6,7 +6,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from src.domain.instants import add_seconds, format_instant, parse_instant
+from src.domain.instants import add_seconds, format_instant, is_instant, parse_instant
 
 pytestmark = pytest.mark.unit
 
@@ -32,3 +32,23 @@ def test_rejects_anything_that_is_not_a_utc_instant(bad: str) -> None:
 
 def test_add_seconds_round_trips() -> None:
     assert add_seconds("2026-10-16T15:00:00.000Z", 90) == "2026-10-16T15:01:30.000Z"
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        "2026-13-45T00:00:00Z",
+        "2026-02-30T00:00:00Z",
+        "2026-10-16T25:00:00Z",
+        "2026-10-16T15:00:00Z\n",
+    ],
+)
+def test_shape_alone_is_not_enough_dates_must_exist_and_nothing_may_trail(bad: str) -> None:
+    with pytest.raises(ValueError):
+        parse_instant(bad)
+
+
+def test_is_instant_is_the_non_raising_twin_of_parse_instant() -> None:
+    assert is_instant("2026-10-16T15:00:00.000Z")
+    assert not is_instant("2026-02-30T00:00:00Z")
+    assert not is_instant("2026-10-16T15:00:00Z\n")

@@ -8,17 +8,15 @@ directory, so the service and the tests behave identically from any cwd.
 from __future__ import annotations
 
 import os
-import re
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, ValidationError, field_validator
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+from src.domain.instants import is_instant
 
-# contracts.md §0.1 `Instant`
-_INSTANT_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$")
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 _ENV_PREFIX = "M12_"
 
@@ -38,16 +36,31 @@ class Settings(BaseModel):
     clock_start: str = "2026-10-16T15:00:00.000Z"
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
 
+    @field_validator("fixtures_dir", "migrations_dir", "db_path", mode="before")
+    @classmethod
+    def _paths_must_not_be_empty(cls, value: object) -> object:
+        # Path("") means "." - an empty variable would silently point at the working directory
+        if isinstance(value, str) and not value.strip():
+            raise ValueError("must not be empty")
+        return value
+
     @field_validator("fixtures_dir", "migrations_dir", mode="after")
     @classmethod
     def _anchor_relative_paths(cls, value: Path) -> Path:
         return value if value.is_absolute() else PROJECT_ROOT / value
 
+    @field_validator("db_path", mode="after")
+    @classmethod
+    def _anchor_relative_db_path(cls, value: str) -> str:
+        if value == ":memory:" or Path(value).is_absolute():
+            return value
+        return str(PROJECT_ROOT / value)
+
     @field_validator("clock_start")
     @classmethod
     def _must_be_an_instant(cls, value: str) -> str:
-        if not _INSTANT_RE.match(value):
-            raise ValueError("must be an ISO-8601 UTC instant such as 2026-10-16T15:00:00.000Z")
+        if not is_instant(value):
+            raise ValueError("must be a real ISO-8601 UTC instant such as 2026-10-16T15:00:00.000Z")
         return value
 
     @field_validator("log_level", mode="before")

@@ -56,3 +56,40 @@ def test_settings_are_immutable() -> None:
     settings = Settings.from_env({})
     with pytest.raises(Exception):  # noqa: B017 - pydantic raises ValidationError on frozen models
         settings.log_level = "DEBUG"  # type: ignore[misc]
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "2026-13-45T00:00:00Z",  # month 13: matches the shape, is not a date
+        "2026-02-30T00:00:00Z",
+        "2026-10-16T25:61:61Z",
+        "2026-10-16T15:00:00Z\n",  # a trailing newline (env file) must not slip through
+    ],
+)
+def test_clock_start_must_be_a_real_instant_not_just_the_right_shape(value: str) -> None:
+    with pytest.raises(ConfigError) as excinfo:
+        Settings.from_env({"M12_CLOCK_START": value})
+    assert "M12_CLOCK_START" in str(excinfo.value)
+
+
+@pytest.mark.parametrize("variable", ["M12_FIXTURES_DIR", "M12_MIGRATIONS_DIR", "M12_DB_PATH"])
+@pytest.mark.parametrize("empty", ["", "   "])
+def test_empty_paths_are_rejected_instead_of_silently_meaning_the_project_root(
+    variable: str, empty: str
+) -> None:
+    with pytest.raises(ConfigError) as excinfo:
+        Settings.from_env({variable: empty})
+    assert variable in str(excinfo.value)
+
+
+def test_relative_db_path_is_anchored_to_the_project_root_but_memory_is_kept(
+    monkeypatch, tmp_path
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    assert Settings.from_env({"M12_DB_PATH": "data/m12.db"}).db_path == str(
+        PROJECT_ROOT / "data" / "m12.db"
+    )
+    assert Settings.from_env({"M12_DB_PATH": ":memory:"}).db_path == ":memory:"
+    absolute = str(tmp_path / "x.db")
+    assert Settings.from_env({"M12_DB_PATH": absolute}).db_path == absolute

@@ -14,10 +14,23 @@ _INSTANT_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$")
 
 def parse_instant(value: str) -> datetime:
     """Parse an ``Instant`` into an aware UTC datetime; raise ``ValueError`` otherwise."""
-    if not _INSTANT_RE.match(value):
+    # fullmatch: ``$`` would also accept a trailing newline (e.g. from an env file)
+    if not _INSTANT_RE.fullmatch(value):
         raise ValueError(f"not an Instant (ISO-8601 UTC): {value!r}")
     fmt = "%Y-%m-%dT%H:%M:%S.%fZ" if "." in value else "%Y-%m-%dT%H:%M:%SZ"
-    return datetime.strptime(value, fmt).replace(tzinfo=UTC)
+    try:
+        return datetime.strptime(value, fmt).replace(tzinfo=UTC)
+    except ValueError as exc:  # right shape, impossible date such as 2026-02-30
+        raise ValueError(f"not an Instant (ISO-8601 UTC): {value!r} ({exc})") from exc
+
+
+def is_instant(value: str) -> bool:
+    """Non-raising twin of :func:`parse_instant`."""
+    try:
+        parse_instant(value)
+    except ValueError:
+        return False
+    return True
 
 
 def format_instant(value: datetime) -> str:
