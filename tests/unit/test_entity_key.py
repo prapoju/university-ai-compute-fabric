@@ -21,7 +21,7 @@ def test_splits_on_the_first_unescaped_hash_only() -> None:
     assert parse_entity_key("job#a#b") == Ok(EntityKey("job", "a#b"))
 
 
-@pytest.mark.parametrize("raw", ["gpu#ws-gpu-11", "Node#x", "#x", "cluster#1"])
+@pytest.mark.parametrize("raw", ["gpu#ws-gpu-11", "#x", "cluster#1", "NODES#x"])
 def test_unknown_entity_type_is_a_bad_entity_type_failure(raw: str) -> None:
     result = parse_entity_key(raw)
     assert isinstance(result, Failure) and result.code == "VALIDATION_BAD_ENTITY_TYPE"
@@ -37,3 +37,9 @@ def test_matching_is_case_folded_and_exact_never_fuzzy() -> None:
     assert key_matches(EntityKey("user", "Alex"), EntityKey("user", "alex"))
     assert not key_matches(EntityKey("user", "alex"), EntityKey("user", "alexa"))
     assert not key_matches(EntityKey("user", "alex"), EntityKey("group", "alex"))
+
+
+def test_the_type_is_case_folded_but_the_id_keeps_its_case() -> None:
+    # AD-7: canonicalise then compare case-folded; get() and by_ids() must agree on this
+    assert parse_entity_key("NODE#WS-gpu-11") == Ok(EntityKey("node", "WS-gpu-11"))
+    assert parse_entity_key("User#Alex") == Ok(EntityKey("user", "Alex"))

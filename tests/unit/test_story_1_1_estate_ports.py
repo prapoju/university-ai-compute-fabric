@@ -158,3 +158,32 @@ def test_event_windows_are_half_open(providers: SimProviders, start, end, expect
 def test_results_are_typed_ok_instances_not_bare_values(providers: SimProviders) -> None:
     result = providers.users.get("user#alex")
     assert isinstance(result, Ok) and not is_failure(result)
+
+
+def test_by_ids_accepts_the_same_case_folding_as_get_and_dedupes(providers: SimProviders) -> None:
+    assert _value(providers.users.get("USER#Alex")).id == "user#alex"
+    users = _value(providers.users.by_ids(["USER#Alex", "user#alex", "user#MATEO"]))
+    assert [u.id for u in users] == ["user#alex", "user#mateo"]
+
+
+def test_by_ids_looks_up_the_unescaped_id() -> None:
+    from src.adapters.outbound.sim.fixtures_adapter import SimUsers
+    from src.adapters.outbound.sim.record_store import RecordStore
+    from src.dto import UserRecordDTO
+
+    odd = UserRecordDTO(id="user#a#b", display_name="Odd", role="student")
+    adapter = SimUsers(RecordStore([odd], id_of=lambda u: u.id))
+    assert [u.id for u in _value(adapter.by_ids([r"user#a\#b"]))] == ["user#a#b"]
+
+
+def test_select_requires_an_exact_type_match_no_bool_int_coercion(providers: SimProviders) -> None:
+    def ids(params):
+        return [
+            n.id
+            for n in _value(providers.nodes.select(SelectorDTO(method="filter", params=params)))
+        ]
+
+    assert ids({"cordoned": True}) == ["node#ws-gpu-11"]
+    assert ids({"cordoned": 1}) == []  # True == 1 in Python, but they are different types
+    assert ids({"gpu_memory_gb": True}) == []
+    assert len(ids({"gpu_memory_gb": 24})) == 31

@@ -77,7 +77,12 @@ def _select(backing: Backing, selector: SelectorDTO) -> Result[list[Any]]:
         if unknown:
             return Failure("VALIDATION_MALFORMED_BODY", observed=(f"unknown fields: {unknown}",))
         wanted = selector.params
-        matching = [r for r in records if all(getattr(r, k) == v for k, v in wanted.items())]
+        # exact type match: Python's == would let True match 1 and 1.0 match 1
+        matching = [
+            r
+            for r in records
+            if all(type(getattr(r, k)) is type(v) and getattr(r, k) == v for k, v in wanted.items())
+        ]
         return Ok(matching[:SELECT_CAP])
 
     return _read(backing, run)
@@ -94,6 +99,7 @@ class SimUsers(UsersPort):
         return _read(self._backing, lambda s: s.browse(q, page, page_size))
 
     def by_ids(self, ids: list[str]) -> Result[list[UserRecordDTO]]:
+        canonical: list[str] = []  # unescaped, type-folded keys, de-duplicated in input order
         for key in ids:
             parsed = parse_entity_key(key)
             if is_failure(parsed):
@@ -101,10 +107,13 @@ class SimUsers(UsersPort):
             if parsed.value.type != "user":
                 observed = (f"{key!r} is not a user key",)
                 return Failure("VALIDATION_BAD_ENTITY_TYPE", observed=observed)
+            wanted = str(parsed.value)
+            if wanted.casefold() not in {c.casefold() for c in canonical}:
+                canonical.append(wanted)
 
         def run(store: RecordStore[Any]) -> Result[list[UserRecordDTO]]:
             found: list[UserRecordDTO] = []
-            for key in ids:
+            for key in canonical:
                 result = store.get(key)
                 if is_failure(result):
                     return result

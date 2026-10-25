@@ -25,6 +25,8 @@ class RecordStore(Generic[T]):  # noqa: UP046 - explicit TypeVar keeps the seam 
         self._id_of = id_of
         self._records: tuple[T, ...] = tuple(sorted(records, key=id_of))
         self._index = {id_of(record).casefold(): record for record in self._records}
+        if len(self._index) != len(self._records):
+            raise ValueError("duplicate ids (compared case-folded) in RecordStore")
 
     def __len__(self) -> int:
         return len(self._records)

@@ -43,6 +43,7 @@ def parse_entity_key(raw: str) -> Result[EntityKey]:
     if parts is None:
         return Failure("VALIDATION_MALFORMED_BODY", observed=(f"no '#' separator in {raw!r}",))
     entity_type, entity_id = parts
+    entity_type = entity_type.casefold()  # AD-7: types compare case-folded, like ids
     if entity_type not in ENTITY_TYPES:
         observed = (f"unknown entity type {entity_type!r}",)
         return Failure("VALIDATION_BAD_ENTITY_TYPE", observed=observed)
