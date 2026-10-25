@@ -4,7 +4,7 @@ baseline_commit: 17a292faae21c0a4e5a29482b1a04e75c2ab8339
 
 # Story 1.1: Seed the fixture estate and stand up the read-only adapter ring
 
-Status: in-progress
+Status: review
 
 <!-- Impl-1 note: this story ALSO carries the "Foundation scaffold" required by the course task (Impl-1 §1, §4):
      runnable project skeleton, config, migrations, dependency validation, health probes, 32-node fixtures.
@@ -71,38 +71,38 @@ Scenario: Adding an entity type needs no change elsewhere (NFR-10)
 
 Follow the Full Ceremony: write each test **with** its code (red → green → refactor). Commit after each numbered task.
 
-- [ ] **Task 1 — Foundation scaffold** (AC: 5) → commit `feat(scaffold): ...`
+- [x] **Task 1 — Foundation scaffold** (AC: 5) → commit `feat(scaffold): ...`
   - [x] 1.1 `pyproject.toml` (Python ≥ 3.11; runtime deps: `fastapi`, `uvicorn[standard]`, `pydantic>=2`; dev deps: `pytest`, `pytest-asyncio`, `pytest-cov`, `hypothesis`, `httpx`, `ruff`). Resolve and record the exact versions installed; do **not** add anything else without logging it in `docs/ai-decision-log.md`. Keep `requirements-test.txt` working (or make it `-e .[dev]`).
   - [x] 1.2 Create the `src/` tree (see *File structure*), every package with `__init__.py`. Add `pythonpath = .` to `pytest.ini` so `from src...` imports resolve; keep `testpaths = tests` and existing markers.
   - [x] 1.3 `src/config.py`: `Settings` (Pydantic v2 `BaseModel`) loaded from environment (`M12_*`), validated at startup: `M12_FIXTURES_DIR`, `M12_DB_PATH` (default `:memory:`-safe path), `M12_CLOCK_START` (ISO `Instant`), `M12_LOG_LEVEL`. No extra settings library. `.env.example` documents every variable.
   - [x] 1.4 `src/dependency_check.py` (+ `python -m src.dependency_check`): Python ≥ 3.11, `sqlite3.sqlite_version` ≥ 3.35 (AD-10), required packages importable, fixtures dir present. Returns a list of problems; startup aborts with a readable message if non-empty.
   - [x] 1.4b Migrations: copy `planning/detailed-design/schemas/001_module12_copilot_schema.sql` to `migrations/001_module12_copilot_schema.sql` **verbatim** and add a tiny stdlib-`sqlite3` runner (`src/adapters/outbound/db/migrate.py`, `schema_migrations` table, idempotent). No ORM, no Alembic (ARCHITECTURE "Stack Decisions": no ORM).
   - [x] 1.5 `src/adapters/inbound/app.py` + `src/bootstrap.py` (composition root): `create_app(settings)`; `GET /healthz`, `GET /readyz`. Structured JSON error handler skeleton (`ErrorBody`) so no stack trace ever leaks.
-  - [ ] 1.6 `Dockerfile` + `docker-compose.yml` (single service, port 8000, healthcheck on `/healthz`) + `README.md` quick start (`pip install -e .[dev]` → `pytest` → `uvicorn src.adapters.inbound.app:create_app --factory`). Add a `Makefile` target or keep the existing ones working.
+  - [x] 1.6 `Dockerfile` + `docker-compose.yml` (single service, port 8000, healthcheck on `/healthz`) + `README.md` quick start (`pip install -e .[dev]` → `pytest` → `uvicorn src.adapters.inbound.app:create_app --factory`). Add a `Makefile` target or keep the existing ones working.
   - [x] 1.7 Tests: `tests/unit/test_config.py`, `tests/unit/test_dependency_check.py`, `tests/integration/test_migrations.py`, `tests/api/test_health.py` (healthz 200; readyz 200 when ready and 503 + structured JSON when fixtures missing).
-- [ ] **Task 2 — Shared DTOs + domain primitives** (AC: 2, 3)
+- [x] **Task 2 — Shared DTOs + domain primitives** (AC: 2, 3)
   - [x] 2.1 Copy `planning/detailed-design/schemas/dto.py` **verbatim** to `src/dto.py` (it is the contract). Add `tests/unit/test_dto_contract.py` asserting the copy is byte-equal (modulo line endings) to the planning file so drift fails the build.
   - [x] 2.2 `src/domain/result.py`: `Ok[T]`, `Failure` (frozen dataclasses; `Failure.code` ∈ the §4 `ErrorCode` literal), plus `is_ok` helpers. Pure — no I/O.
   - [x] 2.3 `src/domain/entity_key.py`: parse/format `{type}#{id}`, case-fold compare (AD-7 groundwork only — resolution logic is story 1.3). Unit-test escape rule `\#` (D61) and bad types → `VALIDATION_BAD_ENTITY_TYPE`.
-- [ ] **Task 3 — Outbound ports** (AC: 2, 4)
+- [x] **Task 3 — Outbound ports** (AC: 2, 4)
   - [x] 3.1 `src/ports/outbound/` (ABCs or `Protocol`s): `users.py`, `catalog.py`, `policy.py`, `groups.py`, `jobs.py`, `nodes.py`, `reservations.py`, `windows.py`, `event_store.py`, `clock.py`, `policy_content.py`, `runbook_registry.py`. Signatures exactly as `contracts.md` §3 OP-1..OP-12, returning `Result[...]`, using DTO types only (R4).
   - [x] 3.2 Test `tests/unit/test_ports_query_only.py`: introspect every port; assert the method set equals the allowed set from §3 and that no name matches the mutation denylist (BDD "Ports are query-only").
-- [ ] **Task 4 — Fixture estate** (AC: 1)
+- [x] **Task 4 — Fixture estate** (AC: 1)
   - [x] 4.1 `fixtures/estate/{users,catalog,policy,groups,jobs,nodes,reservations,windows,events}.json`, `fixtures/policy_content/*.json`, `fixtures/runbooks/*.json`. Content rules in *Fixture content* below.
   - [x] 4.2 Static copies of the 32-node fleet where the course expects them: `tests/fixtures/nodes.json` may be a **copy generated from** `fixtures/estate/nodes.json` (single source of truth is `fixtures/`; add a test that both match).
   - [x] 4.3 Tests: `tests/unit/test_fixture_estate.py` — 32 nodes (31 × 24 + 1 × 96), S1–S4 anchors present, every record validates against its DTO (`extra="forbid"`), ids unique, `start < end` for reservations/windows (D66).
-- [ ] **Task 5 — Simulated adapters** (AC: 2, 3, 4)
+- [x] **Task 5 — Simulated adapters** (AC: 2, 3, 4)
   - [x] 5.1 `src/adapters/outbound/sim/estate_loader.py`: loads + validates fixtures once into an immutable `Estate` (tuples / `MappingProxyType`); any load/validation error ⇒ adapters return `Failure("PROVIDER_UNAVAILABLE")` (never raise to callers, never partial data).
   - [x] 5.2 `src/adapters/outbound/sim/fixtures_adapter.py`: one adapter class per port over the shared `Estate`; stable ordering (`id` / `clause_id` / `window_id` ascending; events by `timestamp`, then `event_id`); `browse` = case-folded exact-id match, empty `q` returns all, `page_size ≤ 100` (else `PAGINATION_INVALID`), page beyond total ⇒ empty list not error (E13).
   - [x] 5.3 `src/adapters/outbound/sim/clock_adapter.py`: freezable, advanceable `SimClock` implementing OP-10 (`read_id` `^clk-[0-9a-f]{16}$`, `source="clock"`, `instant` from `M12_CLOCK_START`). Never calls `datetime.now()` (R1/R2).
   - [x] 5.4 Wire everything in `src/bootstrap.py` (composition root builds adapters from `Settings`; the app and tests both use it).
   - [x] 5.5 Tests (BDD-mapped, one file per scenario group): `tests/unit/test_story_1_1_estate_ports.py`, `tests/unit/test_story_1_1_typed_failures.py`, `tests/unit/test_story_1_1_extensibility.py` (registers a toy `widgets` store + port without touching existing modules). Add a **read-only proof**: deep-compare estate snapshot before/after a battery of reads.
-- [ ] **Task 6 — Architecture guards** (AC: 2)
+- [x] **Task 6 — Architecture guards** (AC: 2)
   - [x] 6.1 Import audit test `tests/unit/test_architecture_imports.py`: `src/domain` and `src/ports` import no `fastapi`, `sqlite3`, `datetime.now`-style clock, `random`, `uuid`, `httpx`; `src/domain` and `src/ports` never import `src.adapters.*` (R1, R3). Add the `ruff` `TID` banned-api config in `pyproject.toml` to mirror it.
-- [ ] **Task 7 — DoD verification and review report**
-  - [ ] 7.1 Run `ruff check src tests` and `pytest` (all green, **0 skipped**); paste the output summary in the Dev Agent Record.
-  - [ ] 7.2 Update `_bmad-output/implementation-artifacts/sprint-status.yaml` (and its mirror `implementation-artifacts/sprint-status.yaml`): `in-progress` when starting, `review` when done.
-  - [ ] 7.3 Append ≥ 1 entry to `docs/ai-decision-log.md` per notable AI interaction (prompt, output, human review decision); record every correction of an AI hallucination or invariant violation.
+- [x] **Task 7 — DoD verification and review report**
+  - [x] 7.1 Run `ruff check src tests` and `pytest` (all green, **0 skipped**); paste the output summary in the Dev Agent Record.
+  - [x] 7.2 Update `_bmad-output/implementation-artifacts/sprint-status.yaml` (and its mirror `implementation-artifacts/sprint-status.yaml`): `in-progress` when starting, `review` when done.
+  - [x] 7.3 Append ≥ 1 entry to `docs/ai-decision-log.md` per notable AI interaction (prompt, output, human review decision); record every correction of an AI hallucination or invariant violation.
 
 ## Dev Notes
 
@@ -208,10 +208,51 @@ Versions are pinned by what resolves at install time; verify with `pip index ver
 
 ### Agent Model Used
 
-_(filled by dev-story)_
+claude-sonnet-5-5 (Claude Code, BMad `bmad-dev-story` ceremony)
 
 ### Debug Log References
 
+- Baseline before any change: `pytest tests` -> 39 passed (needed `hypothesis`; installed in a fresh `.venv`).
+- Task 1: `tests/api/test_health.py::test_readyz_...` was red because `fixtures/` did not exist yet; made independent, later green with real fixtures.
+- Task 6: the architecture-audit self-test exposed that ruff `per-file-ignores "src/*.py"` also matched nested paths (see `docs/ai-decision-log.md` AD-04).
+- Task 2: `-W error::DeprecationWarning` exposed an invalid `"\#"` escape (AD-05); `error::DeprecationWarning` is now enforced in `pytest.ini`.
+- Final: `pytest -q -rs` -> **258 passed, 0 skipped, 0 failed**; `ruff check src tests` clean; `test/ci/schema_check.py` -> GATE PASS.
+- Clean-clone check (`git clone` -> new venv -> `pip install -e ".[dev]"` -> `python -m src.dependency_check` -> `pytest` -> `ruff` -> `uvicorn` + `/healthz` + `/readyz`) all succeeded.
+
 ### Completion Notes List
 
+- **AC1 (estate):** `fixtures/estate/*.json` holds the nine stores, plus `fixtures/policy_content/` and `fixtures/runbooks/`. 32 nodes = 31 x 24 GB + `ws-gpu-32` (2 x 48 GB, stored as `gpu_memory_gb = 96`). S1-S4 anchors present and asserted by `tests/unit/test_fixture_estate.py`. `tests/fixtures/nodes.json` is a checked copy (single source of truth stays `fixtures/`).
+- **AC2 (query-only ports):** 12 abstract ports in `src/ports/outbound/` with exactly the OP-1..OP-12 read methods (`runbook_registry.register` deliberately omitted, decision 2); simulated adapters in `src/adapters/outbound/sim/` expose no extra public methods and return deep copies. Proven by `test_ports_query_only.py` and `test_story_1_1_read_only.py`.
+- **AC3 (offline + typed results):** `load_estate` validates everything once and returns `Failure("PROVIDER_UNAVAILABLE")` for any fixture problem (10 corruption scenarios tested); all 23 port calls return that failure and no partial data; `SimClock` is freezable and never reads wall time.
+- **AC4 (extensibility):** `RecordStore` + `Container.register_port` - `test_story_1_1_extensibility.py` adds a `widgets` entity type entirely from the test module.
+- **AC5 (scaffold):** `pyproject.toml`, `src/config.py` (`M12_*`, fail-fast), `src/dependency_check.py`, stdlib migration runner over the verbatim contract schema, FastAPI app with `/healthz` and `/readyz` (estate, clock, migrations, dependencies), structured error envelope, Dockerfile, docker-compose, README, `.env.example`.
+- **Contract change (one, deliberate):** `/healthz` and `/readyz` added to `planning/detailed-design/schemas/openapi.yaml` under tag `ops`; `tests/api/test_contract_routes.py` fails if the app ever serves an undeclared route.
+- **Not verified:** the Docker image build/run (daemon was off; compose validated with `docker compose config`). Logged as AD-09.
+- **Known follow-ups:** `docs/ai-decision-log.md` "Open assumptions" (selector `filter` convention, `browse` total for story 1.5, 96 GB server, night hours, generic 503). ATDD state-read tests stay red until story 1.5 (out of Impl-1 scope).
+- Commits: `feat(scaffold)`, `docs(contract)`, `feat(story-1.1)` x4, `test(story-1.1)`; no co-author trailers.
+
 ### File List
+
+New: `.env.example`, `Dockerfile`, `README.md`, `docker-compose.yml`, `pyproject.toml`, `docs/ai-decision-log.md`,
+`migrations/001_module12_copilot_schema.sql`, `fixtures/estate/{catalog,events,groups,jobs,nodes,policy,reservations,users,windows}.json`,
+`fixtures/policy_content/{catalog-allowlist,night-policy}.json`, `fixtures/runbooks/err-thermal-88.json`,
+`src/{__init__,bootstrap,config,dependency_check,dto}.py`, `src/domain/{__init__,entity_key,instants,result}.py`,
+`src/ports/{__init__}.py`, `src/ports/inbound/__init__.py`, `src/ports/outbound/{__init__,catalog,clock,event_store,groups,jobs,nodes,policy,policy_content,reservations,runbook_registry,users,windows}.py`,
+`src/adapters/{__init__}.py`, `src/adapters/inbound/{__init__,app,errors}.py`, `src/adapters/outbound/{__init__}.py`,
+`src/adapters/outbound/db/{__init__,connection,migrate}.py`, `src/adapters/outbound/sim/{__init__,clock_adapter,estate_loader,fixtures_adapter,record_store}.py`,
+`tests/fixtures/nodes.json`, `tests/api/{test_contract_routes,test_health}.py`, `tests/integration/test_migrations.py`,
+`tests/unit/{conftest,test_architecture_imports,test_config,test_dependency_check,test_dto_contract,test_entity_key,test_fixture_estate,test_instants,test_ports_query_only,test_result,test_sim_clock,test_story_1_1_estate_ports,test_story_1_1_extensibility,test_story_1_1_read_only,test_story_1_1_typed_failures}.py`.
+
+Modified: `.gitignore`, `pytest.ini`, `requirements-test.txt`, `planning/detailed-design/schemas/openapi.yaml` (health probes only),
+`_bmad-output/implementation-artifacts/sprint-status.yaml` and its mirror `implementation-artifacts/sprint-status.yaml`.
+
+### Change Log
+
+| Date | Change |
+|---|---|
+| 2026-10-24 | Story created (`ready-for-dev`) with spec-conflict analysis. |
+| 2026-10-24 | Scaffold: config, dependency check, migrations, app with health probes, Docker, README. |
+| 2026-10-24 | Contract DTOs, domain primitives, 12 query-only ports. |
+| 2026-10-24 | Seeded 32-node estate and S1-S4 fixtures; simulated read-only adapters; extension seam. |
+| 2026-10-24 | Architecture import audit (R1-R3) and ruff ban scope fix. |
+| 2026-10-24 | DoD verified (258 passed, 0 skipped, ruff clean); status -> `review`. |
