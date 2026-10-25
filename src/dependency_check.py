@@ -30,8 +30,8 @@ def _as_tuple(version: str) -> tuple[int, ...]:
     return tuple(int(part) for part in version.split(".")[:3] if part.isdigit())
 
 
-def check(settings: Settings) -> list[str]:
-    """Return a human-readable list of problems (empty when the environment is fine)."""
+def fatal_problems() -> list[str]:
+    """Problems that make the service unable to run at all (runtime, SQLite, packages)."""
     problems: list[str] = []
 
     if _python_version()[:2] < MIN_PYTHON:
@@ -50,15 +50,24 @@ def check(settings: Settings) -> list[str]:
         except ImportError:
             problems.append(f"Python package '{package}' is not installed (pip install -e .[dev]).")
 
-    if not settings.fixtures_dir.is_dir():
-        problems.append(f"Fixtures directory not found: {settings.fixtures_dir}")
-
     return problems
 
 
-def require(settings: Settings) -> None:
-    """Raise one :class:`DependencyError` listing every problem."""
-    problems = check(settings)
+def check(settings: Settings) -> list[str]:
+    """Every problem, fatal or not, as readable text (empty when the environment is fine).
+
+    A missing fixtures directory is *not* fatal: the service still starts and ``/readyz``
+    answers 503, so an operator can see what is wrong from outside.
+    """
+    problems = fatal_problems()
+    if not settings.fixtures_dir.is_dir():
+        problems.append(f"Fixtures directory not found: {settings.fixtures_dir}")
+    return problems
+
+
+def require() -> None:
+    """Raise one :class:`DependencyError` listing every *fatal* problem (startup gate)."""
+    problems = fatal_problems()
     if problems:
         raise DependencyError("Environment check failed:\n- " + "\n- ".join(problems))
 

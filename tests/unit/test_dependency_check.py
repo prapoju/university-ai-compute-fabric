@@ -47,10 +47,19 @@ def test_missing_required_package_is_reported(tmp_path: Path, monkeypatch) -> No
     assert any("fastapi" in p for p in problems)
 
 
-def test_require_raises_one_error_listing_every_problem(tmp_path: Path, monkeypatch) -> None:
+def test_require_raises_one_error_listing_every_fatal_problem(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setattr(dependency_check.sqlite3, "sqlite_version", "3.1.0")
-    settings = Settings.from_env({"M12_FIXTURES_DIR": str(tmp_path / "nope")})
+    monkeypatch.setattr(dependency_check, "_python_version", lambda: (3, 9, 1))
     with pytest.raises(dependency_check.DependencyError) as excinfo:
-        dependency_check.require(settings)
+        dependency_check.require()
     message = str(excinfo.value)
-    assert "3.1.0" in message and "nope" in message
+    assert "3.1.0" in message and "3.9.1" in message
+
+
+def test_missing_fixtures_alone_are_not_fatal_the_service_starts_and_reports_not_ready(
+    tmp_path: Path,
+) -> None:
+    settings = Settings.from_env({"M12_FIXTURES_DIR": str(tmp_path / "nope")})
+    assert dependency_check.fatal_problems() == []
+    assert any("nope" in p for p in dependency_check.check(settings))
+    dependency_check.require()  # must not raise

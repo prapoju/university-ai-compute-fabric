@@ -12,12 +12,14 @@ from typing import Any
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
+from src import dependency_check
 from src.adapters.inbound.errors import S_PUA, error_body, error_response, install_error_handlers
 from src.bootstrap import Container, build_container
 from src.config import Settings
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
+    dependency_check.require()  # fatal runtime problems abort startup with a readable message
     container = build_container(settings or Settings.from_env())
 
     @asynccontextmanager

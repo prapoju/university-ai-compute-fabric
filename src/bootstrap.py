@@ -5,10 +5,14 @@ FastAPI app and the tests construct the system the same way. Ports are registere
 interface type, which is the extension seam for new entity types (NFR-10): a new fixture set,
 one query-only port and one adapter are added with :meth:`Container.register_port` - nothing
 that already exists changes. Readiness checks are registered by name.
+
+A broken database or estate never crashes the build: it is logged and surfaces as a failing
+readiness check, so an operator can see what is wrong through ``/readyz``.
 """
 
 from __future__ import annotations
 
+import logging
 import sqlite3
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -21,6 +25,8 @@ from src.adapters.outbound.sim.fixtures_adapter import SimProviders
 from src.config import Settings
 from src.domain.result import is_failure
 
+logger = logging.getLogger(__name__)
+
 # A readiness check returns None when healthy, otherwise a human-readable problem.
 ReadinessCheck = Callable[[], str | None]
 
@@ -30,7 +36,7 @@ P = TypeVar("P")
 @dataclass
 class Container:
     settings: Settings
-    connection: sqlite3.Connection
+    connection: sqlite3.Connection | None
     ports: dict[type, object] = field(default_factory=dict)
     readiness: dict[str, ReadinessCheck] = field(default_factory=dict)
 
@@ -51,26 +57,59 @@ class Container:
             raise KeyError(f"no adapter registered for {port_type.__name__}") from None
 
     def close(self) -> None:
-        self.connection.close()
+        if self.connection is not None:
+            self.connection.close()
+
+
+def configure_logging(level: str) -> None:
+    """Apply ``M12_LOG_LEVEL`` to the ``src`` logger tree (one console handler if none exists)."""
+    root = logging.getLogger("src")
+    root.setLevel(level)
+    if not root.handlers and not logging.getLogger().handlers:
+        handler = logging.StreamHandler()
+        handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+        root.addHandler(handler)
 
 
 def build_container(settings: Settings) -> Container:
-    connection = open_database(settings.db_path)
+    configure_logging(settings.log_level)
 
-    migration_problem: str | None = None
+    connection: sqlite3.Connection | None = None
+    database_problem: str | None = None
     try:
+        connection = open_database(settings.db_path)
         apply_migrations(connection, settings.migrations_dir)
-    except MigrationError as exc:
-        migration_problem = str(exc)
+    except (MigrationError, sqlite3.Error, OSError) as exc:
+        database_problem = f"{type(exc).__name__}: {exc}"
+        logger.error("database/migrations unavailable: %s", database_problem)
 
-    providers = SimProviders.from_fixtures(settings.fixtures_dir, settings.clock_start)
+    try:
+        providers = SimProviders.from_fixtures(settings.fixtures_dir, settings.clock_start)
+    except BaseException:
+        if connection is not None:
+            connection.close()
+        raise
+
+    if is_failure(providers.estate):
+        logger.error("estate failed to load: %s", "; ".join(providers.estate.observed))
 
     def dependencies() -> str | None:
         problems = dependency_check.check(settings)
         return "; ".join(problems) if problems else None
 
     def migrations() -> str | None:
-        return migration_problem
+        """Live check: the connection answers and every migration file is recorded."""
+        if database_problem or connection is None:
+            return database_problem or "database connection unavailable"
+        try:
+            applied = {
+                row[0] for row in connection.execute("select filename from schema_migrations")
+            }
+        except sqlite3.Error as exc:
+            return f"schema_migrations unreadable: {exc}"
+        expected = {path.name for path in settings.migrations_dir.glob("*.sql")}
+        pending = sorted(expected - applied)
+        return f"pending migrations: {pending}" if pending else None
 
     def estate() -> str | None:
         if is_failure(providers.estate):
@@ -81,7 +120,8 @@ def build_container(settings: Settings) -> Container:
         # Probing must not consume a read id: that would change the deterministic sequence.
         return None if providers.clock.available else "CLOCK_UNAVAILABLE"
 
-    container = Container(
+    logger.info("container built (fixtures=%s)", settings.fixtures_dir)
+    return Container(
         settings=settings,
         connection=connection,
         ports=providers.as_ports(),
@@ -92,4 +132,3 @@ def build_container(settings: Settings) -> Container:
             "clock": clock,
         },
     )
-    return container

@@ -65,3 +65,39 @@ def test_append_only_audit_trigger_survives_migration() -> None:
 def test_missing_directory_is_a_clear_error(tmp_path: Path) -> None:
     with pytest.raises(MigrationError, match="not found"):
         apply_migrations(sqlite3.connect(":memory:"), tmp_path / "absent")
+
+
+def test_a_failing_migration_rolls_back_completely_and_can_be_retried(tmp_path: Path) -> None:
+    script = tmp_path / "001_a.sql"
+    script.write_text("create table a (x integer); create table a (x integer);", encoding="utf-8")
+    connection = sqlite3.connect(":memory:")
+    with pytest.raises(MigrationError, match="001_a.sql"):
+        apply_migrations(connection, tmp_path)
+    # nothing half-applied: neither the first table nor a bookkeeping row survived
+    assert "a" not in _tables(connection)
+    assert connection.execute("select count(*) from schema_migrations").fetchone() == (0,)
+    # once the file is fixed the very same database can be migrated
+    script.write_text("create table a (x integer);", encoding="utf-8")
+    assert apply_migrations(connection, tmp_path) == ["001_a.sql"]
+
+
+def test_syntax_errors_and_invalid_utf8_are_migration_errors_not_raw_driver_errors(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "001_syntax.sql").write_text("create table (;", encoding="utf-8")
+    with pytest.raises(MigrationError, match="001_syntax.sql"):
+        apply_migrations(sqlite3.connect(":memory:"), tmp_path)
+    (tmp_path / "001_syntax.sql").unlink()
+    (tmp_path / "002_bytes.sql").write_bytes(b"\xff\xfe\x00 not utf-8")
+    with pytest.raises(MigrationError, match="002_bytes.sql"):
+        apply_migrations(sqlite3.connect(":memory:"), tmp_path)
+
+
+def test_an_applied_migration_that_disappears_is_reported(tmp_path: Path) -> None:
+    (tmp_path / "001_a.sql").write_text("create table a (x integer);", encoding="utf-8")
+    connection = sqlite3.connect(":memory:")
+    apply_migrations(connection, tmp_path)
+    (tmp_path / "001_a.sql").unlink()
+    (tmp_path / "002_b.sql").write_text("create table b (x integer);", encoding="utf-8")
+    with pytest.raises(MigrationError, match="001_a.sql"):
+        apply_migrations(connection, tmp_path)

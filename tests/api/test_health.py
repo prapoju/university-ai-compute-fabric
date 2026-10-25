@@ -95,3 +95,16 @@ def test_request_validation_errors_use_the_contract_400_envelope() -> None:
     assert response.status_code == 400
     assert body["code"] == "VALIDATION_MALFORMED_BODY"
     assert body["retryable"] is False
+
+
+def test_the_app_refuses_to_start_when_the_runtime_is_fatally_broken(monkeypatch) -> None:
+    from src import dependency_check
+
+    monkeypatch.setattr(dependency_check.sqlite3, "sqlite_version", "3.1.0")
+    with pytest.raises(dependency_check.DependencyError, match="3.1.0"):
+        create_app(Settings.from_env({}))
+
+
+def test_the_app_starts_without_fixtures_and_says_not_ready(tmp_path: Path) -> None:
+    app = create_app(Settings.from_env({"M12_FIXTURES_DIR": str(tmp_path / "absent")}))
+    assert TestClient(app).get("/readyz").status_code == 503
