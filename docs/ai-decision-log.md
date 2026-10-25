@@ -21,7 +21,8 @@ human reviewer decided. Earlier phases keep their own logs (`ai-log/decision-log
 | AD-06 | Build · adapters | **Refactor (AD-2 determinism)** | Readiness probe consumed clock read ids | Pending |
 | AD-07 | Build · scaffold | Rejected | Library warning suggested installing unvetted `httpx2` | Pending |
 | AD-08 | Build · scaffold | Decision | Lint legacy Phase-3 harness by exception, not by mass rewrite | Pending |
-| AD-09 | Build · verify | Limitation | Docker image build could not be executed | Juan (informed) |
+| AD-09 | Build · verify | Limitation → resolved | Docker build was not executable at first; verified once the daemon was up | Juan |
+| AD-10 | Cleanup | Decision | Removed the generated opencode skill copies (`.agents/`, `.opencode/`) | Juan |
 
 Open assumptions to confirm: see the end of this file.
 
@@ -99,12 +100,23 @@ Open assumptions to confirm: see the end of this file.
 - **Rejected approach:** `ruff --fix` / reformatting the whole repo — it would bury story work in unrelated diffs and alter files the story says not to modify.
 - **Decision:** per-file style exceptions for exactly those legacy files; all new code is held to the full rule set (`E, F, I, B, UP, TID`).
 
-## AD-09 — Docker build not executed
+## AD-09 - Docker build not executed, then verified
 - **Phase:** Build, verification.
-- **What happened:** `docker compose config` validates the compose file, but the Docker daemon was not running, so the image build and
-  container run were **not** executed. The agent did not start Docker Desktop on its own.
-- **Compensating evidence:** a clean `git clone` → new venv → `pip install -e ".[dev]"` → `python -m src.dependency_check` → `pytest` (258 passed)
-  → `ruff` → `uvicorn` + `/healthz` + `/readyz` all succeeded. **To do by the team:** run `docker compose up --build` once and tick this item.
+- **First pass:** `docker compose config` validated the file, but the Docker daemon was not running, so the image build and container run
+  were **not** executed; the agent did not start Docker Desktop on its own. Compensating evidence at that time: a clean `git clone` -> new venv ->
+  `pip install -e ".[dev]"` -> `python -m src.dependency_check` -> `pytest` (258 passed) -> `ruff` -> `uvicorn` + `/healthz` + `/readyz`.
+- **Resolution (Juan started Docker):** `docker compose up --build -d` built the image and the container reached `healthy`;
+  `GET /healthz` -> `{"status":"ok"}` and `GET /readyz` -> `{"status":"ready","checks":{"dependencies":"ok","migrations":"ok","estate":"ok","clock":"ok"}}`.
+  The stack was then removed with `docker compose down -v`.
+
+## AD-10 - Generated opencode skill copies removed
+- **Phase:** Cleanup after story 1.1.
+- **What they were:** the BMad installer, because the original manifest lists `opencode`, also generated `.agents/skills` (66 skills, ~7.8 MB) and
+  `.opencode/commands`. Claude Code only reads `.claude/skills`, so these were byte-for-byte duplicates for another assistant.
+- **Problem:** the agent had committed them (`462597c`); their very deep paths made a plain `git clone` fail on Windows from a long parent
+  directory ("Filename too long"), which contradicts the "clone and run" requirement.
+- **Decision (Juan):** remove them from the repository and ignore them in `.gitignore`. They can be regenerated at any time with
+  `npx bmad-method install --action update --tools opencode`; history keeps the original commit.
 
 ---
 

@@ -6,3 +6,6 @@ htmlcov/
 .venv/
 .env
 *.egg-info/
+# Skill copies the BMad installer generates for other assistants (Claude Code uses .claude/)
+.agents/
+.opencode/

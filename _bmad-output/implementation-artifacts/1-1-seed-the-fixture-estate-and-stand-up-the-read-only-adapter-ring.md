@@ -227,7 +227,7 @@ claude-sonnet-5-5 (Claude Code, BMad `bmad-dev-story` ceremony)
 - **AC4 (extensibility):** `RecordStore` + `Container.register_port` - `test_story_1_1_extensibility.py` adds a `widgets` entity type entirely from the test module.
 - **AC5 (scaffold):** `pyproject.toml`, `src/config.py` (`M12_*`, fail-fast), `src/dependency_check.py`, stdlib migration runner over the verbatim contract schema, FastAPI app with `/healthz` and `/readyz` (estate, clock, migrations, dependencies), structured error envelope, Dockerfile, docker-compose, README, `.env.example`.
 - **Contract change (one, deliberate):** `/healthz` and `/readyz` added to `planning/detailed-design/schemas/openapi.yaml` under tag `ops`; `tests/api/test_contract_routes.py` fails if the app ever serves an undeclared route.
-- **Not verified:** the Docker image build/run (daemon was off; compose validated with `docker compose config`). Logged as AD-09.
+- **Docker:** first pass could not build (daemon off); verified later - `docker compose up --build` reaches `healthy`, `/healthz` and `/readyz` (4 checks) answer. Logged as AD-09. Generated opencode copies (`.agents/`, `.opencode/`) were removed afterwards (AD-10).
 - **Known follow-ups:** `docs/ai-decision-log.md` "Open assumptions" (selector `filter` convention, `browse` total for story 1.5, 96 GB server, night hours, generic 503). ATDD state-read tests stay red until story 1.5 (out of Impl-1 scope).
 - Commits: `feat(scaffold)`, `docs(contract)`, `feat(story-1.1)` x4, `test(story-1.1)`; no co-author trailers.
 
