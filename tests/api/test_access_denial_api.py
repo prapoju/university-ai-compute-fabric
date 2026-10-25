@@ -15,6 +15,7 @@ from fastapi.testclient import TestClient
 from src.adapters.inbound.app import create_app
 from src.config import PROJECT_ROOT, Settings
 from src.dto import ErrorBody, GetSessionResponse, SubmitQueryResponse
+from src.ports.outbound import LlmProsePort
 
 pytestmark = pytest.mark.api
 
@@ -129,3 +130,93 @@ def test_a_broken_estate_fails_the_turn_safely_with_a_503(tmp_path: Path) -> Non
         assert client.get("/readyz").status_code == 503  # readiness reports the estate
     assert response.status_code == 503
     assert response.json()["code"] == "PROVIDER_UNAVAILABLE"
+
+
+# -- review patches: failures leave no state; follow-ups; logical determinism -------------------
+def prose_port(client: TestClient):
+    return client.app.state.container.port(LlmProsePort)
+
+
+@pytest.mark.parametrize(
+    ("failure", "code"), [("unavailable", "LLM_UNAVAILABLE"), ("rejected", "LLM_PROSE_REJECTED")]
+)
+def test_a_failed_llm_turn_is_a_503_that_stores_nothing_and_leaves_the_context(
+    failure: str, code: str
+) -> None:
+    with client_for() as client:
+        sid = open_session(client)
+        prose = prose_port(client)
+        if failure == "unavailable":
+            prose.fail()
+        else:
+            prose.script("Alex was denied.", "The student role.")
+        response = ask(client, sid, S1)
+        stored = client.get(f"{BASE}/{sid}").json()
+    assert response.status_code == 503 and response.json()["code"] == code
+    assert stored["turns"] == []
+    assert stored["context"] == {
+        "resolved_entities": [], "prior_intents": [], "active_answer_ids": [],
+    }  # fmt: skip
+
+
+def test_a_broken_estate_503_also_stores_nothing(tmp_path: Path) -> None:
+    fixtures = tmp_path / "fixtures"
+    shutil.copytree(PROJECT_ROOT / "fixtures", fixtures)
+    (fixtures / "estate" / "users.json").unlink()
+    with client_for(fixtures_dir=str(fixtures)) as client:
+        sid = open_session(client)
+        assert ask(client, sid, S1).status_code == 503
+        stored = client.get(f"{BASE}/{sid}").json()
+    assert stored["turns"] == [] and stored["context"]["resolved_entities"] == []
+
+
+def test_a_follow_up_in_a_fresh_session_asks_for_an_earlier_topic() -> None:
+    with client_for() as client:
+        body = ask(client, open_session(client), "and what about mateo?").json()
+    assert body["code"] == "CLARIFICATION_REQUIRED"
+    assert body["message"] == (
+        "Clarification required: there is no earlier topic in this session to follow up on."
+    )
+
+
+def test_a_follow_up_uses_the_most_recently_used_model_not_the_first_one() -> None:
+    with client_for() as client:
+        sid = open_session(client)
+        ask(client, sid, S1)  # alex / deepseek-coder
+        ask(client, sid, "why was sofia denied llama-3-8b-instruct")
+        ask(client, sid, "and what about deepseek-coder?")  # deepseek-coder is used again
+        follow_up = SubmitQueryResponse.model_validate(
+            ask(client, sid, "and what about mateo?").json()
+        ).answers[0]
+    assert [e.citation_id for e in follow_up.evidence][:2] == ["user#mateo", "model#deepseek-coder"]
+
+
+def _logical(answer) -> dict:
+    """The answer with the per-request counters (answer, claim and clock-read ids) removed."""
+    body = answer.model_dump()
+    clock_ids = {e["citation_id"] for e in body["evidence"] if e["source_type"] == "clock"}
+    for entry in body["evidence"]:
+        if entry["citation_id"] in clock_ids:
+            entry["citation_id"] = "clock#<read>"
+            entry["snippet"] = "<clock read>"
+    for claim in body["claims"]:
+        claim["claim_id"] = "<claim>"
+        claim["claim_citations"] = [
+            "clock#<read>" if c in clock_ids else c for c in claim["claim_citations"]
+        ]
+    body["answer_id"] = body["session_id"] = "<id>"
+    return body
+
+
+def test_three_sessions_of_one_service_give_logically_identical_answers() -> None:
+    with client_for() as client:
+        answers = [
+            SubmitQueryResponse.model_validate(
+                ask(client, open_session(client), S1).json()
+            ).answers[0]
+            for _ in range(3)
+        ]
+    first = _logical(answers[0])
+    assert _logical(answers[1]) == first and _logical(answers[2]) == first
+    # only the counters differ: that is the documented, deliberate difference (AD-22)
+    assert len({a.evidence[-1].citation_id for a in answers}) == 3

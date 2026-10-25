@@ -59,7 +59,7 @@ development_status:
   epic-1: in-progress
   1-1-seed-the-fixture-estate-and-stand-up-the-read-only-adapter-ring: done
   1-2-console-shell-session-store-and-conversational-intake: done
-  1-3-entity-resolution-and-access-denial-diagnosis-end-to-end-walking-skeleton-happy-path: review
+  1-3-entity-resolution-and-access-denial-diagnosis-end-to-end-walking-skeleton-happy-path: done
   1-4-structured-claims-citation-cards-and-evidence-level-determinism: backlog
   1-5-tool-call-audit-log-and-state-inspection-viewer: backlog
   epic-1-retrospective: optional

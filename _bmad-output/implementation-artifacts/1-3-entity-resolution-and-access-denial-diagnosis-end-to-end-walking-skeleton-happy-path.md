@@ -4,7 +4,7 @@ baseline_commit: 3405dbf3c210f5c801b174c961cca6b124c4aa2e
 
 # Story 1.3: Entity resolution and access-denial diagnosis end-to-end (walking-skeleton happy path)
 
-Status: review
+Status: done
 
 <!-- This is the core story of the Impl-1 delivery (Annex 12.1, "Natural Language Access Denial Diagnosis"):
      the first cited, deterministic answer through every layer. Stories 1.1 (fixtures + read-only ports) and
@@ -107,6 +107,37 @@ Full Ceremony: test first, then code, per subtask; commit per numbered task (con
   - [x] 6.1 Determinism x3 (membership, positions, citations, claims, class identical), latency (p95 well under 3 s), concurrency regression (the 1.2 NFR-6 tests still pass with the real handler), estate read-only proof.
   - [x] 6.2 README (what an answer looks like), `ruff check src tests`, full `pytest` (0 skipped), Docker smoke of the S1 flow; update `docs/ai-decision-log.md`; promote the story in both `sprint-status.yaml` copies.
 
+### Review Findings
+
+Code review 2026-10-25 (Blind Hunter + Edge Case Hunter + Acceptance Auditor, run in parallel; scope: `src/` without `dto.py`, `tests/`, `README.md`, `fixtures/`; 2,601 diff lines against the story baseline). The first launch hit the session rate limit and returned nothing; the layers were relaunched and all three completed. Findings were de-duplicated and the claims reproduced before triage.
+
+**Decision needed** (2 raised, resolved by the user on 2026-10-25)
+
+- [x] [Review][Decision] (medium, RESOLVED: logical equality) Determinism across sessions of one service: the clock-read citation (`clock#clk-N`) and the claim ids are per-request counters, so three sessions are not byte-identical. Accepted: the test compares membership, positions, citations, claims and class with those counters normalised inside one service, and exact equality across fresh processes (AD-22).
+- [x] [Review][Decision] (low, RESOLVED: keep as implemented) Canonical turns (`ENTITY_NOT_FOUND`, `CANNOT_CONFIRM`) are stored as `Answer` rows and extend the session context, whereas `contracts.md` (`resolve_entities` Q-fail) says no Answer is composed and the context is unchanged. Kept per D4/D58 so `GET` shows the question and `CANNOT_CONFIRM` keeps its audit evidence (AD-22).
+
+**Patch** (all applied, tests first)
+
+- [x] [Review][Patch] (high, 3 layers) A follow-up took the *first-introduced* entity of a type, not the latest: the context kept first-appearance order, so `and what about mateo?` could reuse a model from an earlier turn. A re-used entity now moves to the end of the context [src/application/session_service.py].
+- [x] [Review][Patch] (medium, 2 layers) The clause was chosen by precedence before checking that an event backs it, so an unbacked allowlist clause hid a confirmed quota denial (`CANNOT_CONFIRM`). Only backed clauses now compete [src/domain/diagnosis.py].
+- [x] [Review][Patch] (medium, 2 layers) A clause was "cited" by substring (`catalog.4.2` matched `catalog.4.20`); now matched as a whole token [src/domain/diagnosis.py `_cites`].
+- [x] [Review][Patch] (medium) Empty or whitespace-only prose was accepted and stored; it is now rejected and retried like a guard hit [src/application/access_denial_handler.py].
+- [x] [Review][Patch] (medium) The extractor took stop-words as names: `denied access to` -> model `to`, `denied the access to X` -> model `the`, `the student denied X` -> user `student`; plus no NFKC, quotes and possessive `'s` kept in tokens [src/domain/references.py].
+- [x] [Review][Patch] (medium, 3 layers) Prose guard: zero-width/soft-hyphen characters split a token past the guard; clause identifiers (`CS-480`) were not guarded; `denied` and 1-2 letter name fragments rejected legitimate prose (a path to `503 LLM_PROSE_REJECTED`) [src/domain/prose_guard.py, src/domain/diagnosis.py].
+- [x] [Review][Patch] (low, 3 layers) Claim ids were minted before the prose step, so a failed turn burned ids; they are now minted after the prose is accepted [src/application/access_denial_handler.py].
+- [x] [Review][Patch] (low) `EvidenceAssembler.gather` raised `OverflowError` for a clock at the edge of the calendar; now a typed `PROVIDER_UNAVAILABLE` [src/application/evidence_assembler.py].
+- [x] [Review][Patch] (low) `SqliteSessionStore._run` rolled back only on sqlite errors; any other exception mid-append left an open transaction that the next write would commit. It now rolls back and re-raises [src/adapters/outbound/db/session_store.py].
+- [x] [Review][Patch] (low) Missing proofs: API tests that `LLM_UNAVAILABLE`/`LLM_PROSE_REJECTED`/broken-estate 503s store nothing and leave the context unchanged; the fresh-session follow-up clarification; the reused-entity follow-up; logical determinism across sessions; the event-window boundary; the evidence assembler had no unit test.
+
+**Deferred** (written to `deferred-work.md`)
+
+- [x] [Review][Defer] A compound question (`why was alex denied X and why was mateo denied X`) is answered only for the first match - belongs to the story-1.2 classifier (multi-intent detection).
+- [x] [Review][Defer] The `CANNOT_CONFIRM` audit evidence is unbounded and includes denials for other models of the same user - cap/filter with the retention decision (OQ-13).
+- [x] [Review][Defer] `CANNOT_CONFIRM` does not say that only the last 30 days were searched (`S_CNC` is a canonical literal; the `checked` list would change every test) - revisit with story 4.1's anti-fabrication wording.
+- [x] [Review][Defer] The prose guard is lexical: plural/inflected forms (`students`), homoglyphs (Cyrillic `а`), hyphen/space variants (`deepseek coder`) and unlisted facts or injected text can pass. Inherent to AD-8's token approach; a semantic check is out of scope for the simulated LLM (AD-22).
+
+**Dismissed (13):** policy snippet limit "should be 2000" (`dto.py` `Snippet` is 500 for every source - the 2000 exists only in the schema CHECK, and `dto.py` is a verbatim contract copy); `evidence_vocabulary()` missing (the vocabulary is built from the records by `fact_tokens`, which is what the guard needs); the CS-480 text "asserts an unverified entitlement" (it is the cited clause's own text, required by Annex 12.1); the rule renamed to `RULE-CAT-04` (Annex 12.1); event window padded by 1 ms (an event stamped exactly *now* must count; boundary now pinned by a test); follow-up not-found names the raw text (`ghost`) vs typed (`user#ghost`) (D35, by design); `_is_miss` treats `VALIDATION_*` as not-found (D35: a malformed id is a miss); long tokens echoed in `ENTITY_NOT_FOUND` (bounded by the 1,000-character query); cosmetic empty `allowed_roles`; `SimProse.fail` name clash with the catalog helper; latency asserted at handler level only; wall-clock latency test flakiness (0.1 s against a 3 s budget); fresh-session follow-up wording (the story-1.2 classifier owns that clarification; now covered by a test).
+
 ## Dev Notes
 
 ### Decisions and discrepancies found while creating this story (read first)
@@ -198,3 +229,4 @@ Modified: `src/bootstrap.py`, `src/adapters/outbound/db/session_store.py`, `src/
 ### Change Log
 
 - 2026-10-24: story 1.3 implemented (Tasks 1-6); status -> review.
+- 2026-10-25: three-layer code review; 2 decisions resolved, 10 patch groups applied, 4 deferred, 13 dismissed; 851 tests passing, 0 skipped; status -> done.

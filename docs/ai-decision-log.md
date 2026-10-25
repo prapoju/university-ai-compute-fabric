@@ -254,6 +254,30 @@ Open assumptions to confirm: see the end of this file.
   the store and for the HTTP restart (claim ids continue at 4, 5, 6); verified again in Docker with a container restart on the persistent volume.
 - **Lesson:** every new persisted id kind must be added to the seeding, and "restart" tests should run with the real handlers, not with stubs.
 
+## AD-22 - Three-layer code review of story 1.3
+- **Phase:** Review (`bmad-code-review`), same model as the build, Blind Hunter + Edge Case Hunter + Acceptance Auditor in parallel over the 2,601-line
+  diff of the story (the user chose full scope and parallel mode). The first launch of the three reviewers hit the session rate limit and returned
+  nothing; they were relaunched and completed. Acceptance Auditor verdict: AC1-AC4 satisfied, AC5 and AC6 partial.
+- **Human decisions (Juan):** (1) determinism across sessions of one service is *logical* equality - the clock-read citation and claim ids are
+  per-request counters, so the test normalises them and exact equality is required across fresh processes; (2) canonical turns stay stored as
+  `Answer` rows and extend the context, a documented deviation from the literal text of `contracts.md`; (3) apply all patches.
+- **Corrections that came out of it (all reproduced before fixing, tests first):**
+  1. *Stale follow-up (three reviewers):* the context kept first-appearance order, so `and what about mateo?` could resolve against a model used
+     several turns earlier. A re-used entity now moves to the end of the context.
+  2. *Hidden denial:* the clause was picked by precedence before checking that an event backs it, so an unbacked allowlist clause turned a confirmed
+     quota denial into `CANNOT_CONFIRM`; and a clause was "cited" by substring (`catalog.4.2` matched `catalog.4.20`).
+  3. *Prose guard:* empty prose was accepted; zero-width characters split a token; `CS-480` was not guarded; and the generic word `denied` plus
+     1-2 letter name fragments made a real LLM's ordinary sentence a `503 LLM_PROSE_REJECTED`.
+  4. *Extraction:* `denied access to` -> model `to`, `the student denied X` -> user `student`, quotes/possessives/full-width letters.
+  5. *Robustness:* claim ids burned by failed turns; `OverflowError` from an extreme clock; an open transaction left behind by a non-sqlite exception.
+- **A review finding the AI rejected:** two reviewers said the policy snippet should be clipped at 2000 characters (the schema CHECK allows it). The AI
+  checked `dto.py` before patching and found `Snippet` is 500 for every source type; `dto.py` is a verbatim copy of the contract, so the
+  finding was dismissed instead of "fixed" (a change would have broken response validation).
+- **Process mistake, third repeat (AD-05, AD-16, AD-18):** a scripted edit turned `​` and `\n` in new test strings into raw invisible/newline
+  characters and broke a test file. The files were repaired with the edit tool. Rule kept: test files with escapes are written with the edit tool.
+- **Open limits (deferred, not hidden):** the prose guard is lexical (inflections, homoglyphs and hyphen/space variants can pass); a compound
+  question answers only the first half; `CANNOT_CONFIRM` does not state the 30-day look-back.
+
 ## AD-21 - Story 1.3: building the guard and the extraction against the contract text
 - **Phase:** Build, Tasks 1 and 4.
 - **Corrections made by tests written first:** the reference extractor took the word `access` as the model in `why was alex denied access?`

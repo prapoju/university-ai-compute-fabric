@@ -15,3 +15,10 @@
 - Id counters are seeded once and only for `session`/`answer`, assuming a single process: extend `highest_counters` when other id kinds are first persisted.
 - All `sqlite3.Error` become a retryable 503, including permanent faults: the catalog has no code for them; revisit with the audit stories.
 - `isolation_level` of the shared connection is not pinned explicitly: the default is what the store relies on; covered by the atomicity tests.
+
+## Deferred from: code review of story-1-3 (2026-10-25)
+
+- A compound question (`why was alex denied X and why was mateo denied X`) is answered only for the first match: multi-intent detection belongs to the story-1.2 classifier.
+- The `CANNOT_CONFIRM` audit evidence is unbounded and includes the user's denials for other models: cap/filter together with the retention decision (OQ-13).
+- `CANNOT_CONFIRM` does not state that only the last 30 days were searched (`S_CNC` is a canonical literal): revisit with story 4.1's anti-fabrication wording.
+- The prose guard is lexical (AD-8): inflections, homoglyphs, hyphen/space variants and unlisted facts or injected text can pass; a semantic check is out of scope while the writer is simulated.
