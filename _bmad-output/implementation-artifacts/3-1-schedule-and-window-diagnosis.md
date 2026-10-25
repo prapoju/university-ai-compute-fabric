@@ -31,9 +31,9 @@ Source: `planning/epics.md` Story 3.1 and Annex 12.2. Requirements: FR-05, AD-2,
 - [x] **Task 1: Domain (pure)** (AC: 1-3) -> `feat(story-3.1): pure window diagnosis and group reference`
   - [x] 1.1 `src/domain/window_diagnosis.py`: `extract_group_reference(query)`; `diagnose_schedule_window(group, jobs, windows, clock)` returning a diagnosis (evidence, claim drafts, fact tokens, class) with the half-open rule; `parse_instant` for comparisons only.
   - [x] 1.2 `src/domain/intent.py`: rule `diagnose_schedule_window` (`RULE-INTENT-SCHEDULE-WINDOW`).
-- [ ] **Task 2: Application** (AC: 1-5) -> `feat(story-3.1): window diagnosis through the pipeline`
-  - [ ] 2.1 `EntityResolver.resolve_group`; shared `write_prose` helper (guard + one retry) extracted from the 1.3 handler.
-  - [ ] 2.2 `src/application/window_diagnosis_handler.py` and registration in `bootstrap.py`.
+- [x] **Task 2: Application** (AC: 1-5) -> `feat(story-3.1): window diagnosis through the pipeline`
+  - [x] 2.1 `EntityResolver.resolve_group`; shared `write_prose` helper (guard + one retry) extracted from the 1.3 handler.
+  - [x] 2.2 `src/application/window_diagnosis_handler.py` and registration in `bootstrap.py`.
 - [ ] **Task 3: Tests and DoD** (AC: 1-6)
   - [ ] 3.1 Unit tests (domain, handler) and API tests through the real container: S2, boundary, no-constraint, not-found, clock failure, 10 variants.
   - [ ] 3.2 README line, decision-log entry, `ruff`, full `pytest`, sprint-status to `review`.

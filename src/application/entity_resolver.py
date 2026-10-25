@@ -15,9 +15,9 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from src.domain.entity_key import parse_entity_key
-from src.domain.result import Ok, Result, is_failure
-from src.dto import ModelCatalogEntryDTO, UserRecordDTO
-from src.ports.outbound import CatalogPort, UsersPort
+from src.domain.result import Failure, Ok, Result, is_failure
+from src.dto import GroupRecordDTO, ModelCatalogEntryDTO, UserRecordDTO
+from src.ports.outbound import CatalogPort, GroupsPort, UsersPort
 
 
 @dataclass(frozen=True)
@@ -60,10 +60,31 @@ def _key(entity_type: str, token: str) -> tuple[str | None, str]:
     return str(parsed.value), str(parsed.value)
 
 
+@dataclass(frozen=True)
+class ResolvedGroup:
+    group: GroupRecordDTO
+
+
 class EntityResolver:
-    def __init__(self, *, users: UsersPort, catalog: CatalogPort) -> None:
+    def __init__(
+        self, *, users: UsersPort, catalog: CatalogPort, groups: GroupsPort | None = None
+    ) -> None:
         self._users = users
         self._catalog = catalog
+        self._groups = groups
+
+    # -- "why can't <group> run their job" (story 3.1) -------------------------------------------
+    def resolve_group(self, token: str) -> Result[ResolvedGroup | Unresolved]:
+        """Exact, case-folded group lookup; a miss is named as typed, never guessed (AD-7)."""
+        if self._groups is None:
+            return Failure("PROVIDER_UNAVAILABLE", observed=("groups port is not wired",))
+        key, name = _key("group", token)
+        found = self._lookup(self._groups.get, key)
+        if is_failure(found):
+            return found
+        if found.value is None:
+            return Ok(Unresolved((name,)))
+        return Ok(ResolvedGroup(found.value))
 
     # -- "why was <user> denied <model>" -------------------------------------------------------
     def resolve_user_and_model(self, user_token: str, model_token: str) -> Result[Resolution]:
@@ -145,5 +166,6 @@ __all__ = [
     "MissingContext",
     "Resolution",
     "Resolved",
+    "ResolvedGroup",
     "Unresolved",
 ]

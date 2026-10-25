@@ -16,24 +16,24 @@ from src.application.entity_resolver import (
     Unresolved,
 )
 from src.application.evidence_assembler import EvidenceAssembler
-from src.application.pipeline import CLARIFICATION_INTENT, TurnInput, TurnOutput
+from src.application.pipeline import TurnInput, TurnOutput
+from src.application.turn_support import (
+    PROSE_ATTEMPTS,
+    PROSE_INSTRUCTION,
+    canonical_turn,
+    clarification_turn,
+    mint_claims,
+    write_prose,
+)
 from src.domain import canonical_strings as cs
 from src.domain.diagnosis import AccessDenialDiagnosis, CannotConfirm, diagnose_access_denial
 from src.domain.intent import FOLLOW_UP_RULE_ID
-from src.domain.prose_guard import scan_prose
 from src.domain.references import extract_access_denial_references, extract_follow_up_reference
-from src.domain.result import Failure, Ok, Result, is_failure
-from src.dto import AnswerDTO, ClaimDTO, ProsePromptDTO
-from src.ports.inbound import CanonicalOutcome
+from src.domain.result import Ok, Result, is_failure
+from src.dto import AnswerDTO
 from src.ports.outbound import IdGenPort, LlmProsePort
 
 INTENT = "diagnose_access_denial"
-PROSE_ATTEMPTS = 2  # the first try plus one retry (AD-8)
-PROSE_INSTRUCTION = (
-    "Write one or two neutral sentences that connect the evidence sections below. "
-    "Do not name any user, model, role, policy, rule, event, time or reason: "
-    "the structured claims already carry every fact."
-)
 
 
 class AccessDenialHandler:
@@ -102,16 +102,9 @@ class AccessDenialHandler:
             return prose
         # ids are minted only once the turn can no longer fail on the LLM, so a rejected or
         # unavailable writer never leaves gaps in the claim id sequence
-        claims: list[ClaimDTO] = []
-        for draft in diagnosis.claims:
-            claim_id = self._idgen.new_id("claim")
-            if is_failure(claim_id):
-                return claim_id
-            claims.append(
-                ClaimDTO(
-                    claim_id=claim_id.value, text=draft.text, claim_citations=list(draft.citations)
-                )
-            )
+        claims = mint_claims(self._idgen, diagnosis.claims)
+        if is_failure(claims):
+            return claims
         answer = AnswerDTO(
             answer_id=turn.answer_id,
             session_id=turn.session_id,
@@ -119,29 +112,14 @@ class AccessDenialHandler:
             intent=INTENT,
             answer_chain=["observation", "evidence", "diagnosis"],
             diagnosis_class=diagnosis.diagnosis_class,
-            claims=claims,
+            claims=claims.value,
             evidence=list(diagnosis.evidence),
             prose=prose.value,
         )
         return Ok(TurnOutput(answer, resolved_entities=entities))
 
     def _write_prose(self, diagnosis: AccessDenialDiagnosis) -> Result[str]:
-        prompt = ProsePromptDTO(
-            evidence_sections=[entry.snippet for entry in diagnosis.evidence],
-            instruction=PROSE_INSTRUCTION,
-        )
-        leaked: list[str] = []
-        for _ in range(PROSE_ATTEMPTS):
-            written = self._prose.compose(prompt)
-            if is_failure(written):
-                return written  # an unavailable writer is not retried
-            if not written.value.strip():
-                leaked = ["<empty prose>"]  # nothing to connect the evidence: same as a rejection
-                continue
-            leaked = scan_prose(written.value, diagnosis.fact_tokens)
-            if not leaked:
-                return written
-        return Failure("LLM_PROSE_REJECTED", observed=tuple(leaked))
+        return write_prose(self._prose, diagnosis.evidence, diagnosis.fact_tokens)
 
     # -- canonical outcomes (never consult the LLM) ----------------------------------------------
     @staticmethod
@@ -153,38 +131,14 @@ class AccessDenialHandler:
         kept: CannotConfirm | None = None,
         entities: tuple[str, ...] = (),
     ) -> TurnOutput:
-        evidence = list(kept.evidence) if kept is not None else []
-        chain = ["observation", "evidence"] if kept is not None else ["observation"]
-        answer = AnswerDTO(
-            answer_id=turn.answer_id,
-            session_id=turn.session_id,
-            query=turn.query,
-            intent=INTENT,
-            answer_chain=chain,
-            canonical=stored,
-            claims=[],
-            evidence=evidence,
-            prose=message,
-        )
-        return TurnOutput(
-            answer, canonical=CanonicalOutcome(code, message), resolved_entities=entities
+        evidence = kept.evidence if kept is not None else None
+        return canonical_turn(
+            turn, INTENT, code, message, stored=stored, kept_evidence=evidence, entities=entities
         )
 
     @staticmethod
     def _clarify(turn: TurnInput, reason: str) -> TurnOutput:
-        message = cs.clarification(reason)
-        answer = AnswerDTO(
-            answer_id=turn.answer_id,
-            session_id=turn.session_id,
-            query=turn.query,
-            intent=CLARIFICATION_INTENT,
-            answer_chain=["observation"],
-            canonical="CLARIFICATION",
-            claims=[],
-            evidence=[],
-            prose=message,
-        )
-        return TurnOutput(answer, canonical=CanonicalOutcome("CLARIFICATION_REQUIRED", message))
+        return clarification_turn(turn, reason)
 
 
 __all__ = ["INTENT", "PROSE_ATTEMPTS", "PROSE_INSTRUCTION", "AccessDenialHandler"]

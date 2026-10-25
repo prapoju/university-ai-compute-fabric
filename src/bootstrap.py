@@ -32,6 +32,8 @@ from src.application.evidence_assembler import EvidenceAssembler
 from src.application.pipeline import AnswerPipeline
 from src.application.session_service import SessionService
 from src.application.unavailable import UnavailableSessionUseCases
+from src.application.window_diagnosis_handler import INTENT as WINDOW_INTENT
+from src.application.window_diagnosis_handler import WindowDiagnosisHandler
 from src.config import Settings
 from src.domain.result import is_failure
 from src.ports.inbound import SessionUseCases
@@ -145,6 +147,18 @@ def build_container(settings: Settings) -> Container:
         AccessDenialHandler(
             resolver=EntityResolver(users=providers.users, catalog=providers.catalog),
             assembler=EvidenceAssembler(policy=providers.policy, events=providers.event_store),
+            prose=prose,
+            idgen=idgen,
+        ),
+    )
+    pipeline.register(
+        WINDOW_INTENT,
+        WindowDiagnosisHandler(
+            resolver=EntityResolver(
+                users=providers.users, catalog=providers.catalog, groups=providers.groups
+            ),
+            jobs=providers.jobs,
+            windows=providers.windows,
             prose=prose,
             idgen=idgen,
         ),
