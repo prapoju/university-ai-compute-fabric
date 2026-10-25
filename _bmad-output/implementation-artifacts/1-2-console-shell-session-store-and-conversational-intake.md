@@ -119,6 +119,38 @@ Full Ceremony: test first, then code, per subtask. Commit per numbered task (con
   - [x] 7.3 README: document the session API with a `curl` walkthrough; `ruff check src tests`, full `pytest` (0 skipped), Docker `up --build` smoke (`POST /api/v1/sessions`, query, GET, DELETE).
   - [x] 7.4 Update `docs/ai-decision-log.md`; promote the story status in both `sprint-status.yaml` copies.
 
+### Review Findings
+
+Code review 2026-10-25 (Blind Hunter + Edge Case Hunter + Acceptance Auditor; scope: `src/` without `dto.py`, `tests/`, `README.md`; ~3,500 diff lines). Severities were assigned after reading the code and reproducing the cases. The Acceptance Auditor found **no violation of AC 1-6**; the findings below are robustness and precision gaps.
+
+**Decision needed** (1 raised, resolved by the user on 2026-10-25)
+
+- [x] [Review][Decision] (medium, RESOLVED by the user: keep the contract-literal behaviour; recorded as assumption 6 in the decision log, no code change) A query sent to a *reset* session is answered 410 and persisted as `status = expired`, so `GET` afterwards shows `expired` (not `reset`), the message says "expired after 30 minutes idle" for a session that was deleted on purpose, and a later `DELETE` flips it back to `reset`. All three reviewers flagged it; contracts.md `answer_query` P2 literally says reset/expired/idle sessions are "persisted as `status == expired`", so the code follows the contract. Choose between keeping the contract-literal behaviour and preserving the explicit `reset` state. [src/application/session_service.py:106, src/adapters/outbound/db/session_store.py:184]
+
+**Patch**
+
+- [x] [Review][Patch] (medium) Intent rules force-route out-of-domain queries (reproduced): `why was job 8823 rejected?`, `why was job 8823 blocked?`, `why was my pull request rejected` and `why does the report not cover access logs` all route to `diagnose_access_denial` because pattern 1 needs only "why" + a verb and pattern 2 accepts a bare "not". Require an object after the verb, drop `rejected`/`forbidden`, restrict pattern 2 to can't/cannot/unable to/not allowed to, and extend the out-of-domain corpus [src/domain/intent.py:46, tests/unit/test_intent.py]
+- [x] [Review][Patch] (medium) The destructive-verb guard misses causative/passive requests (reproduced): `why was alex denied deepseek-coder and have his jobs deleted` / `get his jobs cancelled` are routed as a pure diagnosis and the destructive request is silently dropped (AD-5). Detect causative markers (have/get/make/let/please/should/must) followed by a past participle while still letting plain reports ("cordoned", "cancelled") through [src/domain/intent.py:60]
+- [ ] [Review][Patch] (medium) The clock is read before the per-session lock (and before the session lookup): two concurrent turns can commit out of order (an earlier `now` written later, `last_turn_at` moving backwards, `GET` turns listed in a different order from `active_answer_ids`), and a clock failure on an unknown session returns 503 instead of 404. Take the guard first, look the session up, then read the clock once, for `submit_query` and `reset_session` [src/application/session_service.py:94, src/application/session_service.py:171]
+- [ ] [Review][Patch] (medium) A stored `created_at`/`last_turn_at` that passes the table GLOB but is not a real instant (`2026-13-45...`) makes `submit_query` raise a raw `ValueError` (reproduced) instead of a typed failure [src/application/session_service.py:106]
+- [ ] [Review][Patch] (medium) A query containing a NUL character (or a lone surrogate) passes `normalise_query` and then violates the table CHECK, so a client input error comes back as a retryable 503 (reproduced). Reject it in the domain as `VALIDATION_MALFORMED_BODY` [src/domain/session_rules.py:24]
+- [ ] [Review][Patch] (low) `/readyz` runs its `migrations` query on the shared connection outside the store lock; expose it as a locked store method and use that [src/bootstrap.py:107, src/adapters/outbound/db/session_store.py]
+- [ ] [Review][Patch] (low) `GET /sessions/{sid}` reads the session and its turns as two unsynchronised statements, so a concurrent turn can make `context` and `turns` disagree; read both under the session guard [src/application/session_service.py:149]
+- [ ] [Review][Patch] (low) A failed `mark_expired` write hides the 410 the service already knows applies; return `SESSION_EXPIRED` anyway and log the failed write-back [src/application/session_service.py:106]
+- [ ] [Review][Patch] (low) Duplicate entities returned by one handler are persisted twice in `resolved_entities`; de-duplicate (Q2 superset rule) [src/application/session_service.py:130]
+- [x] [Review][Patch] (low) Incomplete apostrophe normalisation (only U+2019): treat the usual apostrophe lookalikes the same [src/domain/intent.py:70]
+- [ ] [Review][Patch] (low) README says sessions "survive restarts" while the default database is `:memory:`; say it holds for a file database (what Docker uses) and mark the sample ids as illustrative [README.md:56]
+
+**Deferred**
+
+- [x] [Review][Defer] `append_turn` refuses answers with claims/evidence as a retryable 503 [src/adapters/outbound/db/session_store.py:144] - deferred to story 1.3, which must persist claims/evidence (and replace this guard) before any diagnosis handler is registered; recorded in the story notes
+- [x] [Review][Defer] The session context (`prior_intents`, `active_answer_ids`) grows with every turn [src/application/session_service.py:130] - deferred: prototype-scale sessions expire after 30 idle minutes; revisit with the retention decision (OQ-13)
+- [x] [Review][Defer] Id counters are seeded once, only for `session` and `answer`, and assume one process [src/adapters/outbound/db/session_store.py:205] - deferred: other kinds appear with later stories (extend `highest_counters` then); a multi-process deployment is out of scope (C-5)
+- [x] [Review][Defer] Every `sqlite3.Error` is a retryable 503, including permanent ones such as a duplicate id [src/adapters/outbound/db/session_store.py] - deferred: the error catalog has no code for permanent storage faults; revisit with the audit stories
+- [x] [Review][Defer] The connection's `isolation_level` is not pinned explicitly [src/adapters/outbound/db/connection.py] - deferred: the default (implicit transactions) is what the store relies on and the atomicity tests cover it
+
+**Dismissed (11):** `GET` on an idle-but-unmarked session reports `active` (contracts.md `get_session` has no time dependency; the next query returns 410 and persists it); the `SESSION_EXPIRED` template text for reset sessions (catalog literal; tied to the decision above); benign words such as `remove`/`kill` in a diagnosis query trigger a clarification (deliberate safe-over-precise trade-off for AD-5); path-parameter 400 vs 404 (contract P1 says a malformed parameter is 400); `operator_role` validated in both the DTO and the service (defence in depth); `failure_response` may echo `observed` for 4xx or hit an unknown code (every `Failure` code is validated against the catalog and a test pins full coverage); the route audit relies on FastAPI's private `original_router` (cross-checked against the generated schema, accepted); regex backtracking on 1000 characters (bounded); length measured after trimming (contract: trim once); the swallowed `PRAGMA foreign_keys` error (a dead connection fails on the first real call) and `highest_counters` loading every id (10k cap, corrupt rows make sessions safely unavailable); `R_MULTIPLE_INTENTS` is unreachable with one rule (unit-tested with custom rules).
+
 ## Dev Notes
 
 ### Decisions and discrepancies found while creating this story (read first)

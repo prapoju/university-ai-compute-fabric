@@ -48,8 +48,14 @@ INTENT_RULES: tuple[IntentRule, ...] = (
         intent_code="diagnose_access_denial",
         rule_id="RULE-INTENT-ACCESS-DENIAL",
         patterns=(
-            _rx(r"\bwhy\b.*\b(?:denied|blocked|refused|rejected|forbidden)\b"),
-            _rx(r"\bwhy\b.*\b(?:can't|cannot|can not|isn't|is not|not)\b.*\baccess\b"),
+            # "why was alex denied deepseek-coder": the verb must be followed by what was denied,
+            # so "why was job 8823 blocked?" is not an access denial
+            _rx(
+                r"\bwhy\b.*\b(?:denied|blocked|refused)\s+(?:access\s+)?(?:to\s+|from\s+|for\s+)?\S"
+            ),
+            # "why can't alex access deepseek-coder": an explicit inability, never a bare "not"
+            _rx(r"\bwhy\b.*\b(?:can't|cannot|can not|unable to|not allowed to)\b.*\baccess\b"),
+            # "alex was denied access to deepseek-coder"
             _rx(r"\b(?:denied|blocked|refused)\b.*\baccess\b"),
         ),
     ),
@@ -63,14 +69,28 @@ _DESTRUCTIVE = _rx(
     r"|terminat(?:e|es|ing))\b"
 )
 
+# A destructive request can also be phrased as a causative or passive ("have his jobs deleted",
+# "get them cancelled", "should be drained"). Without a causative/modal marker a bare past
+# participle is a report of what happened ("was cordoned") and is not a request.
+_DESTRUCTIVE_REQUEST = _rx(
+    r"\b(?:hav(?:e|ing)|get(?:s|ting)?|got|mak(?:e|ing)|let|please|should|must|to be)\b"
+    r".*\b(?:deleted|cancel(?:l)?ed|drained|cordoned|removed|killed|purged|wiped|terminated)\b"
+)
+
 _FOLLOW_UP = _rx(r"^(?:(?:and|also|then)\s+)?(?:what|how) about\b")
 FOLLOW_UP_RULE_ID = "RULE-FOLLOWUP-CONTEXT"
 
 
+# apostrophe lookalikes -> straight apostrophe (left/right quote, reversed, modifier letter, acute
+# accent, grave accent, prime), so "can’t", "can´t" and "can`t" route like "can't"
+_APOSTROPHES = str.maketrans(dict.fromkeys("‘’‛ʼ´`′", "'"))
+
+
 def _normalise(query: str) -> str:
-    text = unicodedata.normalize("NFKC", query).casefold()
-    text = text.replace("’", "'")  # curly apostrophe -> straight
-    return " ".join(text.split())
+    # translate BEFORE NFKC (U+00B4 would otherwise decompose into a space plus an accent) and
+    # again after, for any lookalike NFKC itself produces
+    text = unicodedata.normalize("NFKC", query.translate(_APOSTROPHES)).casefold()
+    return " ".join(text.translate(_APOSTROPHES).split())
 
 
 def classify(
@@ -80,7 +100,9 @@ def classify(
 ) -> Routed | Clarify:
     """Route ``query`` to exactly one registered intent, or ask for clarification."""
     text = _normalise(query)
-    destructive = _DESTRUCTIVE.search(text) is not None
+    destructive = _DESTRUCTIVE.search(text) is not None or (
+        _DESTRUCTIVE_REQUEST.search(text) is not None
+    )
     matched = [r for r in rules if any(p.search(text) for p in r.patterns)]
 
     if matched and destructive:
