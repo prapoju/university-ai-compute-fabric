@@ -51,7 +51,9 @@ known-first-party = ["src"]
 
 [tool.ruff.lint.per-file-ignores]
 "src/adapters/**" = ["TID251"]
-"src/*.py" = ["TID251"]
+"src/bootstrap.py" = ["TID251"]
+"src/config.py" = ["TID251"]
+"src/dependency_check.py" = ["TID251"]
 "tests/**" = ["TID251"]
 # Verbatim copy of the contract DTO module (planning/.../dto.py); a test enforces equality.
 "src/dto.py" = ["E501", "I001", "UP", "TID251"]

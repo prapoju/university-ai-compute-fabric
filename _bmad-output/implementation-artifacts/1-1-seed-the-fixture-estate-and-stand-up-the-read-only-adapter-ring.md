@@ -98,7 +98,7 @@ Follow the Full Ceremony: write each test **with** its code (red → green → r
   - [x] 5.4 Wire everything in `src/bootstrap.py` (composition root builds adapters from `Settings`; the app and tests both use it).
   - [x] 5.5 Tests (BDD-mapped, one file per scenario group): `tests/unit/test_story_1_1_estate_ports.py`, `tests/unit/test_story_1_1_typed_failures.py`, `tests/unit/test_story_1_1_extensibility.py` (registers a toy `widgets` store + port without touching existing modules). Add a **read-only proof**: deep-compare estate snapshot before/after a battery of reads.
 - [ ] **Task 6 — Architecture guards** (AC: 2)
-  - [ ] 6.1 Import audit test `tests/unit/test_architecture_imports.py`: `src/domain` and `src/ports` import no `fastapi`, `sqlite3`, `datetime.now`-style clock, `random`, `uuid`, `httpx`; `src/domain` and `src/ports` never import `src.adapters.*` (R1, R3). Add the `ruff` `TID` banned-api config in `pyproject.toml` to mirror it.
+  - [x] 6.1 Import audit test `tests/unit/test_architecture_imports.py`: `src/domain` and `src/ports` import no `fastapi`, `sqlite3`, `datetime.now`-style clock, `random`, `uuid`, `httpx`; `src/domain` and `src/ports` never import `src.adapters.*` (R1, R3). Add the `ruff` `TID` banned-api config in `pyproject.toml` to mirror it.
 - [ ] **Task 7 — DoD verification and review report**
   - [ ] 7.1 Run `ruff check src tests` and `pytest` (all green, **0 skipped**); paste the output summary in the Dev Agent Record.
   - [ ] 7.2 Update `_bmad-output/implementation-artifacts/sprint-status.yaml` (and its mirror `implementation-artifacts/sprint-status.yaml`): `in-progress` when starting, `review` when done.
