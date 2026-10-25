@@ -57,7 +57,11 @@ def create_session(body: CreateSessionRequest, use_cases: UseCases) -> JSONRespo
 
 @router.post("/sessions/{sid}/queries", response_model=None)
 def submit_query(sid: SessionIdPath, body: SubmitQueryBody, use_cases: UseCases) -> JSONResponse:
-    result = use_cases.submit_query(sid, body.query_text)
+    return query_response(use_cases.submit_query(sid, body.query_text))
+
+
+def query_response(result) -> JSONResponse:
+    """The wire shape of a submitted query: envelope, canonical ErrorBody or failure."""
     if is_failure(result):
         return failure_response(result)
     outcome = result.value

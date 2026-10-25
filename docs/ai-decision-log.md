@@ -294,8 +294,18 @@ Open assumptions to confirm: see the end of this file.
   that token budget is limited.
 - **Decision (Juan, accepted by the AI):** stories 3.1 (Annex 12.2) and 4.1 (Annex 12.3) implement exactly the annex behaviour plus the epic's
   explicit boundary/negative cases, reuse the 1.3 seams (pipeline, resolver, prose guard), run no subagent review and stop at status `review`
-  (a review that was not run is not claimed). The OpenAPI route (`/api/v1/sessions/{sid}/queries`) is kept over the path quoted in the guide prose:
-  the guide also requires endpoints identical to the OpenAPI, and the route audit forbids an undeclared path.
+  (a review that was not run is not claimed). The AI first recommended keeping only the OpenAPI route (the guide requires endpoints identical to
+  the OpenAPI, the route audit forbids an undeclared path); that recommendation was wrong - see AD-26.
+
+## AD-26 - The annex inbound route was missing (AI recommendation reversed by the user's evidence)
+- **Phase:** Final delivery check.
+- **What the AI got wrong:** reading its own summary of the guide, the AI treated `/api/v1/copilot/query` as "guide prose" and advised against it. The
+  user pasted the annex 12.1 text: `Inbound POST /api/v1/copilot/query; Payload: { query: "Why was student alex denied access to deepseek-coder?" }`.
+  The annex fixes both the path and the payload field (`query`, not the project's `query_text`), so the project's OpenAPI was incomplete for the annex.
+- **Fix:** `copilot_query` added to `openapi.yaml` (+ `CopilotQueryRequest`), a thin adapter `src/adapters/inbound/copilot.py` that opens a session for
+  the operator and delegates to the same `submit_query` use case (no domain logic, no new port), and both route audits updated. Tests: the annex
+  payload, storage and read-back, the other two annex scenarios on the same endpoint, five bad payloads (structured 400), refused destructive request.
+- **Lesson:** an annex quotation beats an AI summary of it; contract gaps are fixed in the contract and the audit, not by dropping the requirement.
 
 ## AD-24 - Story 3.1: window diagnosis decisions and two AI mistakes
 - **Decisions:** the Night window is `22:00-06:00` UTC as in the annex and the fixture (the epic text says `20:00-08:00`); a job's

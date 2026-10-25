@@ -28,6 +28,17 @@ reference; real environment variables only, no `.env` file is loaded); every var
 default. The service serves exactly the routes of
 [`openapi.yaml`](planning/detailed-design/schemas/openapi.yaml); the generated `/docs` is disabled.
 
+## Copilot query (annex 12.1 inbound)
+
+```bash
+curl -s -X POST localhost:8000/api/v1/copilot/query -H 'content-type: application/json' \
+     -d '{"query": "Why was student alex denied access to deepseek-coder?"}'
+#    -> 200 {"answers": [{"diagnosis_class": "access_denial_not_in_allowlist", "claims": [...], "evidence": [...], ...}]}
+```
+
+It opens a session for the operator and answers like the session API below (same diagnoses, same canonical
+`ENTITY_NOT_FOUND` / clarification bodies), so the turn can be read back with `GET /api/v1/sessions/{sid}`.
+
 ## Session API (stories 1.2 and 1.3)
 
 The service exposes the session lifecycle of the contract (`planning/detailed-design/schemas/openapi.yaml`):

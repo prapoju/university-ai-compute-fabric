@@ -25,6 +25,8 @@ SERVED_IN_THIS_STORY = {
     ("POST", "/api/v1/sessions/{}/queries"),
     ("GET", "/api/v1/sessions/{}"),
     ("DELETE", "/api/v1/sessions/{}"),
+    # Impl-1 annex 12.1: the inbound entry point over the same use cases
+    ("POST", "/api/v1/copilot/query"),
 }
 
 # AD-13: the only state-mutating routes the contract may declare. Sessions are Module-12-owned
@@ -32,6 +34,7 @@ SERVED_IN_THIS_STORY = {
 ALLOWED_MUTATING = {
     ("POST", "/api/v1/sessions"),
     ("POST", "/api/v1/sessions/{}/queries"),
+    ("POST", "/api/v1/copilot/query"),  # annex 12.1: owned session state only, never the estate
     ("DELETE", "/api/v1/sessions/{}"),
     ("POST", "/api/v1/destructive/dry-runs"),
     ("POST", "/api/v1/destructive/proposals"),

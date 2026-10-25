@@ -2,7 +2,7 @@
 
 Working code for the Impl-1 delivery of the **AI Operations Copilot** (Python 3.11, FastAPI, SQLite, Ports & Adapters).
 Run it with `docker compose up --build` or `pip install -e . && pytest`. Decisions, AI corrections and process notes are in
-[`docs/ai-decision-log.md`](docs/ai-decision-log.md) (25 entries); sprint progression is in
+[`docs/ai-decision-log.md`](docs/ai-decision-log.md) (26 entries); sprint progression is in
 [`implementation-artifacts/sprint-status.yaml`](implementation-artifacts/sprint-status.yaml).
 
 ## 1. Scope delivered
@@ -49,6 +49,7 @@ evidence/claims/citations are stored in one transaction. The LLM never decides o
 
 | Method and path | Purpose |
 |---|---|
+| `POST /api/v1/copilot/query` | **annex 12.1 inbound**: body `{ "query": "..." }`; opens a session and answers like `submit_query` (stored, readable via `GET /sessions/{sid}`) |
 | `POST /api/v1/sessions` | open a session (201) |
 | `POST /api/v1/sessions/{sid}/queries` | ask a question; a diagnosis is 200 `AnswerEnvelope`, a canonical outcome is 200 `ErrorBody` |
 | `GET /api/v1/sessions/{sid}` | context and stored turns, with evidence and claims |
@@ -57,7 +58,8 @@ evidence/claims/citations are stored in one transaction. The LLM never decides o
 
 Errors are typed `ErrorBody` JSON: 400 malformed/empty/over-long query, 404 unknown session, 410 reset/expired session, 503 provider failure
 (`PROVIDER_UNAVAILABLE`, `CLOCK_UNAVAILABLE`, `LLM_UNAVAILABLE`, `LLM_PROSE_REJECTED`). The DTOs are a verbatim copy of the contract (`extra="forbid"`).
-The route quoted in the guide prose (`/api/v1/copilot/query`) is not in the project's OpenAPI; the OpenAPI route is served (AD-23).
+The annex route `/api/v1/copilot/query` was added to `openapi.yaml` (and to the route audits) once the annex text was confirmed (AD-26); it
+reuses the session use cases, so the sessions API and the annex endpoint return the same answers.
 
 ## 4. Database
 
@@ -96,7 +98,7 @@ Q: why was ghost_user_99 denied deepseek-coder
 ## 6. Test evidence
 
 ```
-$ pytest -q                 947 passed, 0 skipped   (unit 784, integration 74, api 86)
+$ pytest -q                 956 passed, 0 skipped   (unit 784, integration 74, api 95)
 $ ruff check src tests      All checks passed!
 ```
 
@@ -107,11 +109,12 @@ $ ruff check src tests      All checks passed!
 | 1.3 | `test_references`, `test_diagnosis`, `test_prose_guard`, `test_entity_resolver`, `test_access_denial_handler`, `test_access_denial_api` | exact resolution, cited diagnosis, prose guard and retry, canonical outcomes, follow-ups, 503 stores nothing |
 | 3.1 | `test_window_diagnosis`, `test_window_diagnosis_handler`, `test_window_diagnosis_api` | S2, half-open boundary, no constraint, missing group/window/clock, 10 phrasings |
 | 4.1 | `test_anti_fabrication`, `test_anti_fabrication_api` | 12 imaginary references, injection parity on records and query, annex edge case over HTTP |
+| annex 12.1 route | `test_copilot_query` | the annex payload on `POST /api/v1/copilot/query`, structured 400s, other scenarios on the same endpoint |
 
 ## 7. Process and AI use
 
 The BMad cycle was run per story (sprint planning, create-story, dev-story, code-review, sprint-status updates) with a commit per phase
-(`git log --oneline`). `docs/ai-decision-log.md` records 25 entries, including these AI mistakes caught and corrected:
+(`git log --oneline`). `docs/ai-decision-log.md` records 26 entries, including these AI mistakes caught and corrected:
 
 * a database migration that broke file databases (found only by running Docker) - AD-12;
 * route audit blind to included routers - AD-15;

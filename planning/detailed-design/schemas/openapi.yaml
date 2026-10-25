@@ -112,6 +112,33 @@ paths:
         "503": { $ref: '#/components/responses/Response503' }
       x-error-codes: [VALIDATION_EMPTY_QUERY, VALIDATION_QUERY_TOO_LONG, VALIDATION_MALFORMED_BODY, SESSION_NOT_FOUND, SESSION_EXPIRED, ENTITY_NOT_FOUND, CANNOT_CONFIRM, CLARIFICATION_REQUIRED, INTENT_NOT_SUPPORTED, PROVIDER_UNAVAILABLE, LLM_UNAVAILABLE, LLM_PROSE_REJECTED, AUDIT_WRITE_FAILED]
 
+  /api/v1/copilot/query:
+    post:
+      operationId: copilot_query
+      tags: [copilot]
+      summary: copilot_query — POST /api/v1/copilot/query (Impl-1 annex 12.1 inbound)
+      description: >
+        Annex 12.1 entry point. Opens a session for the operator and submits `query` in it, so the
+        answer is the same as `submit_query` and can be read back through `get_session`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CopilotQueryRequest' }
+      responses:
+        "200":
+          description: AnswerEnvelope, or a canonical 200 ErrorBody (same as submit_query).
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - { $ref: '#/components/schemas/AnswerEnvelope' }
+                  - { $ref: '#/components/schemas/ErrorBody' }
+        "400": { $ref: '#/components/responses/Response400' }
+        "500": { $ref: '#/components/responses/Response500' }
+        "503": { $ref: '#/components/responses/Response503' }
+      x-error-codes: [VALIDATION_EMPTY_QUERY, VALIDATION_QUERY_TOO_LONG, VALIDATION_MALFORMED_BODY, ENTITY_NOT_FOUND, CANNOT_CONFIRM, CLARIFICATION_REQUIRED, INTENT_NOT_SUPPORTED, PROVIDER_UNAVAILABLE, CLOCK_UNAVAILABLE, LLM_UNAVAILABLE, LLM_PROSE_REJECTED]
+
   /api/v1/sessions/{sid}:
     get:
       operationId: get_session
@@ -743,6 +770,11 @@ components:
       additionalProperties: false
       required: [query_text]
       properties: { query_text: { $ref: '#/components/schemas/QueryText' } }
+    CopilotQueryRequest:
+      type: object
+      additionalProperties: false
+      required: [query]
+      properties: { query: { $ref: '#/components/schemas/QueryText' } }
     PostDryRunRequest:
       type: object
       additionalProperties: false

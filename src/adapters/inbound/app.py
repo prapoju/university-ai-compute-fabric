@@ -13,7 +13,7 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
 from src import dependency_check
-from src.adapters.inbound import sessions
+from src.adapters.inbound import copilot, sessions
 from src.adapters.inbound.errors import S_PUA, error_body, error_response, install_error_handlers
 from src.bootstrap import Container, build_container
 from src.config import Settings
@@ -41,6 +41,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.container = container
     install_error_handlers(app)
     app.include_router(sessions.router)
+    app.include_router(copilot.router)
 
     @app.get("/healthz", tags=["ops"])
     def healthz() -> dict[str, str]:
