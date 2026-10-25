@@ -81,6 +81,13 @@ window is `2026-10-16T22:00:00.000Z` to `2026-10-17T06:00:00.000Z` (UTC), each f
 `[start, end)`; a group with no constrained job gets `schedule_no_constraint` and no window, an unknown group is
 `ENTITY_NOT_FOUND`, and a failed clock read is a `503 CLOCK_UNAVAILABLE` (a window is never invented).
 
+### No invented entities (story 4.1)
+
+Anything the query names that is not in state - a user (`ghost_user_99`), a model, a group or a typed
+`policy#...` - is a `200` `ENTITY_NOT_FOUND` body listing every unresolved reference, with no claims, evidence or
+diagnosis (`Entity Not Found in State: user#ghost_user_99.`). Retrieved text is data: instruction-like text inside
+records or in the query never changes a diagnosis, and a destructive instruction is refused before any handler runs.
+
 The clock is simulated (`M12_CLOCK_START`) and does not advance on its own.
 
 ## Architecture (Ports & Adapters)

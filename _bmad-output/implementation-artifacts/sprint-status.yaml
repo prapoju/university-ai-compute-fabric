@@ -78,8 +78,8 @@ development_status:
   3-4-intent-taxonomy-extension-and-session-follow-up-references: backlog
   epic-3-retrospective: optional
 
-  epic-4: backlog
-  4-1-anti-fabrication-guardrail-and-content-data-hygiene-mandatory-edge-case: backlog
+  epic-4: in-progress
+  4-1-anti-fabrication-guardrail-and-content-data-hygiene-mandatory-edge-case: review
   4-2-safe-failure-on-retrieval-dependencies: backlog
   4-3-safe-failure-on-the-prose-runtime-and-malformed-input: backlog
   epic-4-retrospective: optional

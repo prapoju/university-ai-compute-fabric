@@ -61,7 +61,7 @@ Claude Sonnet 5.5 (`claude-sonnet-5-5`)
 
 - Pure domain `src/domain/window_diagnosis.py` (group extraction, half-open window rule, claims, fact tokens) and the `diagnose_schedule_window` intent rule; application `EntityResolver.resolve_group`, `WindowDiagnosisHandler`, shared `turn_support.py` (guarded prose, claim ids, canonical turns) extracted from the 1.3 handler; registered in `bootstrap.py`. No endpoint, schema or DTO change.
 - AC1 S2 diagnosis with next open window + timezone, every claim citing group/job/window/clock; AC2 no-constraint; AC3 half-open boundary and `CLOCK_UNAVAILABLE` 503 (nothing stored); AC4 `ENTITY_NOT_FOUND group#group-99`; AC5 prose once, guarded; AC6 10 phrasings route and diagnose identically.
-- Tests: 60 new (domain, handler, API through the real container); suite 916 passing, 0 skipped; `ruff` clean. Scope kept to the annex on purpose (decision log AD-23); no subagent review was run, so the story stops at `review`.
+- Tests: 65 new (domain, handler, API through the real container); suite 916 passing, 0 skipped; `ruff` clean. Scope kept to the annex on purpose (decision log AD-23); no subagent review was run, so the story stops at `review`.
 
 ### File List
 

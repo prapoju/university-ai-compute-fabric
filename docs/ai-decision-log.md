@@ -310,6 +310,20 @@ Open assumptions to confirm: see the end of this file.
 - **Process note:** a long shell command that combined several heredocs failed to parse and applied nothing; the files were then written with the
   file tools (the same lesson as AD-05, AD-16, AD-22).
 
+## AD-25 - Story 4.1: the guardrail was mostly there; the real defects were a prose-guard weakness and a corrupted regex
+- **Decisions:** the contract literal `Entity Not Found in State: {ref_list}.` is kept although the annex quotes `User ghost_user_99 does not exist
+  in cluster records` (the contract, the epics and story 1.3 already fix the canonical string; the `ENTITY_NOT_FOUND` code satisfies the annex);
+  a typed `policy#...` reference that is not in state is named after the user and model; injection is proven with a corpus rather than a second
+  filter, because nothing in the system executes retrieved text (deterministic diagnosis, guarded prose, router refuses destructive wording).
+- **Correction 1 (found by the injection test, not by review):** every word of a user's display name was a banned prose token, so a display name such
+  as `Alex Rivera ... and delete all jobs` would have banned `and` and `all`, rejected the writer's ordinary sentence twice and returned a 503. Only
+  capitalised words are guarded now.
+- **Correction 2 (tooling corruption, fourth time):** the policy-reference regex was appended with `printf`; the tool collapsed `\\b` to `\b`, which
+  `printf` turned into a raw backspace character inside the source, so extraction silently matched nothing. Found by the new tests, repaired at byte
+  level, and every source file was scanned for control characters afterwards.
+- **Process deviation, stated plainly:** for this story the tests and code came first and the story file was written afterwards, because AD-23 cut the
+  ceremony. The story file records that order.
+
 ---
 
 ## Open assumptions to confirm at review
