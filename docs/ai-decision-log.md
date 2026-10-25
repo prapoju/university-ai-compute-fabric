@@ -254,6 +254,15 @@ Open assumptions to confirm: see the end of this file.
   the store and for the HTTP restart (claim ids continue at 4, 5, 6); verified again in Docker with a container restart on the persistent volume.
 - **Lesson:** every new persisted id kind must be added to the seeding, and "restart" tests should run with the real handlers, not with stubs.
 
+## AD-21 - Story 1.3: building the guard and the extraction against the contract text
+- **Phase:** Build, Tasks 1 and 4.
+- **Corrections made by tests written first:** the reference extractor took the word `access` as the model in `why was alex denied access?`
+  (the pattern for "denied (access to) <model>" matched greedily) - a lookahead now excludes it and the query becomes a clarification instead of a
+  fabricated `ENTITY_NOT_FOUND model#access`; the determinism test initially failed because it shared one simulated clock between runs
+  (`clock#clk-...1` vs `...2`), which is a property of the simulated clock, not of the diagnosis - each run now builds fresh providers.
+- **Design choices:** claims' text and the `fact_tokens` come from the same records, so the guard can only reject prose that repeats a real fact;
+  prose is rejected whole, never stripped (D48); canonical outcomes never consult the LLM.
+
 ## AD-22 - Three-layer code review of story 1.3
 - **Phase:** Review (`bmad-code-review`), same model as the build, Blind Hunter + Edge Case Hunter + Acceptance Auditor in parallel over the 2,601-line
   diff of the story (the user chose full scope and parallel mode). The first launch of the three reviewers hit the session rate limit and returned
@@ -277,15 +286,6 @@ Open assumptions to confirm: see the end of this file.
   characters and broke a test file. The files were repaired with the edit tool. Rule kept: test files with escapes are written with the edit tool.
 - **Open limits (deferred, not hidden):** the prose guard is lexical (inflections, homoglyphs and hyphen/space variants can pass); a compound
   question answers only the first half; `CANNOT_CONFIRM` does not state the 30-day look-back.
-
-## AD-21 - Story 1.3: building the guard and the extraction against the contract text
-- **Phase:** Build, Tasks 1 and 4.
-- **Corrections made by tests written first:** the reference extractor took the word `access` as the model in `why was alex denied access?`
-  (the pattern for "denied (access to) <model>" matched greedily) - a lookahead now excludes it and the query becomes a clarification instead of a
-  fabricated `ENTITY_NOT_FOUND model#access`; the determinism test initially failed because it shared one simulated clock between runs
-  (`clock#clk-...1` vs `...2`), which is a property of the simulated clock, not of the diagnosis - each run now builds fresh providers.
-- **Design choices:** claims' text and the `fact_tokens` come from the same records, so the guard can only reject prose that repeats a real fact;
-  prose is rejected whole, never stripped (D48); canonical outcomes never consult the LLM.
 
 ## AD-23 - Scope for stories 3.1 and 4.1 cut to the annex (human decision)
 - **Phase:** Planning of the remaining Impl-1 stories.
