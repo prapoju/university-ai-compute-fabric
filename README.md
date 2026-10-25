@@ -28,7 +28,7 @@ reference; real environment variables only, no `.env` file is loaded); every var
 default. The service serves exactly the routes of
 [`openapi.yaml`](planning/detailed-design/schemas/openapi.yaml); the generated `/docs` is disabled.
 
-## Session API (story 1.2)
+## Session API (stories 1.2 and 1.3)
 
 The service exposes the session lifecycle of the contract (`planning/detailed-design/schemas/openapi.yaml`):
 
@@ -38,10 +38,12 @@ curl -s -X POST localhost:8000/api/v1/sessions -H 'content-type: application/jso
      -d '{"operator_role": "role-operations"}'
 #    -> 201 {"session_id": "sess-0000000000000001", "status": "active", "context": {...}, ...}
 
-# 2. ask a question (routed by deterministic rules, no LLM)
+# 2. ask a question (routed and diagnosed by deterministic code; the LLM only writes prose)
 curl -s -X POST localhost:8000/api/v1/sessions/sess-0000000000000001/queries \
      -H 'content-type: application/json' -d '{"query_text": "why was alex denied deepseek-coder"}'
-#    -> 200 {"answers": [{"intent": "diagnose_access_denial", "answer_chain": ["observation"], ...}]}
+#    -> 200 {"answers": [{"intent": "diagnose_access_denial",
+#          "answer_chain": ["observation", "evidence", "diagnosis"],
+#          "diagnosis_class": "access_denial_not_in_allowlist", "claims": [...], "evidence": [...], ...}]}
 #    an out-of-domain query ("what's the weather?") is a 200 clarification:
 #    {"code": "CLARIFICATION_REQUIRED", "message": "Clarification required: no registered intent matches this query.", ...}
 
@@ -54,8 +56,21 @@ Errors are always the typed `ErrorBody` JSON (`code`, `status`, `message`, `retr
 over-1000-character queries are `400`, an unknown session `404`, a reset/expired or 30-minutes-idle
 session `410`, a dependency failure `503`. Sessions and turns live in SQLite (`M12_DB_PATH`;
 `:memory:` by default, a file in Docker): with a file database - what Docker uses - sessions and
-turns survive restarts; with `:memory:` they do not. The session ids shown above are illustrative. Until story 1.3 a routed query
-returns an observation-only answer; the diagnosis plugs into `AnswerPipeline.register`.
+turns survive restarts; with `:memory:` they do not. The session ids shown above are illustrative.
+
+### What an access-denial answer looks like (story 1.3)
+
+`why was alex denied deepseek-coder` resolves `user#alex` and `model#deepseek-coder` by exact, case-folded
+match (never fuzzy), reads the policy clauses and `access_denied` events through the read-only ports and
+returns structured **claims** (role, clause `policy#catalog.4.2` with rule `RULE-CAT-04` and its text, reason
+class, denial event `event#evt-4711`), each citing entries of the **evidence** set (`user`, `model`, `policy`,
+`event`, `clock`; positions `0..n-1`). The diagnosis class, claims and citations are computed by pure code and are
+identical on every run; the LLM (simulated in this delivery) is called once and only writes connective prose,
+which is rejected if it repeats any fact (one retry, then `503 LLM_PROSE_REJECTED`).
+
+* an unknown user or model is a `200` `ENTITY_NOT_FOUND` body naming every unresolved reference (`Entity Not Found in State: user#ghost.`);
+* existing entities with no matching clause/denial event are `CANNOT_CONFIRM` (the gathered evidence is kept on the stored turn);
+* `and what about mateo?` resolves `mateo` and reuses the model from the session context.
 The clock is simulated (`M12_CLOCK_START`) and does not advance on its own.
 
 ## Architecture (Ports & Adapters)

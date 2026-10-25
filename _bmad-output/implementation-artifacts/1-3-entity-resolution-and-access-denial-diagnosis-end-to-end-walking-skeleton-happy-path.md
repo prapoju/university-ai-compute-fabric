@@ -4,7 +4,7 @@ baseline_commit: 3405dbf3c210f5c801b174c961cca6b124c4aa2e
 
 # Story 1.3: Entity resolution and access-denial diagnosis end-to-end (walking-skeleton happy path)
 
-Status: in-progress
+Status: review
 
 <!-- This is the core story of the Impl-1 delivery (Annex 12.1, "Natural Language Access Denial Diagnosis"):
      the first cited, deterministic answer through every layer. Stories 1.1 (fixtures + read-only ports) and
@@ -103,9 +103,9 @@ Full Ceremony: test first, then code, per subtask; commit per numbered task (con
 - [x] **Task 5: Composition and REST** (AC: 2, 4, 5) → `feat(story-1.3): wire the handler into the container`
   - [x] 5.1 `src/bootstrap.py`: register `LlmProsePort` (simulated) and `AnswerPipeline.register("diagnose_access_denial", handler)`; when the estate failed to load the handler returns the typed failure (503), the app still starts and `/readyz` already reports the estate.
   - [x] 5.2 API tests through the real container: the S1 response validates against `SubmitQueryResponse` (all DTOs `extra="forbid"`), canonical outcomes are 200 `ErrorBody`, `GET /sessions/{sid}` returns the stored evidence/claims, **no endpoint is added** (the route audit stays green). Update the story-1.2 wiring/API expectations that assumed an observation-only S1 answer.
-- [ ] **Task 6: Quality and DoD** (AC: 6) → `test(story-1.3): determinism, latency and DoD`
-  - [ ] 6.1 Determinism x3 (membership, positions, citations, claims, class identical), latency (p95 well under 3 s), concurrency regression (the 1.2 NFR-6 tests still pass with the real handler), estate read-only proof.
-  - [ ] 6.2 README (what an answer looks like), `ruff check src tests`, full `pytest` (0 skipped), Docker smoke of the S1 flow; update `docs/ai-decision-log.md`; promote the story in both `sprint-status.yaml` copies.
+- [x] **Task 6: Quality and DoD** (AC: 6) → `test(story-1.3): determinism, latency and DoD`
+  - [x] 6.1 Determinism x3 (membership, positions, citations, claims, class identical), latency (p95 well under 3 s), concurrency regression (the 1.2 NFR-6 tests still pass with the real handler), estate read-only proof.
+  - [x] 6.2 README (what an answer looks like), `ruff check src tests`, full `pytest` (0 skipped), Docker smoke of the S1 flow; update `docs/ai-decision-log.md`; promote the story in both `sprint-status.yaml` copies.
 
 ## Dev Notes
 
@@ -172,10 +172,29 @@ No new dependency. Pydantic v2 DTOs (`ClaimDTO`, `EvidenceDTO`, `AnswerDTO`, `Pr
 
 ### Agent Model Used
 
-_(filled by dev-story)_
+Claude Sonnet 5.5 (`claude-sonnet-5-5`)
 
 ### Debug Log References
 
+- Restart test `test_sessions_and_turns_survive_a_restart_and_new_ids_never_collide` failed with `UNIQUE constraint failed: claims.claim_id` once the handler was wired: claim ids were not seeded from the store (AD-20). Fixed in `highest_counters`.
+- `why was alex denied access?` extracted `access` as the model; fixed with a lookahead in `references.py` (AD-21).
+- Determinism test shared one simulated clock across runs (`clk-...1` vs `...2`); each run now uses fresh providers.
+
 ### Completion Notes List
 
+- Task 1-3: pure domain (references, diagnosis, prose guard, canonical strings), `LlmProsePort` (OP-14), persistence of evidence/claims/citations in the same transaction, `SimProse` with failure injection and scripting.
+- Task 4: `EntityResolver` (exact, case-folded, session-context-first follow-ups re-resolved against the providers, ambiguity -> clarification), `EvidenceAssembler` (30-day half-open look-back, any provider failure aborts), `AccessDenialHandler` (one `compose` call, guard + one retry -> `LLM_PROSE_REJECTED`, canonical ENTITY_NOT_FOUND / CANNOT_CONFIRM / clarification stored as turns).
+- Task 5: composition root registers `LlmProsePort` and the handler; API tests run through the real container (S1 validates against `SubmitQueryResponse`, canonical outcomes are 200 `ErrorBody`, `GET` returns stored evidence/claims, a broken estate is a 503 while the app still starts). No endpoint was added.
+- Task 6: determinism x3, latency (<< 3 s), the 1.2 concurrency tests still pass with the real handler, estate snapshot unchanged after bursts of turns. Docker smoke: S1 diagnosis, ENTITY_NOT_FOUND and a container restart on the persistent volume all behave as expected.
+- Result: 800 tests passing, 0 skipped, `ruff check src tests` clean.
+- Known limits: the LLM is simulated (no Ollama in this delivery); no audit rows until story 1.5; the clock does not advance by itself.
+
 ### File List
+
+New: `src/application/entity_resolver.py`, `src/application/evidence_assembler.py`, `src/application/access_denial_handler.py`, `src/domain/references.py`, `src/domain/diagnosis.py`, `src/domain/prose_guard.py`, `src/ports/outbound/llm_prose.py`, `src/adapters/outbound/sim/prose_adapter.py`, `tests/unit/test_references.py`, `test_diagnosis.py`, `test_prose_guard.py`, `test_prose_adapter.py`, `test_entity_resolver.py`, `test_access_denial_handler.py`, `tests/api/test_access_denial_api.py`.
+
+Modified: `src/bootstrap.py`, `src/adapters/outbound/db/session_store.py`, `src/domain/canonical_strings.py`, `src/domain/intent.py`, `src/ports/outbound/__init__.py`, `fixtures/estate/policy.json`, `fixtures/estate/events.json`, `tests/integration/test_session_store.py`, `tests/unit/test_canonical_strings.py`, `tests/unit/test_fixture_estate.py`, `tests/unit/test_ports_query_only.py`, `README.md`, `docs/ai-decision-log.md`, both `sprint-status.yaml` copies.
+
+### Change Log
+
+- 2026-10-24: story 1.3 implemented (Tasks 1-6); status -> review.

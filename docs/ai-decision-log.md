@@ -232,6 +232,39 @@ Open assumptions to confirm: see the end of this file.
 
 ---
 
+## AD-19 - Story 1.3: specification decisions made before coding
+- **Phase:** Create story (`bmad-create-story`) and build planning, same model. The canonical epics and Annex 12.1 disagreed with the repo in
+  small ways, so the AI listed the discrepancies and resolved them in the story before writing code (D1-D9 in the story file).
+- **Decisions:** (1) the clause `policy#catalog.4.2` gets rule `RULE-CAT-04` and a text that names CS-480 (Annex 12.1) - done in the fixtures,
+  not in code, so the DTOs and the schema did not change; (2) "matching clause" = `not-in-allowlist` iff the user's role is not in the model's
+  `allowed_roles`, `quota`/`window` iff the user's denial event cites them, fixed precedence `not-in-allowlist > quota > window`;
+  (3) a denial must be backed by an `access_denied` event that cites the clause, otherwise the answer is `CANNOT_CONFIRM`
+  (FR-04: "a referenced denial event must exist"); (4) the 30-day look-back is half-open and ends at the turn's clock read;
+  (5) the LLM prose guard lives in the domain (pure) and the one-retry rule in the application ring; (6) an unavailable writer is not retried.
+- **Why it matters:** these are product rules the documents left open; recording them keeps the tests (and the next stories 3.1/4.1) consistent.
+
+## AD-20 - Story 1.3: the restart test found an id collision the unit tests could not see
+- **Phase:** Build, Task 5 (wiring through the real container).
+- **What the AI got wrong:** story 1.2 seeded the id generator from the stored session and answer ids only. Story 1.3 started persisting claims
+  (`claims.claim_id` is a global primary key) and the claim counter restarted at 1, so the first query after a restart failed with
+  `UNIQUE constraint failed: claims.claim_id` and a 503.
+- **How it was found:** the existing story-1.2 restart test (`test_sessions_and_turns_survive_a_restart_and_new_ids_never_collide`) failed as soon
+  as the handler was wired - not any of the 790 tests that ran against hand-built objects.
+- **Fix:** `highest_counters()` now also reports the highest stored `clm-` suffix and `SimIdGen.from_counters` continues above it; tests added for
+  the store and for the HTTP restart (claim ids continue at 4, 5, 6); verified again in Docker with a container restart on the persistent volume.
+- **Lesson:** every new persisted id kind must be added to the seeding, and "restart" tests should run with the real handlers, not with stubs.
+
+## AD-21 - Story 1.3: building the guard and the extraction against the contract text
+- **Phase:** Build, Tasks 1 and 4.
+- **Corrections made by tests written first:** the reference extractor took the word `access` as the model in `why was alex denied access?`
+  (the pattern for "denied (access to) <model>" matched greedily) - a lookahead now excludes it and the query becomes a clarification instead of a
+  fabricated `ENTITY_NOT_FOUND model#access`; the determinism test initially failed because it shared one simulated clock between runs
+  (`clock#clk-...1` vs `...2`), which is a property of the simulated clock, not of the diagnosis - each run now builds fresh providers.
+- **Design choices:** claims' text and the `fact_tokens` come from the same records, so the guard can only reject prose that repeats a real fact;
+  prose is rejected whole, never stripped (D48); canonical outcomes never consult the LLM.
+
+---
+
 ## Open assumptions to confirm at review
 1. `Selector.method == "filter"` (equality filter over record fields) is an adapter convention invented for `select()`; the contract only
    says "method + params". Decided with the user: deferred to story 2.2 (dry-run snapshot), where it is confirmed or replaced.
