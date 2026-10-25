@@ -247,9 +247,12 @@ def _fact_tokens(
         clock.read_id, clock.instant, clock.instant[:10], clock.instant[11:19],
         diagnosis_class,
     }  # fmt: skip
-    # names: a whole name and its words, but never a 1-2 letter fragment ("A" would ban "a")
+    # names: the whole name and its capitalised words ("Rivera"), never a 1-2 letter fragment
+    # ("A" would ban "a") nor a lower-case word of free text ("and", "all" in an injected name)
     tokens.update(
-        name for name in (user.display_name, *user.display_name.split()) if len(name) >= _MIN_NAME
+        name
+        for name in (user.display_name, *(w for w in user.display_name.split() if w[0].isupper()))
+        if len(name) >= _MIN_NAME
     )
     # identifiers inside the clause text and rule (course codes such as CS-480)
     tokens.update(_IDENTIFIER.findall(f"{clause.rule} {clause.text}"))

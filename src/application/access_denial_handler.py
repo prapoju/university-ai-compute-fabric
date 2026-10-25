@@ -28,7 +28,11 @@ from src.application.turn_support import (
 from src.domain import canonical_strings as cs
 from src.domain.diagnosis import AccessDenialDiagnosis, CannotConfirm, diagnose_access_denial
 from src.domain.intent import FOLLOW_UP_RULE_ID
-from src.domain.references import extract_access_denial_references, extract_follow_up_reference
+from src.domain.references import (
+    extract_access_denial_references,
+    extract_follow_up_reference,
+    extract_policy_references,
+)
 from src.domain.result import Ok, Result, is_failure
 from src.dto import AnswerDTO
 from src.ports.outbound import IdGenPort, LlmProsePort
@@ -55,6 +59,15 @@ class AccessDenialHandler:
         if is_failure(resolution):
             return resolution
         found = resolution.value
+        # a policy the query names (policy#...) must exist too: never explain a denial by a
+        # clause that is not in state (AD-7, Annex 12.3)
+        missing = self._assembler.missing_policies(extract_policy_references(turn.query))
+        if is_failure(missing):
+            return missing
+        if isinstance(found, Resolved | Unresolved) and missing.value:
+            earlier = found.refs if isinstance(found, Unresolved) else ()
+            message = cs.entity_not_found((*earlier, *missing.value))
+            return Ok(self._canonical(turn, "ENTITY_NOT_FOUND", message, "ENTITY_NOT_FOUND"))
         if isinstance(found, Unresolved):
             message = cs.entity_not_found(found.refs)
             return Ok(self._canonical(turn, "ENTITY_NOT_FOUND", message, "ENTITY_NOT_FOUND"))

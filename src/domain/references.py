@@ -96,3 +96,17 @@ def extract_follow_up_reference(query: str) -> str | None:
 # Shared with the other diagnosers (story 3.1+): same query normalisation and token cleaning.
 clean_query = _clean
 strip_token = _strip
+
+
+_POLICY_REF = re.compile(r"\bpolicy#(?P<id>[^\s,;:?!()\[\]]+)", re.I)
+
+
+def extract_policy_references(query: str) -> list[str]:
+    """Typed ``policy#...`` references named in the query: once each, in input order."""
+    found: list[str] = []
+    for match in _POLICY_REF.finditer(_clean(query)):
+        ref = _strip(match["id"])
+        key = f"policy#{ref}" if ref else None
+        if key and key not in found:
+            found.append(key)
+    return found

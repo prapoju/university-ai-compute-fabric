@@ -6,6 +6,7 @@ provider failure aborts the turn: a diagnosis is never built from partial eviden
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from src.domain.instants import add_seconds
@@ -51,6 +52,23 @@ class EvidenceAssembler:
         if is_failure(events):
             return events
         return Ok(DenialRecords(tuple(clauses.value), tuple(events.value)))
+
+    def missing_policies(self, refs: Sequence[str]) -> Result[tuple[str, ...]]:
+        """The ``policy#...`` references that are not in state, in input order.
+
+        A malformed id is a miss ("no such clause"); a provider failure aborts the turn.
+        """
+        missing: list[str] = []
+        for ref in refs:
+            found = self._policy.get(ref)
+            if is_failure(found):
+                if found.code.startswith("VALIDATION_"):
+                    missing.append(ref)
+                    continue
+                return found
+            if found.value is None:
+                missing.append(ref)
+        return Ok(tuple(missing))
 
 
 __all__ = ["LOOK_BACK_SECONDS", "DenialRecords", "EvidenceAssembler"]
