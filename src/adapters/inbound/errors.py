@@ -15,6 +15,8 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from src.domain.canonical_strings import S_PUA
+from src.domain.error_catalog import render, spec_for
+from src.domain.result import Failure
 from src.dto import ErrorBody, ExplanationDTO
 
 logger = logging.getLogger(__name__)
@@ -41,6 +43,27 @@ def error_body(
 
 def error_response(body: dict[str, Any]) -> JSONResponse:
     return JSONResponse(status_code=body["status"], content=body)
+
+
+def failure_response(failure: Failure) -> JSONResponse:
+    """Render a typed :class:`Failure` through the section 4 catalog (status, retry, message).
+
+    Server-side failures (5xx) never expose their ``observed`` detail to the client; it goes to
+    the log instead, so a driver error text cannot leak through the API.
+    """
+    spec = spec_for(failure.code)
+    try:
+        message = failure.message or render(failure.code)
+    except ValueError:  # the template needs parameters this failure does not carry
+        message = failure.code
+    observed = list(failure.observed)
+    if spec.status >= 500:
+        logger.error("request failed: %s: %s", failure.code, "; ".join(observed))
+        observed = []
+    body = error_body(
+        failure.code, spec.status, message, retryable=spec.retryable, observed=observed
+    )
+    return error_response(body)
 
 
 def install_error_handlers(app: FastAPI) -> None:
