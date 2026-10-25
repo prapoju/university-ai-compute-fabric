@@ -1,0 +1,76 @@
+"""Health probes and the structured error envelope (Impl-1 §1 "health probes")."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import pytest
+from fastapi.testclient import TestClient
+
+from src.adapters.inbound.app import create_app
+from src.config import Settings
+
+pytestmark = pytest.mark.api
+
+PROBLEM_LITERAL = "Provider unavailable — cannot answer."
+
+
+def _client(settings: Settings | None = None, **kwargs) -> TestClient:
+    return TestClient(create_app(settings or Settings.from_env({})), **kwargs)
+
+
+def test_healthz_is_a_liveness_probe_that_needs_no_dependencies(tmp_path: Path) -> None:
+    broken = Settings.from_env({"M12_FIXTURES_DIR": str(tmp_path / "absent")})
+    response = _client(broken).get("/healthz")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+
+
+def test_readyz_reports_every_check_when_the_service_is_ready(tmp_path: Path) -> None:
+    present = Settings.from_env({"M12_FIXTURES_DIR": str(tmp_path)})
+    response = _client(present).get("/readyz")
+    body = response.json()
+    assert response.status_code == 200
+    assert body["status"] == "ready"
+    assert body["checks"]["dependencies"] == "ok"
+    assert body["checks"]["migrations"] == "ok"
+
+
+def test_readyz_is_503_with_a_structured_error_when_a_dependency_is_missing(tmp_path: Path) -> None:
+    broken = Settings.from_env({"M12_FIXTURES_DIR": str(tmp_path / "absent")})
+    response = _client(broken).get("/readyz")
+    body = response.json()
+    assert response.status_code == 503
+    assert body["code"] == "PROVIDER_UNAVAILABLE"
+    assert body["status"] == 503
+    assert body["retryable"] is True
+    assert body["message"] == PROBLEM_LITERAL
+    assert "absent" in body["explanation"]["observed_values"][0]
+
+
+def test_unexpected_errors_never_leak_a_stack_trace() -> None:
+    app = create_app(Settings.from_env({}))
+
+    @app.get("/_boom")
+    def boom() -> None:
+        raise RuntimeError("secret internal detail")
+
+    response = TestClient(app, raise_server_exceptions=False).get("/_boom")
+    assert response.status_code == 503
+    assert response.json()["code"] == "PROVIDER_UNAVAILABLE"
+    assert "secret internal detail" not in response.text
+    assert "Traceback" not in response.text
+
+
+def test_request_validation_errors_use_the_contract_400_envelope() -> None:
+    app = create_app(Settings.from_env({}))
+
+    @app.get("/_number/{n}")
+    def number(n: int) -> dict[str, int]:
+        return {"n": n}
+
+    response = TestClient(app).get("/_number/not-a-number")
+    body = response.json()
+    assert response.status_code == 400
+    assert body["code"] == "VALIDATION_MALFORMED_BODY"
+    assert body["retryable"] is False

@@ -1,0 +1,23 @@
+# Standalone Module 12 service (C-5: no external cluster or infra dependencies).
+#   docker compose up --build
+services:
+  copilot:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      M12_FIXTURES_DIR: /app/fixtures
+      M12_MIGRATIONS_DIR: /app/migrations
+      M12_DB_PATH: /data/module12.db
+      M12_CLOCK_START: "2026-10-16T15:00:00.000Z"
+      M12_LOG_LEVEL: INFO
+    volumes:
+      - module12-data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/readyz').status == 200 else 1)"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+volumes:
+  module12-data:
