@@ -1,6 +1,10 @@
+---
+baseline_commit: 3405dbf3c210f5c801b174c961cca6b124c4aa2e
+---
+
 # Story 1.3: Entity resolution and access-denial diagnosis end-to-end (walking-skeleton happy path)
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- This is the core story of the Impl-1 delivery (Annex 12.1, "Natural Language Access Denial Diagnosis"):
      the first cited, deterministic answer through every layer. Stories 1.1 (fixtures + read-only ports) and
@@ -81,11 +85,11 @@ Scenario: Determinism and speed
 
 Full Ceremony: test first, then code, per subtask; commit per numbered task (conventional commits, **no co-author trailer**). Write and edit source with the file tools, never with shell/script strings containing escapes (three corruptions so far: stories 1.1 and 1.2). Test persistence on a **file** database as well as `:memory:`.
 
-- [ ] **Task 1: Domain - references, diagnosis, evidence, prose guard (pure)** (AC: 1-3) → `feat(story-1.3): pure domain for references, diagnosis and prose guard`
-  - [ ] 1.1 Fixture alignment (Annex 12.1 and follow-up): clause `policy#catalog.4.2` gets `rule = "RULE-CAT-04"` and text stating that deepseek-coder requires enrollment in CS-480 and the student role is not on the allowlist (missing course entitlement); add `event#evt-4713` (`access_denied`, `user#mateo`, `not-in-allowlist: policy#catalog.4.2`). Update `tests/unit/test_fixture_estate.py` accordingly; no DTO or schema change.
-  - [ ] 1.2 `src/domain/references.py`: deterministic extraction of the user and model references from an access-denial query (the shapes of the S1 variants in `tests/unit/test_intent.py`, typed `user#x` tokens, trailing punctuation stripped) and of the single reference of a follow-up (`what/how about X`); returns raw tokens in input order. No fuzzy matching, no LLM.
-  - [ ] 1.3 `src/domain/diagnosis.py`: pure `diagnose_access_denial(user, model, clauses, events, clock, ...) -> Diagnosis | Cannot` per contracts section 1: clause match rule (not-in-allowlist applies iff `user.role` is not in `model.allowed_roles`; quota/window clauses apply when the user's denial event cites them), fixed precedence `not-in-allowlist > quota > window`, denial-event match (type `access_denied`, `entity_ref` = user, `recorded_reason` cites a matching clause id), the `EvidenceSet` with ordered entries (user, model, clauses, events, clock; `position` 0..n-1; snippets within 500/2000 chars) and the structured claims (role, clause + rule + text, reason class), each citing the user, the clause and the event. Claim ids come from the caller (idgen), never generated here.
-  - [ ] 1.4 `src/domain/prose_guard.py`: `evidence_vocabulary(evidence) -> set[str]` (citation ids, bare ids, display names, roles, rule ids, reason classes, instants) and `scan_prose(prose, vocabulary) -> list[str]` (whole-word, case-folded, NFKC-normalised). Canonical strings: add `S_CNC`/`S_ENF` renderers and the reason `the query must name both a user and a model` to `canonical_strings.py`.
+- [x] **Task 1: Domain - references, diagnosis, evidence, prose guard (pure)** (AC: 1-3) → `feat(story-1.3): pure domain for references, diagnosis and prose guard`
+  - [x] 1.1 Fixture alignment (Annex 12.1 and follow-up): clause `policy#catalog.4.2` gets `rule = "RULE-CAT-04"` and text stating that deepseek-coder requires enrollment in CS-480 and the student role is not on the allowlist (missing course entitlement); add `event#evt-4713` (`access_denied`, `user#mateo`, `not-in-allowlist: policy#catalog.4.2`). Update `tests/unit/test_fixture_estate.py` accordingly; no DTO or schema change.
+  - [x] 1.2 `src/domain/references.py`: deterministic extraction of the user and model references from an access-denial query (the shapes of the S1 variants in `tests/unit/test_intent.py`, typed `user#x` tokens, trailing punctuation stripped) and of the single reference of a follow-up (`what/how about X`); returns raw tokens in input order. No fuzzy matching, no LLM.
+  - [x] 1.3 `src/domain/diagnosis.py`: pure `diagnose_access_denial(user, model, clauses, events, clock, ...) -> Diagnosis | Cannot` per contracts section 1: clause match rule (not-in-allowlist applies iff `user.role` is not in `model.allowed_roles`; quota/window clauses apply when the user's denial event cites them), fixed precedence `not-in-allowlist > quota > window`, denial-event match (type `access_denied`, `entity_ref` = user, `recorded_reason` cites a matching clause id), the `EvidenceSet` with ordered entries (user, model, clauses, events, clock; `position` 0..n-1; snippets within 500/2000 chars) and the structured claims (role, clause + rule + text, reason class), each citing the user, the clause and the event. Claim ids come from the caller (idgen), never generated here.
+  - [x] 1.4 `src/domain/prose_guard.py`: `evidence_vocabulary(evidence) -> set[str]` (citation ids, bare ids, display names, roles, rule ids, reason classes, instants) and `scan_prose(prose, vocabulary) -> list[str]` (whole-word, case-folded, NFKC-normalised). Canonical strings: add `S_CNC`/`S_ENF` renderers and the reason `the query must name both a user and a model` to `canonical_strings.py`.
 - [ ] **Task 2: Ports** (AC: 3, 4) → `feat(story-1.3): llm prose port`
   - [ ] 2.1 `src/ports/outbound/llm_prose.py`: `LlmProsePort.compose(prompt: ProsePromptDTO) -> Result[str]` exactly as contract OP-14 (`LLM_UNAVAILABLE` on failure). Update `tests/unit/test_ports_query_only.py` (it is an owned/generator port, not a provider port).
 - [ ] **Task 3: Outbound adapters** (AC: 2, 3) → `feat(story-1.3): persist claims and evidence; simulated prose writer`

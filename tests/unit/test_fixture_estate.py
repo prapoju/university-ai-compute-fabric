@@ -98,6 +98,11 @@ def test_s1_anchors_alex_deepseek_coder_clause_and_denial_event() -> None:
     assert clause["reason_class"] == "not-in-allowlist"
     event = _by_id("events")["event#evt-4711"]
     assert (event["type"], event["entity_ref"]) == ("access_denied", "user#alex")
+    # Annex 12.1: the denial cites rule RULE-CAT-04 and a missing course entitlement (CS-480)
+    assert clause["rule"] == "RULE-CAT-04" and "CS-480" in clause["text"]
+    assert "policy#catalog.4.2" in event["recorded_reason"]
+    follow_up = _by_id("events")["event#evt-4713"]  # the second student of the follow-up scenario
+    assert (follow_up["type"], follow_up["entity_ref"]) == ("access_denied", "user#mateo")
 
 
 def test_s2_anchors_group_4_job_8823_and_the_night_window() -> None:

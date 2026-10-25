@@ -9,9 +9,9 @@
   {
     "clause_id": "policy#catalog.4.2",
     "model_id": "model#deepseek-coder",
-    "rule": "allowlist: staff, faculty, privileged",
+    "rule": "RULE-CAT-04",
     "reason_class": "not-in-allowlist",
-    "text": "deepseek-coder is restricted to staff, faculty and privileged roles; the student role is not on the allowlist."
+    "text": "deepseek-coder requires enrollment in CS-480; the student role is not on the allowlist, so a student without that course entitlement is denied."
   },
   {
     "clause_id": "policy#catalog.4.3",

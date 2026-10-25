@@ -22,5 +22,13 @@
     "timestamp": "2026-10-16T14:05:00.000Z",
     "outcome": "cordoned",
     "recorded_reason": "ERR_THERMAL_88: GPU temperature reached the 88 C absolute threshold"
+  },
+  {
+    "event_id": "event#evt-4713",
+    "type": "access_denied",
+    "entity_ref": "user#mateo",
+    "timestamp": "2026-10-16T14:20:00.000Z",
+    "outcome": "denied",
+    "recorded_reason": "not-in-allowlist: policy#catalog.4.2"
   }
 ]

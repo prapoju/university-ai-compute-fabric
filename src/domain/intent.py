@@ -86,6 +86,11 @@ FOLLOW_UP_RULE_ID = "RULE-FOLLOWUP-CONTEXT"
 _APOSTROPHES = str.maketrans(dict.fromkeys("‘’‛ʼ´`′", "'"))
 
 
+def fold_apostrophes(text: str) -> str:
+    """Replace the usual apostrophe lookalikes by a straight apostrophe (shared with extraction)."""
+    return text.translate(_APOSTROPHES)
+
+
 def _normalise(query: str) -> str:
     # translate BEFORE NFKC (U+00B4 would otherwise decompose into a space plus an accent) and
     # again after, for any lookalike NFKC itself produces

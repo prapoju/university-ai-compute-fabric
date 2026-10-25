@@ -7,6 +7,8 @@ from here. Templates keep their ``{placeholders}`` and are filled with ``str.for
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 S_ENF = "Entity Not Found in State: {ref_list}."
 S_CNC = "Cannot confirm (insufficient evidence): checked {checked_list}."
 S_PUA = "Provider unavailable — cannot answer."
@@ -22,8 +24,19 @@ R_COMPOUND_DESTRUCTIVE = (
 )
 R_FOLLOWUP_NO_CONTEXT = "there is no earlier topic in this session to follow up on"
 R_MULTIPLE_INTENTS = "more than one intent matches this query; ask one question at a time"
+R_MISSING_REFERENCES = "the query must name both a user and a model"
 
 
 def clarification(reason: str) -> str:
     """The clarification literal for ``reason``."""
     return S_CLR.format(reason=reason)
+
+
+def entity_not_found(refs: Sequence[str]) -> str:
+    """``S_ENF`` naming every unresolved reference, in input order."""
+    return S_ENF.format(ref_list=", ".join(refs))
+
+
+def cannot_confirm(checked: Sequence[str]) -> str:
+    """``S_CNC`` naming everything that was checked."""
+    return S_CNC.format(checked_list=", ".join(checked))

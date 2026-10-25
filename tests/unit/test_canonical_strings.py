@@ -52,3 +52,20 @@ def test_reasons_are_fixed_sentences_without_a_trailing_period() -> None:
     assert cs.R_COMPOUND_DESTRUCTIVE == (
         "the query mixes a diagnosis with a destructive action; submit them separately"
     )
+
+
+def test_entity_not_found_and_cannot_confirm_render_the_lists_in_input_order() -> None:
+    assert cs.entity_not_found(["user#ghost", "model#imaginary"]) == (
+        "Entity Not Found in State: user#ghost, model#imaginary."
+    )
+    assert cs.entity_not_found(["user#ghost"]) == "Entity Not Found in State: user#ghost."
+    assert cs.cannot_confirm(["user#sofia", "model#deepseek-coder"]) == (
+        "Cannot confirm (insufficient evidence): checked user#sofia, model#deepseek-coder."
+    )
+
+
+def test_the_missing_reference_reason_is_a_period_free_sentence() -> None:
+    assert cs.R_MISSING_REFERENCES == "the query must name both a user and a model"
+    assert cs.clarification(cs.R_MISSING_REFERENCES) == (
+        "Clarification required: the query must name both a user and a model."
+    )
