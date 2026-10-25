@@ -4,7 +4,7 @@ baseline_commit: ec4da8a8cc592d338aaf44fa43fdf77478c42c86
 
 # Story 1.2: Console shell, session store and conversational intake
 
-Status: review
+Status: done
 
 <!-- Impl-1 scope note: the canonical story title says "console shell", but the course track is Python/FastAPI
      (no React console). This story delivers the server side of the console: the session REST API, the
@@ -241,6 +241,8 @@ claude-sonnet-5-5 (Claude Code, BMad `bmad-dev-story` ceremony)
 - **AC6 (NFR-6):** 6 parallel operator sessions x 20 queries on memory and file databases: no cross-session leakage, unique ids, p95 far below the contract budgets; one lock per session plus one store lock serialize writes.
 - **Contract fidelity:** no endpoint or status beyond openapi/contracts (the documented 400 for path/body validation); the route audit lists the served operations explicitly and still passes.
 - **Known scope limits (logged AD-14):** no React console (D1); no audit rows until story 1.5 (D2), so NFR-8 "every tool call audited" stays unmet in Impl-1; entity follow-ups come with 1.3/3.4; the ATDD stub tests for sessions stay red by design (D9).
+- **Code review round (2026-10-25):** three independent layers (Blind, Edge Case, Acceptance Auditor); no AC violated. 1 decision (kept the contract-literal reset behaviour) and 11 patches resolved, 5 deferred, 11 dismissed (see *Review Findings*, `deferred-work.md`, `docs/ai-decision-log.md` AD-18). Final state: **640 passed, 0 skipped**, `ruff check src tests` clean, Docker smoke repeated.
+- **Review-driven changes:** tighter access-denial rules and causative destructive requests (`src/domain/intent.py`), apostrophe lookalikes, NUL/surrogate rejection, clock read inside the session guard, typed failure for corrupt stored instants, 410 not hidden by a failed write-back, consistent `GET` snapshot, de-duplicated handler entities, readiness through the store lock, README persistence wording.
 - Commits: `feat(story-1.2)` x6, `docs(story-1.2)`; no co-author trailers.
 
 ### File List
@@ -251,7 +253,7 @@ New: `src/domain/{canonical_strings,error_catalog,session_rules,intent}.py`, `sr
 `tests/unit/{test_canonical_strings,test_error_catalog,test_idgen_adapter,test_intent,test_session_ports,test_session_rules,test_session_service}.py`.
 
 Modified: `src/domain/result.py` (Failure.message), `src/adapters/inbound/{app,errors}.py`, `src/bootstrap.py`, `src/ports/inbound/__init__.py`, `src/ports/outbound/__init__.py`,
-`tests/api/{test_contract_routes,test_health}.py`, `tests/unit/{test_bootstrap,test_ports_query_only,test_story_1_1_extensibility}.py`, `README.md`, `docs/ai-decision-log.md`,
+`tests/api/{test_contract_routes,test_health}.py`, `tests/unit/{test_bootstrap,test_ports_query_only,test_story_1_1_extensibility}.py`, `README.md`, `docs/ai-decision-log.md`, `_bmad-output/implementation-artifacts/deferred-work.md`, `src/adapters/outbound/db/session_store.py` (applied_migrations), `src/domain/{intent,session_rules}.py`, `src/application/session_service.py`,
 `_bmad-output/implementation-artifacts/sprint-status.yaml` and its mirror `implementation-artifacts/sprint-status.yaml`.
 
 ### Change Log
@@ -263,3 +265,4 @@ Modified: `src/domain/result.py` (Failure.message), `src/adapters/inbound/{app,e
 | 2026-10-25 | Ports: id generator, session store, session use cases. |
 | 2026-10-25 | SQLite session store and seeded id generator; session service and pipeline; REST routes; container wiring. |
 | 2026-10-25 | NFR-6 concurrency and restart tests, README, decision log; DoD verified (593 passed, 0 skipped, ruff clean, Docker smoke); status -> `review`. |
+| 2026-10-25 | Code review (3 layers): 11 patches applied, 1 decision resolved, 5 deferred; status -> `done`. |

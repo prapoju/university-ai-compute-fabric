@@ -30,6 +30,7 @@ human reviewer decided. Earlier phases keep their own logs (`ai-log/decision-log
 | AD-15 | Story 1.2 · build | **Correction (test tooling)** | FastAPI 0.162 wraps included routers; the route audit silently saw only the probes | Pending |
 | AD-16 | Story 1.2 · build | Correction (scripted edits) | A here-doc dropped README line continuations and a script left junk in a test | Pending |
 | AD-17 | Story 1.2 · build | Decision | Mutation check proved the concurrency tests can fail | Pending |
+| AD-18 | Story 1.2 · review | Decision + corrections | Three-layer review: 1 decision, 11 patches, 5 deferred, 11 dismissed | Juan (decision + "apply all") |
 
 Open assumptions to confirm: see the end of this file.
 
@@ -204,6 +205,33 @@ Open assumptions to confirm: see the end of this file.
 
 ---
 
+## AD-18 - Three-layer code review of story 1.2
+- **Phase:** Review (`bmad-code-review`), same model as the build, three context-free reviewers in parallel (Blind Hunter, Edge Case Hunter,
+  Acceptance Auditor); scope: `src/` without `dto.py`, `tests/`, `README.md` (~3,500 diff lines). The user chose the full scope and the parallel mode.
+- **Result:** the Acceptance Auditor found **no violation of AC 1-6**. After reading the code and reproducing the claims: 1 decision, 11 patches,
+  5 deferred, 11 dismissed (all written in the story's *Review Findings* and `deferred-work.md`).
+- **Human decisions (Juan):** a query to a *reset* session keeps the contract-literal behaviour (410 and persisted `expired`, three reviewers
+  disliked it); "apply all patches".
+- **Corrections that came out of it (all reproduced before fixing):**
+  1. *Force-routing (precision):* `why was job 8823 rejected?`, `why was job 8823 blocked?`, `why was my pull request rejected` and
+     `why does the report not cover access logs` all routed to the access-denial intent. The denial verb now needs an object, `rejected`/`forbidden`
+     were dropped, and a bare "not" no longer counts as an inability.
+  2. *Silent drop of a destructive request (AD-5):* `... and have his jobs deleted` / `get his jobs cancelled` was routed as a pure diagnosis. A
+     causative/modal marker followed by a past participle is now a destructive request, while plain reports ("was cordoned") still pass.
+  3. *Ordering race:* the clock was read before the per-session lock, so concurrent turns could be stamped out of order and a clock failure on an
+     unknown session was a 503. The read now happens inside the guard, after the session lookup.
+  4. *Raw exceptions / wrong status:* a stored timestamp that passes the table GLOB but is not a date raised `ValueError` (500); a NUL character in a
+     query hit the table CHECK and came back as a retryable 503 (now 400 `VALIDATION_MALFORMED_BODY`); a failed expiry write-back hid the 410.
+  5. *Consistency:* `GET` now reads context and turns under the session guard; `/readyz` reads `schema_migrations` through the store lock; duplicate
+     entities from one handler are stored once.
+- **Two mistakes made while fixing (both caught by tests/inspection):** the apostrophe table ran *after* NFKC, which decomposes U+00B4 into
+  "space + accent", so the new test for that lookalike failed until the translation also ran before NFKC; and a scripted edit wrote a raw NUL byte
+  into `session_rules.py` (the escape `\x00` was interpreted by the generating script), which broke imports until the byte was replaced by the
+  two-character escape. This is the third time shell/script strings corrupted a file in this project (AD-05, AD-16): from here on source edits go
+  through the file-edit tool, never through script strings that contain escapes.
+
+---
+
 ## Open assumptions to confirm at review
 1. `Selector.method == "filter"` (equality filter over record fields) is an adapter convention invented for `select()`; the contract only
    says "method + params". Decided with the user: deferred to story 2.2 (dry-run snapshot), where it is confirmed or replaced.
@@ -212,6 +240,6 @@ Open assumptions to confirm: see the end of this file.
 3. The 2 × 48 GB server is stored as `gpu_memory_gb = 96` because `NodeRecord` forbids extra fields.
 4. Night Policy hours are 22:00–06:00 UTC (PRD leaves fixture values open, A-10).
 5. Unexpected exceptions degrade to `PROVIDER_UNAVAILABLE` (503) because the error catalog has no generic internal-error code (AD-12 safe failure).
-6. A query to a reset session is 410 and persists `status = expired` (contracts.md P2 read literally); a later GET shows `expired`.
+6. A query to a reset session is 410 and persists `status = expired` (contracts.md P2 read literally); a later GET shows `expired`. Confirmed by the user in the story 1.2 review (AD-18).
 7. Clarification turns are stored as `intent = "clarification"`, `canonical = "CLARIFICATION"`; the wire body is the 200 `ErrorBody` (D58).
 8. The simulated clock does not advance by itself (`M12_CLOCK_START`), so the 30-minute idle expiry is only exercised by tests that advance it.
