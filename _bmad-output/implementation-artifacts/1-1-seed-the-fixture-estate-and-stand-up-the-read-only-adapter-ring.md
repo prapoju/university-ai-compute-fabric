@@ -85,8 +85,8 @@ Follow the Full Ceremony: write each test **with** its code (red → green → r
   - [x] 2.2 `src/domain/result.py`: `Ok[T]`, `Failure` (frozen dataclasses; `Failure.code` ∈ the §4 `ErrorCode` literal), plus `is_ok` helpers. Pure — no I/O.
   - [x] 2.3 `src/domain/entity_key.py`: parse/format `{type}#{id}`, case-fold compare (AD-7 groundwork only — resolution logic is story 1.3). Unit-test escape rule `\#` (D61) and bad types → `VALIDATION_BAD_ENTITY_TYPE`.
 - [ ] **Task 3 — Outbound ports** (AC: 2, 4)
-  - [ ] 3.1 `src/ports/outbound/` (ABCs or `Protocol`s): `users.py`, `catalog.py`, `policy.py`, `groups.py`, `jobs.py`, `nodes.py`, `reservations.py`, `windows.py`, `event_store.py`, `clock.py`, `policy_content.py`, `runbook_registry.py`. Signatures exactly as `contracts.md` §3 OP-1..OP-12, returning `Result[...]`, using DTO types only (R4).
-  - [ ] 3.2 Test `tests/unit/test_ports_query_only.py`: introspect every port; assert the method set equals the allowed set from §3 and that no name matches the mutation denylist (BDD "Ports are query-only").
+  - [x] 3.1 `src/ports/outbound/` (ABCs or `Protocol`s): `users.py`, `catalog.py`, `policy.py`, `groups.py`, `jobs.py`, `nodes.py`, `reservations.py`, `windows.py`, `event_store.py`, `clock.py`, `policy_content.py`, `runbook_registry.py`. Signatures exactly as `contracts.md` §3 OP-1..OP-12, returning `Result[...]`, using DTO types only (R4).
+  - [x] 3.2 Test `tests/unit/test_ports_query_only.py`: introspect every port; assert the method set equals the allowed set from §3 and that no name matches the mutation denylist (BDD "Ports are query-only").
 - [ ] **Task 4 — Fixture estate** (AC: 1)
   - [ ] 4.1 `fixtures/estate/{users,catalog,policy,groups,jobs,nodes,reservations,windows,events}.json`, `fixtures/policy_content/*.json`, `fixtures/runbooks/*.json`. Content rules in *Fixture content* below.
   - [ ] 4.2 Static copies of the 32-node fleet where the course expects them: `tests/fixtures/nodes.json` may be a **copy generated from** `fixtures/estate/nodes.json` (single source of truth is `fixtures/`; add a test that both match).
