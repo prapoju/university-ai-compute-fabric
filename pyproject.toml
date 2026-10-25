@@ -53,6 +53,8 @@ known-first-party = ["src"]
 "src/adapters/**" = ["TID251"]
 "src/*.py" = ["TID251"]
 "tests/**" = ["TID251"]
+# Verbatim copy of the contract DTO module (planning/.../dto.py); a test enforces equality.
+"src/dto.py" = ["E501", "I001", "UP", "TID251"]
 # Phase-3 test harness: authored before this ruff config; kept untouched (style rules only).
 "tests/support/**" = ["E501", "F401", "I001", "UP"]
 "tests/conftest.py" = ["E501", "I001", "UP"]

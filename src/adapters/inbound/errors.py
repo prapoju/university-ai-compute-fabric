@@ -12,6 +12,8 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from src.dto import ErrorBody, ExplanationDTO
+
 S_PUA = "Provider unavailable — cannot answer."
 
 
@@ -23,13 +25,15 @@ def error_body(
     retryable: bool,
     observed: list[str] | None = None,
 ) -> dict[str, Any]:
-    return {
-        "code": code,
-        "status": status,
-        "message": message,
-        "retryable": retryable,
-        "explanation": {"rule_ids": [], "observed_values": observed or [], "thresholds": []},
-    }
+    """Build a contract ``ErrorBody``; a code outside the section 4 catalog fails validation."""
+    body = ErrorBody(
+        code=code,  # type: ignore[arg-type]
+        status=status,
+        message=message,
+        retryable=retryable,
+        explanation=ExplanationDTO(observed_values=observed or []),
+    )
+    return body.model_dump()
 
 
 def error_response(body: dict[str, Any]) -> JSONResponse:
