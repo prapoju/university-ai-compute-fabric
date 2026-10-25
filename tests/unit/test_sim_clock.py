@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import threading
 
 import pytest
 
@@ -62,3 +63,36 @@ def test_an_injected_failure_is_clock_unavailable_then_recovers() -> None:
 def test_a_malformed_start_is_rejected_at_construction() -> None:
     with pytest.raises(ValueError):
         SimClock("noon")
+
+
+def test_concurrent_reads_never_share_a_read_id() -> None:
+    # FastAPI runs sync handlers in a thread pool: the counter must be race-free
+    clock = SimClock(START)
+    ids: list[str] = []
+
+    def reader() -> None:
+        local = [_now(clock).read_id for _ in range(500)]
+        ids.extend(local)
+
+    threads = [threading.Thread(target=reader) for _ in range(8)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+    assert len(ids) == 4000 and len(set(ids)) == 4000
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"seconds": float("inf")},
+        {"seconds": float("nan")},
+        {"days": 10**9},
+        {"days": 3_000_000},  # past year 9999
+    ],
+)
+def test_advance_rejects_non_finite_or_unrepresentable_values_with_value_error(kwargs) -> None:
+    clock = SimClock(START)
+    with pytest.raises(ValueError):
+        clock.advance(**kwargs)
+    assert _now(clock).instant == START  # a rejected advance leaves the clock untouched
