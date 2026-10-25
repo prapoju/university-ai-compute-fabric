@@ -92,4 +92,21 @@ def test_asking_for_an_unregistered_port_is_a_clear_error() -> None:
 def test_the_container_wires_all_twelve_standard_ports() -> None:
     container = build_container(Settings.from_env({}))
     assert is_ok(container.port(UsersPort).get("user#alex"))
-    assert len(container.ports) == 12
+    from src.ports.outbound import (
+        CatalogPort,
+        ClockPort,
+        EventStorePort,
+        GroupsPort,
+        JobsPort,
+        PolicyContentPort,
+        PolicyPort,
+        ReservationsPort,
+        RunbookRegistryPort,
+        WindowsPort,
+    )
+
+    twelve = {
+        UsersPort, CatalogPort, PolicyPort, GroupsPort, JobsPort, NodesPort, ReservationsPort,
+        WindowsPort, EventStorePort, ClockPort, PolicyContentPort, RunbookRegistryPort,
+    }  # fmt: skip
+    assert twelve <= set(container.ports)  # the session ring adds ports; it never removes one

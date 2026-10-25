@@ -36,6 +36,7 @@ def test_readyz_reports_every_check_when_the_service_is_ready() -> None:
         "migrations": "ok",
         "estate": "ok",
         "clock": "ok",
+        "sessions": "ok",
     }
 
 

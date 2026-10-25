@@ -21,9 +21,16 @@ from typing import TypeVar
 from src import dependency_check
 from src.adapters.outbound.db.connection import open_database
 from src.adapters.outbound.db.migrate import MigrationError, apply_migrations
+from src.adapters.outbound.db.session_store import SqliteSessionStore
 from src.adapters.outbound.sim.fixtures_adapter import SimProviders
+from src.adapters.outbound.sim.idgen_adapter import SimIdGen
+from src.application.pipeline import AnswerPipeline
+from src.application.session_service import SessionService
+from src.application.unavailable import UnavailableSessionUseCases
 from src.config import Settings
 from src.domain.result import is_failure
+from src.ports.inbound import SessionUseCases
+from src.ports.outbound import IdGenPort, SessionStorePort
 
 logger = logging.getLogger(__name__)
 
@@ -120,8 +127,25 @@ def build_container(settings: Settings) -> Container:
         # Probing must not consume a read id: that would change the deterministic sequence.
         return None if providers.clock.available else "CLOCK_UNAVAILABLE"
 
+    # -- the session ring: store -> id generator (seeded above stored ids) -> pipeline -> service
+    store, idgen, session_problem = _wire_sessions(connection, database_problem)
+    pipeline = AnswerPipeline()
+    use_cases: SessionUseCases
+    if store is None or session_problem is not None:
+        use_cases = UnavailableSessionUseCases(session_problem or "session store unavailable")
+    else:
+        use_cases = SessionService(
+            store=store, clock=providers.clock, idgen=idgen, pipeline=pipeline
+        )
+
+    def sessions() -> str | None:
+        if store is None or session_problem is not None:
+            return session_problem or "session store unavailable"
+        probe = store.get("sess-0000000000000000")  # a cheap primary-key lookup
+        return probe.code if is_failure(probe) else None
+
     logger.info("container built (fixtures=%s)", settings.fixtures_dir)
-    return Container(
+    container = Container(
         settings=settings,
         connection=connection,
         ports=providers.as_ports(),
@@ -130,5 +154,25 @@ def build_container(settings: Settings) -> Container:
             "migrations": migrations,
             "estate": estate,
             "clock": clock,
+            "sessions": sessions,
         },
     )
+    if store is not None:
+        container.register_port(SessionStorePort, store)
+    container.register_port(IdGenPort, idgen)
+    container.register_port(AnswerPipeline, pipeline)
+    container.register_port(SessionUseCases, use_cases)
+    return container
+
+
+def _wire_sessions(
+    connection: sqlite3.Connection | None, database_problem: str | None
+) -> tuple[SqliteSessionStore | None, SimIdGen, str | None]:
+    """The store and a seeded id generator, plus the reason the sessions are unusable (if any)."""
+    if connection is None or database_problem:
+        return None, SimIdGen(), database_problem or "database connection unavailable"
+    store = SqliteSessionStore(connection)
+    counters = store.highest_counters()  # also proves the schema is really there
+    if is_failure(counters):
+        return store, SimIdGen(), "; ".join(counters.observed) or counters.code
+    return store, SimIdGen.from_counters(counters.value), None
