@@ -282,12 +282,21 @@ def test_reset_clears_the_context_keeps_the_turns_and_is_idempotent(
 def test_highest_counters_start_at_zero_and_track_the_largest_stored_suffix(
     store: SqliteSessionStore,
 ) -> None:
-    assert _ok(store.highest_counters()) == {"session": 0, "answer": 0}
+    assert _ok(store.highest_counters()) == {"session": 0, "answer": 0, "claim": 0}
     for n in (3, 10):
         _ok(store.create(session(n), NOW))
     sid = session(10).session_id
     _ok(store.append_turn(sid, answer(sid, 255), context(intents=["i"], answers=["a"]), NOW))
-    assert _ok(store.highest_counters()) == {"session": 10, "answer": 255}
+    assert _ok(store.highest_counters()) == {"session": 10, "answer": 255, "claim": 0}
+
+
+def test_highest_counters_include_stored_claim_ids(store: SqliteSessionStore) -> None:
+    """claim ids are globally unique: a restart must continue above the stored ones."""
+    created = session(1)
+    _ok(store.create(created, NOW))
+    full = _full_answer(created.session_id)  # claim numbers 11, 12, 13
+    _ok(store.append_turn(created.session_id, full, context(intents=["i"], answers=["a"]), NOW))
+    assert _ok(store.highest_counters())["claim"] == 13
 
 
 # -- robustness --------------------------------------------------------------------------------
@@ -345,7 +354,7 @@ def test_a_file_database_survives_reopening(tmp_path: Path) -> None:
     second = SqliteSessionStore(_connect(path))
     assert _ok(second.get(sid)).session.context.prior_intents == ["i"]
     assert len(_ok(second.list_turns(sid))) == 1
-    assert _ok(second.highest_counters()) == {"session": 1, "answer": 1}
+    assert _ok(second.highest_counters()) == {"session": 1, "answer": 1, "claim": 0}
 
 
 def test_applied_migrations_are_read_through_the_store_lock(store: SqliteSessionStore) -> None:

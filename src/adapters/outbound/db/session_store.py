@@ -273,6 +273,7 @@ class SqliteSessionStore(SessionStorePort):
             return {
                 "session": highest("sessions", "session_id", "sess-"),
                 "answer": highest("answers", "answer_id", "ans-"),
+                "claim": highest("claims", "claim_id", "clm-"),  # globally unique (PK)
             }
 
         return self._run(work)

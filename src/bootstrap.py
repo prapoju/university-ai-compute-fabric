@@ -24,13 +24,18 @@ from src.adapters.outbound.db.migrate import MigrationError, apply_migrations
 from src.adapters.outbound.db.session_store import SqliteSessionStore
 from src.adapters.outbound.sim.fixtures_adapter import SimProviders
 from src.adapters.outbound.sim.idgen_adapter import SimIdGen
+from src.adapters.outbound.sim.prose_adapter import SimProse
+from src.application.access_denial_handler import INTENT as ACCESS_DENIAL_INTENT
+from src.application.access_denial_handler import AccessDenialHandler
+from src.application.entity_resolver import EntityResolver
+from src.application.evidence_assembler import EvidenceAssembler
 from src.application.pipeline import AnswerPipeline
 from src.application.session_service import SessionService
 from src.application.unavailable import UnavailableSessionUseCases
 from src.config import Settings
 from src.domain.result import is_failure
 from src.ports.inbound import SessionUseCases
-from src.ports.outbound import IdGenPort, SessionStorePort
+from src.ports.outbound import IdGenPort, LlmProsePort, SessionStorePort
 
 logger = logging.getLogger(__name__)
 
@@ -131,7 +136,19 @@ def build_container(settings: Settings) -> Container:
 
     # -- the session ring: store -> id generator (seeded above stored ids) -> pipeline -> service
     store, idgen, session_problem = _wire_sessions(connection, database_problem)
+    prose = SimProse()
     pipeline = AnswerPipeline()
+    # The diagnoser reads only through the provider ports: with a failed estate every read is a
+    # typed PROVIDER_UNAVAILABLE, so the turn fails safely (503) while the app still starts.
+    pipeline.register(
+        ACCESS_DENIAL_INTENT,
+        AccessDenialHandler(
+            resolver=EntityResolver(users=providers.users, catalog=providers.catalog),
+            assembler=EvidenceAssembler(policy=providers.policy, events=providers.event_store),
+            prose=prose,
+            idgen=idgen,
+        ),
+    )
     use_cases: SessionUseCases
     if store is None or session_problem is not None:
         use_cases = UnavailableSessionUseCases(session_problem or "session store unavailable")
@@ -162,6 +179,7 @@ def build_container(settings: Settings) -> Container:
     if store is not None:
         container.register_port(SessionStorePort, store)
     container.register_port(IdGenPort, idgen)
+    container.register_port(LlmProsePort, prose)
     container.register_port(AnswerPipeline, pipeline)
     container.register_port(SessionUseCases, use_cases)
     return container
