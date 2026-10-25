@@ -81,9 +81,9 @@ Follow the Full Ceremony: write each test **with** its code (red → green → r
   - [ ] 1.6 `Dockerfile` + `docker-compose.yml` (single service, port 8000, healthcheck on `/healthz`) + `README.md` quick start (`pip install -e .[dev]` → `pytest` → `uvicorn src.adapters.inbound.app:create_app --factory`). Add a `Makefile` target or keep the existing ones working.
   - [x] 1.7 Tests: `tests/unit/test_config.py`, `tests/unit/test_dependency_check.py`, `tests/integration/test_migrations.py`, `tests/api/test_health.py` (healthz 200; readyz 200 when ready and 503 + structured JSON when fixtures missing).
 - [ ] **Task 2 — Shared DTOs + domain primitives** (AC: 2, 3)
-  - [ ] 2.1 Copy `planning/detailed-design/schemas/dto.py` **verbatim** to `src/dto.py` (it is the contract). Add `tests/unit/test_dto_contract.py` asserting the copy is byte-equal (modulo line endings) to the planning file so drift fails the build.
-  - [ ] 2.2 `src/domain/result.py`: `Ok[T]`, `Failure` (frozen dataclasses; `Failure.code` ∈ the §4 `ErrorCode` literal), plus `is_ok` helpers. Pure — no I/O.
-  - [ ] 2.3 `src/domain/entity_key.py`: parse/format `{type}#{id}`, case-fold compare (AD-7 groundwork only — resolution logic is story 1.3). Unit-test escape rule `\#` (D61) and bad types → `VALIDATION_BAD_ENTITY_TYPE`.
+  - [x] 2.1 Copy `planning/detailed-design/schemas/dto.py` **verbatim** to `src/dto.py` (it is the contract). Add `tests/unit/test_dto_contract.py` asserting the copy is byte-equal (modulo line endings) to the planning file so drift fails the build.
+  - [x] 2.2 `src/domain/result.py`: `Ok[T]`, `Failure` (frozen dataclasses; `Failure.code` ∈ the §4 `ErrorCode` literal), plus `is_ok` helpers. Pure — no I/O.
+  - [x] 2.3 `src/domain/entity_key.py`: parse/format `{type}#{id}`, case-fold compare (AD-7 groundwork only — resolution logic is story 1.3). Unit-test escape rule `\#` (D61) and bad types → `VALIDATION_BAD_ENTITY_TYPE`.
 - [ ] **Task 3 — Outbound ports** (AC: 2, 4)
   - [ ] 3.1 `src/ports/outbound/` (ABCs or `Protocol`s): `users.py`, `catalog.py`, `policy.py`, `groups.py`, `jobs.py`, `nodes.py`, `reservations.py`, `windows.py`, `event_store.py`, `clock.py`, `policy_content.py`, `runbook_registry.py`. Signatures exactly as `contracts.md` §3 OP-1..OP-12, returning `Result[...]`, using DTO types only (R4).
   - [ ] 3.2 Test `tests/unit/test_ports_query_only.py`: introspect every port; assert the method set equals the allowed set from §3 and that no name matches the mutation denylist (BDD "Ports are query-only").
