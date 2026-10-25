@@ -23,6 +23,9 @@ human reviewer decided. Earlier phases keep their own logs (`ai-log/decision-log
 | AD-08 | Build · scaffold | Decision | Lint legacy Phase-3 harness by exception, not by mass rewrite | Pending |
 | AD-09 | Build · verify | Limitation → resolved | Docker build was not executable at first; verified once the daemon was up | Juan |
 | AD-10 | Cleanup | Decision | Removed the generated opencode skill copies (`.agents/`, `.opencode/`) | Juan |
+| AD-11 | Review | Decision | Three-layer code review of story 1.1: 3 decisions, 19 patches, 6 deferred, 7 dismissed | Juan (decisions + "apply all") |
+| AD-12 | Review fix | **Correction (AI-written patch)** | The atomic-migration patch broke file databases; only Docker caught it | Pending |
+| AD-13 | Review fix | Decision | PyYAML added as a dev dependency (contract route test) | Pending |
 
 Open assumptions to confirm: see the end of this file.
 
@@ -120,9 +123,43 @@ Open assumptions to confirm: see the end of this file.
 
 ---
 
+## AD-11 - Three-layer code review of story 1.1
+- **Phase:** Review (`bmad-code-review`), same model as the build (the user chose not to switch models because of usage), so independence
+  comes from three reviewers started with no conversation context: Blind Hunter (diff only), Edge Case Hunter (diff only) and Acceptance Auditor
+  (diff + story + contracts). Scope: `src/` without the verbatim `dto.py`, `tests/`, and the config files (~3,600 diff lines).
+- **AI output:** about 60 raw findings across the three reports. Nothing was taken at face value: the agent read the code at each location and
+  reproduced the doubtful cases in Python before rating (e.g. `load_estate` raising `TypeError` on a null `text`, an event dated `2026-02-30`
+  breaking every query, `GET /nope` returning `{"detail": ...}`).
+- **Triage result:** 3 decisions, 19 patches (2 high, 8 medium, 9 low), 6 deferred, 7 dismissed with reasons (written in the story's
+  *Review Findings* section and `deferred-work.md`).
+- **Human decisions (Juan):** startup gate = hybrid (abort on Python/SQLite/package problems, keep serving `/readyz` 503 when only fixtures
+  are missing); the provisional selector vocabulary is deferred to story 2.2; the framework-generated `/docs`, `/redoc`, `/openapi.json`
+  are disabled so the app serves exactly the contract routes; and "apply all patches".
+- **Notable corrections that came out of it:** `load_estate` now never raises (strict policy-content model); impossible dates are rejected in
+  settings and in every Instant field of the estate; the SimClock counter is lock-protected; the architecture audit now tracks aliases,
+  relative imports and `from src import adapters` (22 self-tests), and the exact-route contract test also sees routes that are not `APIRoute`s.
+
+## AD-12 - The atomic-migration patch broke file databases  *(correction of an AI-written patch)*
+- **Phase:** review fixes, group 3 ("startup robustness").
+- **AI output (wrong):** to make a migration all-or-nothing, the runner wrapped the whole SQL file in `BEGIN; ... COMMIT;`. The contract schema
+  starts with `PRAGMA journal_mode = WAL;`, which SQLite refuses inside a transaction ("cannot change into wal mode from within a transaction")
+  - but only for a *file* database. All unit and integration tests used `:memory:`, where the pragma is silently ignored, so 297 tests stayed green.
+- **How it was caught:** the Docker re-verification after the patch round: `/readyz` answered 503 with the exact SQLite error.
+- **Second error while fixing it:** the first version of the PRAGMA splitter used `$` in a multiline regex and missed the pragma lines because
+  the schema file has CRLF line endings on Windows.
+- **Fix:** PRAGMA lines are applied first and the DDL plus its bookkeeping row stay atomic; new tests migrate a real file database (WAL
+  enabled, idempotent restart) and run the splitter with both `\n` and `\r\n`. Lesson recorded: any test of a persistence path must also run on a file.
+
+## AD-13 - PyYAML as a dev dependency
+- **Phase:** review fixes (finding raised by the Acceptance Auditor: the story required a log entry for any dependency beyond its list).
+- **What:** `PyYAML>=6.0` is declared in the `dev` extra. It is used only by `tests/api/test_contract_routes.py` to read `openapi.yaml` and
+  compare the served routes against the contract. It is a mature, ubiquitous library, is not a runtime dependency and ships no code in the service.
+
+---
+
 ## Open assumptions to confirm at review
 1. `Selector.method == "filter"` (equality filter over record fields) is an adapter convention invented for `select()`; the contract only
-   says "method + params". Story 2.2 (dry-run snapshot) should confirm or replace it.
+   says "method + params". Decided with the user: deferred to story 2.2 (dry-run snapshot), where it is confirmed or replaced.
 2. Port `browse` returns `list[Record]` exactly as `contracts.md` §3 says, but the inbound `browse_state` response needs a `total`.
    Story 1.5 will need a contract-level decision (count method or a page type).
 3. The 2 × 48 GB server is stored as `gpu_memory_gb = 96` because `NodeRecord` forbids extra fields.

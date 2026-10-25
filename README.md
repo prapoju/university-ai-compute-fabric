@@ -23,8 +23,10 @@ curl http://127.0.0.1:8000/readyz                        # readiness (dependenci
 
 Or with Docker: `docker compose up --build` (service on port 8000, healthchecked).
 
-Configuration is read from `M12_*` environment variables (see [.env.example](.env.example));
-every variable has a working default.
+Configuration is read from `M12_*` environment variables (see [.env.example](.env.example) for the
+reference; real environment variables only, no `.env` file is loaded); every variable has a working
+default. The service serves exactly the routes of
+[`openapi.yaml`](planning/detailed-design/schemas/openapi.yaml); the generated `/docs` is disabled.
 
 ## Architecture (Ports & Adapters)
 
