@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from src.domain.instants import add_seconds
-from src.domain.result import Ok, Result, is_failure
+from src.domain.result import Failure, Ok, Result, is_failure
 from src.dto import (
     AccessPolicyClauseDTO,
     ClockReadDTO,
@@ -40,10 +40,13 @@ class EvidenceAssembler:
         clauses = self._policy.for_model(model.id)
         if is_failure(clauses):
             return clauses
-        window = EventWindow(
-            add_seconds(now.instant, -LOOK_BACK_SECONDS),
-            add_seconds(now.instant, _END_PAD_SECONDS),
-        )
+        try:
+            window = EventWindow(
+                add_seconds(now.instant, -LOOK_BACK_SECONDS),
+                add_seconds(now.instant, _END_PAD_SECONDS),
+            )
+        except (OverflowError, ValueError) as exc:  # a clock at the edge of the calendar
+            return Failure("PROVIDER_UNAVAILABLE", observed=(f"event window: {exc}",))
         events = self._events.query(user.id, "access_denied", window)
         if is_failure(events):
             return events

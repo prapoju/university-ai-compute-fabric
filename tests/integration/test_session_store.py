@@ -367,3 +367,18 @@ def test_applied_migrations_on_a_closed_connection_is_a_typed_failure(database: 
     connection.close()
     result = store.applied_migrations()
     assert isinstance(result, Failure) and result.code == "PROVIDER_UNAVAILABLE"
+
+
+def test_an_unexpected_exception_mid_append_never_leaves_a_half_written_turn(
+    store: SqliteSessionStore,
+) -> None:
+    """Review patch: only sqlite errors used to roll back; anything else left an open transaction
+    that the next successful write would have committed."""
+    created = session(1)
+    _ok(store.create(created, NOW))
+    sid = created.session_id
+    broken = _full_answer(sid).model_copy(update={"evidence": [object()]})  # no validation
+    with pytest.raises(AttributeError):
+        store.append_turn(sid, broken, context(intents=["i"], answers=["a"]), LATER)
+    _ok(store.create(session(2), LATER))  # a later successful write commits its own transaction
+    assert _ok(store.list_turns(sid)) == []

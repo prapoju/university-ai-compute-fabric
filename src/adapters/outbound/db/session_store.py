@@ -54,6 +54,15 @@ class SqliteSessionStore(SessionStorePort):
                 except sqlite3.Error:
                     pass
                 return Failure("PROVIDER_UNAVAILABLE", observed=(f"{type(exc).__name__}: {exc}",))
+            except BaseException:
+                # an unexpected error must not leave a half-written transaction open: the next
+                # successful statement would commit it. Roll back, then let the error surface.
+                try:
+                    if self._connection.in_transaction:
+                        self._connection.rollback()
+                except sqlite3.Error:
+                    pass
+                raise
 
     @staticmethod
     def _context_json(context: SessionContextDTO) -> tuple[str, str, str]:
