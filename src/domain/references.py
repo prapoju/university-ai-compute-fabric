@@ -25,7 +25,7 @@ class AccessDenialReferences:
 # a reference token: anything up to whitespace or sentence punctuation (ids may hold - . #)
 _TOKEN = r"[^\s,;:?!()\[\]\"]+"
 _WHO = rf"(?:(?:student|user|the|a)\s+)*(?P<user>{_TOKEN})"
-_WHAT = rf"(?:(?:model|the)\s+)*(?P<model>{_TOKEN})"
+_WHAT = rf"(?:(?:model|the)\s+)*(?!access\b)(?P<model>{_TOKEN})"  # "access" is what is denied
 _VERB = r"(?:denied|blocked|refused)"
 _OBJECT = rf"(?:access\s+)?(?:(?:to|from|for)\s+)?{_WHAT}"
 

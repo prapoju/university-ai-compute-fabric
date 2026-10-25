@@ -49,6 +49,8 @@ def test_the_user_and_model_tokens_are_extracted_as_typed(
     [
         "why was alex denied",
         "why was alex denied?",
+        "why was alex denied access?",  # "access" is the thing denied, not a model
+        "alex was denied access",
         "denied",
         "what's the weather?",
         "why is the sky blue",

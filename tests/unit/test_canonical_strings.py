@@ -69,3 +69,9 @@ def test_the_missing_reference_reason_is_a_period_free_sentence() -> None:
     assert cs.clarification(cs.R_MISSING_REFERENCES) == (
         "Clarification required: the query must name both a user and a model."
     )
+
+
+def test_an_ambiguous_reference_reason_names_the_reference() -> None:
+    assert cs.ambiguous_reference("dual") == (
+        "the reference dual matches both a user and a model; name which one you mean"
+    )
