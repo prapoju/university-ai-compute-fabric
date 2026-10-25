@@ -255,3 +255,39 @@ def test_a_very_long_clause_text_is_clipped_to_the_snippet_limit() -> None:
     )
     snippet = next(e.snippet for e in result.evidence if e.source_type == "policy")
     assert len(snippet) == 500 and snippet.endswith("...")
+
+
+# -- review patches: a clause must be backed by an event that really cites it -----------------
+def test_a_backed_lower_precedence_denial_is_not_hidden_by_an_unbacked_allowlist_clause() -> None:
+    clauses = [_clause("policy#a", "not-in-allowlist"), _clause("policy#q", "quota")]
+    events = [_event("event#e1", "policy#q")]  # nothing cites the allowlist clause
+    result = diagnose_access_denial(USER, _model(["staff"]), clauses, events, CLOCK)
+    assert isinstance(result, AccessDenialDiagnosis)
+    assert (result.diagnosis_class, result.event.event_id) == ("access_denial_quota", "event#e1")
+
+
+def test_an_allowlist_clause_nobody_cites_is_still_cannot_confirm() -> None:
+    result = diagnose_access_denial(
+        USER, _model(["staff"]), [_clause("policy#a", "not-in-allowlist")], [], CLOCK
+    )
+    assert isinstance(result, CannotConfirm)
+
+
+@pytest.mark.parametrize(
+    ("clause_id", "reason", "cited"),
+    [
+        ("policy#c.4.2", "not-in-allowlist: policy#c.4.20", False),  # longer id, same prefix
+        ("policy#c.4.2", "not-in-allowlist: policy#c.4.2x", False),
+        ("policy#c.4.2", "see policy#xpolicy#c.4.2", False),
+        ("policy#c.4.2", "not-in-allowlist: policy#c.4.2", True),
+        ("policy#c.4.2", "not-in-allowlist: POLICY#C.4.2.", True),  # case and a sentence dot
+        ("policy#c.4.2", "(policy#c.4.2), quota", True),
+        ("policy#c.4.2", "not-in-allowlist:policy#c.4.2", True),
+    ],
+)
+def test_a_clause_is_cited_only_as_a_whole_token(clause_id: str, reason: str, cited: bool) -> None:
+    event = _event("event#e", clause_id).model_copy(update={"recorded_reason": reason})
+    result = diagnose_access_denial(
+        USER, _model(["staff"]), [_clause(clause_id, "not-in-allowlist")], [event], CLOCK
+    )
+    assert isinstance(result, AccessDenialDiagnosis) is cited

@@ -511,3 +511,31 @@ def test_duplicate_entities_from_one_handler_are_stored_once(rig: Rig) -> None:
     ok(ask(rig, sid))
     context = ok(rig.store.get(sid)).session.context
     assert context.resolved_entities == ["user#alex", "model#deepseek-coder"]
+
+
+def test_a_reused_entity_moves_to_the_end_so_follow_ups_use_the_latest(rig: Rig) -> None:
+    """Review patch: the context is ordered by most recent use, not by first appearance."""
+    turns = iter(
+        [
+            ("user#alex", "model#deepseek-coder"),
+            ("user#sofia", "model#llama-3-8b-instruct"),
+            ("user#sofia", "model#deepseek-coder"),  # deepseek-coder is used again
+        ]
+    )
+
+    def handler(turn) -> Ok:
+        answer = AnswerDTO(
+            answer_id=turn.answer_id, session_id=turn.session_id, query=turn.query,
+            intent="diagnose_access_denial", answer_chain=["observation"],
+            claims=[], evidence=[], prose="p",
+        )  # fmt: skip
+        return Ok(TurnOutput(answer=answer, resolved_entities=next(turns)))
+
+    rig.pipeline.register("diagnose_access_denial", handler)
+    sid = new_session(rig)
+    for _ in range(3):
+        ok(ask(rig, sid))
+    context = ok(rig.store.get(sid)).session.context
+    assert context.resolved_entities == [
+        "user#alex", "model#llama-3-8b-instruct", "user#sofia", "model#deepseek-coder",
+    ]  # fmt: skip

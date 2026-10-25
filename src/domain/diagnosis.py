@@ -9,13 +9,15 @@ What "matching" means (story 1.3, decisions D2/D3):
 
 * a ``not-in-allowlist`` clause applies iff the user's role is not in the model's ``allowed_roles``;
 * a ``quota`` / ``window`` clause applies iff one of the user's denial events cites it;
-* the clause is chosen by the fixed precedence ``not-in-allowlist > quota > window``;
-* the denial must be backed by an ``access_denied`` event of the user that cites that clause -
-  otherwise the answer is ``CannotConfirm`` (FR-04: "a referenced denial event must exist").
+* a denial must be backed by an ``access_denied`` event of the user that cites the clause as a whole
+  token (FR-04: "a referenced denial event must exist"), so only *backed* clauses compete;
+* among them the clause is chosen by the fixed precedence ``not-in-allowlist > quota > window``;
+  if none is backed the answer is ``CannotConfirm``.
 """
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 
@@ -84,14 +86,12 @@ def diagnose_access_denial(
         f"access_denied events for {user.id}",
     )
 
-    applicable = [c for c in clauses if _applies(c, user, model, denials)]
-    if not applicable:
+    backed = [c for c in clauses if _applies(c, user, model, denials)]
+    if not backed:
         return CannotConfirm(checked, _audit_evidence(user, model, clauses, denials, clock))
 
-    clause = min(applicable, key=lambda c: (_PRECEDENCE.index(c.reason_class), c.clause_id))
+    clause = min(backed, key=lambda c: (_PRECEDENCE.index(c.reason_class), c.clause_id))
     citing = [e for e in denials if _cites(e, clause)]
-    if not citing:
-        return CannotConfirm(checked, _audit_evidence(user, model, clauses, denials, clock))
     event = max(citing, key=lambda e: (parse_instant(e.timestamp), e.event_id))
 
     evidence = _number(
@@ -119,7 +119,9 @@ def _is_denial_of(event: OperationalEventDTO, user: UserRecordDTO) -> bool:
 
 
 def _cites(event: OperationalEventDTO, clause: AccessPolicyClauseDTO) -> bool:
-    return clause.clause_id.casefold() in event.recorded_reason.casefold()
+    """Whether the free-text reason names the clause id as a whole token (never a prefix)."""
+    pattern = rf"(?<![\w.#-]){re.escape(clause.clause_id)}(?![\w#-]|\.\w)"
+    return re.search(pattern, event.recorded_reason, re.IGNORECASE) is not None
 
 
 def _applies(
@@ -130,8 +132,8 @@ def _applies(
 ) -> bool:
     if clause.model_id.casefold() != model.id.casefold():
         return False
-    if clause.reason_class == "not-in-allowlist":
-        return user.role not in model.allowed_roles
+    if clause.reason_class == "not-in-allowlist" and user.role in model.allowed_roles:
+        return False  # the allowlist rule does not explain a denial of an allowed role
     return any(_cites(event, clause) for event in denials)
 
 

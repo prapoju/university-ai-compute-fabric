@@ -135,13 +135,12 @@ class SessionService(SessionUseCases):
                 return output
 
             turn = output.value
-            new_entities = list(
-                dict.fromkeys(
-                    e for e in turn.resolved_entities if e not in context.resolved_entities
-                )
-            )  # de-duplicated, order preserved (Q2: the context only ever gains entities)
+            used = list(dict.fromkeys(turn.resolved_entities))
+            # Q2: the context only ever gains entities; a re-used one moves to the end so a
+            # follow-up always sees the most recently used entity of each type.
+            kept = [e for e in context.resolved_entities if e not in used]
             updated = SessionContextDTO(
-                resolved_entities=[*context.resolved_entities, *new_entities],
+                resolved_entities=[*kept, *used],
                 prior_intents=[*context.prior_intents, turn.answer.intent],
                 active_answer_ids=[*context.active_answer_ids, turn.answer.answer_id],
             )
