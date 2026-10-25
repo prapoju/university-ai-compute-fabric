@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 from src.domain.instants import parse_instant
 from src.domain.result import Failure, Ok, Result
@@ -74,7 +74,8 @@ def load_estate(fixtures_dir: Path) -> Result[Estate]:
     """Load ``fixtures_dir``. Never raises: a bad fixture is ``Failure(PROVIDER_UNAVAILABLE)``."""
     try:
         return Ok(_load(fixtures_dir))
-    except (_FixtureError, OSError, ValueError) as exc:  # ValueError covers JSON + pydantic
+    except (_FixtureError, OSError, ValueError, TypeError, KeyError, AttributeError) as exc:
+        # ValueError covers JSON + pydantic; the rest are last-resort guards for odd fixture shapes
         return Failure("PROVIDER_UNAVAILABLE", observed=(f"{type(exc).__name__}: {exc}",))
 
 
@@ -117,15 +118,21 @@ def _load_store(
     return tuple(sorted(records, key=lambda r: getattr(r, id_attr)))
 
 
+class _PolicyContentFixture(BaseModel):
+    """Exact shape of one ``fixtures/policy_content/*.json`` file (strict: no coercion)."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    source_id: str = Field(min_length=1)
+    text: str = Field(min_length=1, max_length=MAX_POLICY_TEXT)
+    version: str = Field(min_length=1)
+
+
 def _load_policy_content(folder: Path) -> tuple[PolicyContent, ...]:
     items: list[PolicyContent] = []
     for path in sorted(folder.glob("*.json")):
-        raw = _read_json(path)
-        if set(raw) != {"source_id", "text", "version"}:
-            raise _FixtureError(f"{path.name}: expected exactly source_id, text, version")
-        if not 1 <= len(raw["text"]) <= MAX_POLICY_TEXT:
-            raise _FixtureError(f"{path.name}: text length must be 1..{MAX_POLICY_TEXT}")
-        items.append(PolicyContent(raw["source_id"], raw["text"], raw["version"]))
+        fixture = _PolicyContentFixture.model_validate(_read_json(path))
+        items.append(PolicyContent(fixture.source_id, fixture.text, fixture.version))
     if not items:
         raise _FixtureError(f"no policy content found in {folder}")
     if len({i.source_id.casefold() for i in items}) != len(items):
@@ -140,6 +147,8 @@ def _load_runbooks(folder: Path) -> tuple[RunbookTemplateDTO, ...]:
         if template.physical_intervention and not template.approved_source:
             raise _FixtureError(f"{path.name}: RUNBOOK_TEMPLATE_UNSOURCED (physical, no source)")
         templates.append(template)
+    if not templates:
+        raise _FixtureError(f"no runbook templates found in {folder}")
     if len({t.error_code for t in templates}) != len(templates):
         raise _FixtureError("runbooks: duplicate error_code")
     return tuple(templates)
@@ -169,3 +178,10 @@ def _check_references(estate: Estate) -> None:
     for interval in (*estate.reservations, *estate.windows):
         if parse_instant(interval.start) >= parse_instant(interval.end):
             raise _FixtureError(f"{interval!r}: start must be before end (D66)")
+
+    # the DTO only checks the Instant *shape*; a date such as 2026-02-30 must fail the load here,
+    # not later inside a query
+    for event in estate.events:
+        parse_instant(event.timestamp)
+    for job in estate.jobs:
+        parse_instant(job.created_at)

@@ -6,6 +6,7 @@ Scenario: Missing record and failing provider are typed, never raised or fabrica
 from __future__ import annotations
 
 import json
+import shutil
 from pathlib import Path
 
 import pytest
@@ -61,6 +62,40 @@ BREAKERS = {
     "oversized-policy-content": lambda d: _rewrite(
         d, "policy_content/night-policy.json", lambda c: {**c, "text": "x" * 2001}
     ),
+    "policy-content-text-null": lambda d: _rewrite(
+        d, "policy_content/night-policy.json", lambda c: {**c, "text": None}
+    ),
+    "policy-content-source-id-not-a-string": lambda d: _rewrite(
+        d, "policy_content/night-policy.json", lambda c: {**c, "source_id": 5}
+    ),
+    "policy-content-root-is-a-number": lambda d: (
+        d / "policy_content" / "night-policy.json"
+    ).write_text("7", encoding="utf-8"),
+    "policy-content-extra-field": lambda d: _rewrite(
+        d, "policy_content/night-policy.json", lambda c: {**c, "author": "x"}
+    ),
+    "event-with-an-impossible-date": lambda d: _rewrite(
+        d,
+        "estate/events.json",
+        lambda rows: [{**rows[0], "timestamp": "2026-02-30T00:00:00Z"}, *rows[1:]],
+    ),
+    "reservation-with-an-impossible-date": lambda d: _rewrite(
+        d,
+        "estate/reservations.json",
+        lambda rows: [{**rows[0], "start": "2026-13-01T00:00:00Z"}, *rows[1:]],
+    ),
+    "window-with-an-impossible-date": lambda d: _rewrite(
+        d,
+        "estate/windows.json",
+        lambda rows: [{**rows[0], "end": "2026-10-32T06:00:00Z"}, *rows[1:]],
+    ),
+    "job-created-at-impossible-date": lambda d: _rewrite(
+        d,
+        "estate/jobs.json",
+        lambda rows: [{**rows[0], "created_at": "2026-04-31T00:00:00Z"}, *rows[1:]],
+    ),
+    "runbooks-folder-missing": lambda d: shutil.rmtree(d / "runbooks"),
+    "runbooks-folder-empty": lambda d: [p.unlink() for p in (d / "runbooks").glob("*.json")],
 }
 
 
