@@ -16,7 +16,7 @@ from src.adapters.outbound.db.migrate import apply_migrations
 from src.adapters.outbound.db.session_store import SqliteSessionStore
 from src.config import PROJECT_ROOT
 from src.domain.result import Failure, Ok, is_ok
-from src.dto import AnswerDTO, SessionContextDTO, SessionDTO
+from src.dto import AnswerDTO, ClaimDTO, EvidenceDTO, SessionContextDTO, SessionDTO
 
 pytestmark = pytest.mark.integration
 
@@ -159,17 +159,93 @@ def test_appending_to_an_unknown_session_fails_and_writes_nothing(
     assert _ok(store.list_turns(ghost)) == []
 
 
-def test_claims_and_evidence_are_refused_until_their_stories_persist_them(
-    store: SqliteSessionStore,
-) -> None:
-    # stories 1.3/1.4 own the claims/evidence tables; silently dropping them would lose data
+def _full_answer(sid: str, n: int = 1) -> AnswerDTO:
+    """An answer with evidence, three cited claims and a diagnosis class (the 1.3 shape)."""
+    evidence = [
+        EvidenceDTO(citation_id=cid, source_type=kind, snippet=text, position=position)
+        for position, (cid, kind, text) in enumerate(
+            [
+                ("user#alex", "user", "user#alex: Alex"),
+                ("policy#catalog.4.2", "policy", "clause text"),
+                ("clock#clk-0000000000000001", "clock", "clock read"),
+            ]
+        )
+    ]
+    claims = [
+        ClaimDTO(claim_id=f"clm-{n * 10 + k:016x}", text=f"claim {k}",
+                 claim_citations=["user#alex", "policy#catalog.4.2"])
+        for k in (1, 2, 3)
+    ]  # fmt: skip
+    return answer(
+        sid, n,
+        answer_chain=["observation", "evidence", "diagnosis"],
+        diagnosis_class="access_denial_not_in_allowlist",
+        claims=claims, evidence=evidence,
+    )  # fmt: skip
+
+
+def test_evidence_claims_and_citations_round_trip_exactly(store: SqliteSessionStore) -> None:
     created = session(1)
     _ok(store.create(created, NOW))
-    with_claim = answer(created.session_id, 1).model_copy(
-        update={"claims": [{"claim_id": "clm-1", "text": "t", "claim_citations": ["user#alex"]}]}
-    )
-    result = store.append_turn(created.session_id, with_claim, context(intents=[], answers=[]), NOW)
-    assert isinstance(result, Failure) and "claims" in result.observed[0]
+    full = _full_answer(created.session_id)
+    _ok(store.append_turn(created.session_id, full, context(intents=["i"], answers=["a"]), LATER))
+    assert _ok(store.list_turns(created.session_id)) == [full]
+
+
+def test_evidence_comes_back_in_position_order_and_claims_in_id_order(
+    store: SqliteSessionStore,
+) -> None:
+    created = session(1)
+    _ok(store.create(created, NOW))
+    full = _full_answer(created.session_id)
+    _ok(store.append_turn(created.session_id, full, context(intents=["i"], answers=["a"]), NOW))
+    back = _ok(store.list_turns(created.session_id))[0]
+    assert [e.position for e in back.evidence] == [0, 1, 2]
+    assert [c.claim_id for c in back.claims] == sorted(c.claim_id for c in full.claims)
+
+
+def test_a_claim_citing_something_outside_the_evidence_leaves_nothing_behind(
+    store: SqliteSessionStore,
+) -> None:
+    created = session(1)
+    _ok(store.create(created, NOW))
+    sid = created.session_id
+    bad = _full_answer(sid)
+    bad.claims[0].claim_citations = ["user#alex", "policy#does-not-exist"]  # FK to evidence fails
+    result = store.append_turn(sid, bad, context(intents=["i"], answers=["a"]), LATER)
+    assert isinstance(result, Failure) and result.code == "PROVIDER_UNAVAILABLE"
+    assert _ok(store.list_turns(sid)) == []
+    stored = _ok(store.get(sid))
+    assert stored.session.context.prior_intents == [] and stored.last_turn_at is None
+    for table in ("answers", "evidence", "claims", "claim_citations"):
+        rows = store._connection.execute(f"select count(*) from {table}").fetchone()  # noqa: SLF001
+        assert rows == (0,), table
+
+
+def test_duplicate_evidence_ids_in_one_answer_are_a_failure_not_a_partial_write(
+    store: SqliteSessionStore,
+) -> None:
+    created = session(1)
+    _ok(store.create(created, NOW))
+    sid = created.session_id
+    dup = _full_answer(sid)
+    dup.evidence[2] = dup.evidence[0].model_copy(update={"position": 2})  # same citation_id twice
+    result = store.append_turn(sid, dup, context(intents=["i"], answers=["a"]), NOW)
+    assert isinstance(result, Failure)
+    assert _ok(store.list_turns(sid)) == []
+
+
+def test_a_canonical_answer_keeps_the_evidence_it_gathered(store: SqliteSessionStore) -> None:
+    created = session(1)
+    _ok(store.create(created, NOW))
+    sid = created.session_id
+    gathered = _full_answer(sid).model_copy(
+        update={"claims": [], "canonical": "CANNOT_CONFIRM", "diagnosis_class": None,
+                "answer_chain": ["observation", "evidence"]}
+    )  # fmt: skip
+    _ok(store.append_turn(sid, gathered, context(intents=["i"], answers=["a"]), NOW))
+    back = _ok(store.list_turns(sid))[0]
+    assert back.canonical == "CANNOT_CONFIRM" and len(back.evidence) == 3 and back.claims == []
 
 
 # -- expiry / reset ----------------------------------------------------------------------------

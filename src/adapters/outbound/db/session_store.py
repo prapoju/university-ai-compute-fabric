@@ -16,7 +16,7 @@ from collections.abc import Callable
 from typing import TypeVar
 
 from src.domain.result import Failure, Ok, Result
-from src.dto import AnswerDTO, SessionContextDTO, SessionDTO
+from src.dto import AnswerDTO, ClaimDTO, EvidenceDTO, SessionContextDTO, SessionDTO
 from src.ports.outbound import SessionStorePort, StoredSession
 
 T = TypeVar("T")
@@ -127,8 +127,8 @@ class SqliteSessionStore(SessionStorePort):
                     answer_chain=json.loads(chain),
                     diagnosis_class=diagnosis,
                     canonical=canonical,
-                    claims=[],  # claims/evidence rows arrive with stories 1.3/1.4
-                    evidence=[],
+                    claims=self._claims_of(aid),
+                    evidence=self._evidence_of(aid),
                     recommendation=None if recommendation is None else json.loads(recommendation),
                     proposal_ref=proposal_ref,
                     prose=prose,
@@ -141,13 +141,40 @@ class SqliteSessionStore(SessionStorePort):
 
         return self._run(work)
 
+    def _evidence_of(self, answer_id: str) -> list[EvidenceDTO]:
+        """The answer's evidence set in ``position`` order (AD-14). Caller holds the lock."""
+        rows = self._connection.execute(
+            "SELECT citation_id, source_type, snippet, position FROM evidence"
+            " WHERE answer_id = ? ORDER BY position",
+            (answer_id,),
+        ).fetchall()
+        return [
+            EvidenceDTO(citation_id=cid, source_type=kind, snippet=snippet, position=position)
+            for cid, kind, snippet, position in rows
+        ]
+
+    def _claims_of(self, answer_id: str) -> list[ClaimDTO]:
+        """The answer's claims in id order, each with its citations in evidence order."""
+        claims = self._connection.execute(
+            "SELECT claim_id, text FROM claims WHERE answer_id = ? ORDER BY claim_id", (answer_id,)
+        ).fetchall()
+        cited = self._connection.execute(
+            "SELECT cc.claim_id, cc.citation_id FROM claim_citations cc"
+            " JOIN evidence e ON e.answer_id = cc.answer_id AND e.citation_id = cc.citation_id"
+            " WHERE cc.answer_id = ? ORDER BY cc.claim_id, e.position",
+            (answer_id,),
+        ).fetchall()
+        citations: dict[str, list[str]] = {}
+        for claim_id, citation_id in cited:
+            citations.setdefault(claim_id, []).append(citation_id)
+        return [
+            ClaimDTO(claim_id=claim_id, text=text, claim_citations=citations.get(claim_id, []))
+            for claim_id, text in claims
+        ]
+
     def append_turn(
         self, session_id: str, answer: AnswerDTO, context: SessionContextDTO, now: str
     ) -> Result[None]:
-        if answer.claims or answer.evidence:
-            # stories 1.3/1.4 own the claims/evidence tables; refuse rather than silently drop
-            observed = ("claims/evidence persistence is not implemented yet (stories 1.3/1.4)",)
-            return Failure("PROVIDER_UNAVAILABLE", observed=observed)
         entities, intents, answers = self._context_json(context)
 
         def work() -> None:
@@ -170,6 +197,32 @@ class SqliteSessionStore(SessionStorePort):
                     now,
                 ),
             )
+            # evidence first: claim_citations reference (answer_id, citation_id) in it (AD-14)
+            for entry in answer.evidence:
+                self._connection.execute(
+                    "INSERT INTO evidence (answer_id, citation_id, source_type, snippet, position,"
+                    " created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                    (
+                        answer.answer_id,
+                        entry.citation_id,
+                        entry.source_type,
+                        entry.snippet,
+                        entry.position,
+                        now,
+                    ),
+                )
+            for claim in answer.claims:
+                self._connection.execute(
+                    "INSERT INTO claims (claim_id, answer_id, text, created_at)"
+                    " VALUES (?, ?, ?, ?)",
+                    (claim.claim_id, answer.answer_id, claim.text, now),
+                )
+                for citation_id in claim.claim_citations:
+                    self._connection.execute(
+                        "INSERT INTO claim_citations (claim_id, answer_id, citation_id)"
+                        " VALUES (?, ?, ?)",
+                        (claim.claim_id, answer.answer_id, citation_id),
+                    )
             updated = self._connection.execute(
                 "UPDATE sessions SET context_resolved_entities = ?, context_prior_intents = ?,"
                 " context_active_answer_ids = ?, last_turn_at = ?, updated_at = ?"
