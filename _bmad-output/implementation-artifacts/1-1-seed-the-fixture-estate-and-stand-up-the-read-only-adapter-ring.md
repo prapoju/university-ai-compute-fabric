@@ -4,7 +4,7 @@ baseline_commit: 17a292faae21c0a4e5a29482b1a04e75c2ab8339
 
 # Story 1.1: Seed the fixture estate and stand up the read-only adapter ring
 
-Status: review
+Status: done
 
 <!-- Impl-1 note: this story ALSO carries the "Foundation scaffold" required by the course task (Impl-1 §1, §4):
      runnable project skeleton, config, migrations, dependency validation, health probes, 32-node fixtures.
@@ -103,6 +103,47 @@ Follow the Full Ceremony: write each test **with** its code (red → green → r
   - [x] 7.1 Run `ruff check src tests` and `pytest` (all green, **0 skipped**); paste the output summary in the Dev Agent Record.
   - [x] 7.2 Update `_bmad-output/implementation-artifacts/sprint-status.yaml` (and its mirror `implementation-artifacts/sprint-status.yaml`): `in-progress` when starting, `review` when done.
   - [x] 7.3 Append ≥ 1 entry to `docs/ai-decision-log.md` per notable AI interaction (prompt, output, human review decision); record every correction of an AI hallucination or invariant violation.
+
+### Review Findings
+
+Code review 2026-10-24 (Blind Hunter + Edge Case Hunter + Acceptance Auditor; scope: src/ without dto.py, tests/, config files). Severities were assigned after reading the code and reproducing the cases.
+
+**Decision needed** (3 raised, all resolved by the user on 2026-10-24: 2 became patches, 1 deferred)
+
+- [x] [Review][Patch] (medium) Hybrid startup (decided): abort with a readable message when Python, SQLite or required packages fail (wire `dependency_check.require()` for those only); a missing fixtures directory still starts the app and `/readyz` answers 503. Add tests for both paths [src/dependency_check.py:59, src/bootstrap.py:57]
+- [x] [Review][Defer] `select()` uses a provisional selector vocabulary (`method="filter"`) that cannot accept the contract's `Selector.params.node_ids` (contracts.md OP-6 / D55) [src/adapters/outbound/sim/fixtures_adapter.py:67] - deferred to story 2.2 (decided): dry-run selectors are only used by Epic 2, so the vocabulary is defined there instead of being invented twice
+- [x] [Review][Patch] (medium) Disable the framework-generated `/docs`, `/redoc` and `/openapi.json` (decided) so the app serves exactly the routes in `openapi.yaml`; make the route audit compare ALL served routes, not only `APIRoute` instances [src/adapters/inbound/app.py:20, tests/api/test_contract_routes.py:49]
+
+**Patch**
+
+- [x] [Review][Patch] (high) `load_estate` can raise (TypeError/AttributeError) on malformed policy-content fixtures (null/int `text`, int `source_id`, non-object JSON root) instead of returning `Failure(PROVIDER_UNAVAILABLE)`; reproduced. Validate the shape with a model and add corruption tests [src/adapters/outbound/sim/estate_loader.py:120]
+- [x] [Review][Patch] (high) Instants that match the regex but are not real dates (`2026-02-30T00:00:00Z`, month 13, trailing newline) load as valid: an event with such a timestamp makes every event query raise `ValueError`, and `M12_CLOCK_START` crashes startup with a raw `ValueError` (both reproduced). Validate with `parse_instant` in `Settings` and in the loader for every Instant field, use `fullmatch`, keep one regex [src/config.py:21, src/domain/instants.py:12, src/adapters/outbound/sim/estate_loader.py:148]
+- [x] [Review][Patch] (medium) Startup failures other than `MigrationError` (bad SQL, unwritable or missing DB path, invalid UTF-8) escape `build_container` as raw `sqlite3.Error`/`OSError`, leak the connection and prevent any `/readyz` 503 (reproduced); migrations are not atomic, so a failed script leaves a half-applied schema that is never recorded and then fails forever. Catch and report them, close on error, run each migration in one transaction (verified: PRAGMA inside BEGIN is tolerated) [src/bootstrap.py:63, src/adapters/outbound/db/migrate.py:45, src/adapters/outbound/db/connection.py:8]
+- [x] [Review][Patch] (medium) `/readyz` `migrations` check echoes a boot-time snapshot instead of querying the live connection [src/bootstrap.py:72]
+- [x] [Review][Patch] (medium) `SimClock` is not thread-safe (the unlocked counter under FastAPI's thread pool can issue duplicate `read_id`) and `advance(inf/NaN/huge)` raises `OverflowError` instead of the documented `ValueError` [src/adapters/outbound/sim/clock_adapter.py:27, src/adapters/outbound/sim/clock_adapter.py:42]
+- [x] [Review][Patch] (medium) The architecture import audit has holes that give false assurance: `from src import adapters`, relative imports, `datetime.datetime.now()`, aliased `datetime`, `os.urandom`/`os.getenv`/`importlib`; its self-test only covers cases already detected [tests/unit/test_architecture_imports.py:35, tests/unit/test_architecture_imports.py:57]
+- [x] [Review][Patch] (medium) `UsersPort.by_ids` validates with a case-sensitive type but looks up with the raw escaped key (`USER#alex` is rejected while `get` accepts it; an escaped key never matches); duplicates are returned twice. Case-fold the type in `parse_entity_key`, look up with the parsed id, dedupe [src/adapters/outbound/sim/fixtures_adapter.py:96, src/domain/entity_key.py:40]
+- [x] [Review][Patch] (medium) HTTP errors other than validation (404 unknown route, 405) keep FastAPI's `{"detail": ...}` body instead of the `ErrorBody` envelope (reproduced), and unexpected exceptions are swallowed without being logged [src/adapters/inbound/errors.py:43]
+- [x] [Review][Patch] (medium) `M12_LOG_LEVEL` is validated but never applied (nothing configures logging); log fixture and startup failures so the setting has an effect [src/config.py:39, src/adapters/inbound/app.py:20]
+- [x] [Review][Patch] (low) `db_path` is not anchored to the project root although the module promises "never the working directory"; empty `M12_FIXTURES_DIR=` or `M12_MIGRATIONS_DIR=` silently resolve to the project root (reproduced) [src/config.py:43]
+- [x] [Review][Patch] (low) A missing or empty `fixtures/runbooks` folder loads an empty registry and stays green (reproduced), while empty `policy_content` is rejected [src/adapters/outbound/sim/estate_loader.py:136]
+- [x] [Review][Patch] (low) `RecordStore` silently keeps the last of duplicate (case-folded) ids while `browse` returns both; the class is the NFR-10 extension seam, so extensions bypass the loader's duplicate check [src/adapters/outbound/sim/record_store.py:27]
+- [x] [Review][Patch] (low) `select` equality coerces types (`True == 1`); require an exact type match [src/adapters/outbound/sim/fixtures_adapter.py:67]
+- [x] [Review][Patch] (low) docker-compose healthcheck probes `/readyz` while the story and the Dockerfile use `/healthz`; the container runs as root [docker-compose.yml:16, Dockerfile:18]
+- [x] [Review][Patch] (low) `.env.example` says "Copy to .env" but nothing loads a `.env` file [.env.example:1]
+- [x] [Review][Patch] (low) PyYAML was added as a dev dependency without the decision-log entry the story requires [pyproject.toml:24, docs/ai-decision-log.md]
+- [x] [Review][Patch] (low) `test_ops_probes_are_the_only_contract_addition_in_this_story` does not assert "only", and the mutating-route test allows any `/api/v1/sessions...` path; tighten both [tests/api/test_contract_routes.py:49, tests/api/test_contract_routes.py:60]
+
+**Deferred**
+
+- [x] [Review][Defer] Q-port-3 audit seam is not visible in the adapters [src/bootstrap.py:57] - deferred: the audit writer arrives in story 1.5 and adapters are built only in the composition root, so wrapping them needs no edits
+- [x] [Review][Defer] `/readyz` 503 body exposes absolute paths and raw exception text [src/adapters/inbound/app.py:44] - deferred: tolerable for an internal prototype probe; revisit before any public exposure
+- [x] [Review][Defer] Non-editable `pip install .` breaks `PROJECT_ROOT`; generic top-level package name `src` [src/config.py:19, pyproject.toml] - deferred: consequence of the course-mandated `src/` layout; the editable install is documented
+- [x] [Review][Defer] `select` silently truncates at the 10,000-row cap and deep-copies the whole store per call [src/adapters/outbound/sim/fixtures_adapter.py:67] - deferred: the estate has 32 nodes; revisit if stores grow
+- [x] [Review][Defer] Ids that end in a literal backslash before `#` cannot be expressed (no escaped-backslash rule) [src/domain/entity_key.py:40] - deferred: no such id exists in the contract vocabulary
+- [x] [Review][Defer] Dependencies are range-pinned with no lock file [pyproject.toml] - deferred: packaging policy for the team
+
+**Dismissed (7):** OP-4 non-user members fail the whole load (acceptable load-time validation); unchecked cross-store references that the contract does not define (`scheduling_constraint`, policy_content ids); unknown `M12_*` variables rejected (deliberate typo guard); app version `2.2.0` vs package `0.1.0` (2.2.0 is the contract version); `users.get("node#...")` returns `Ok(None)` (contract: only `by_ids` has a type precondition); `register_port` overwrites (intended for test doubles); case-sensitive string values in `select`.
 
 ## Dev Notes
 
@@ -229,6 +270,8 @@ claude-sonnet-5-5 (Claude Code, BMad `bmad-dev-story` ceremony)
 - **Contract change (one, deliberate):** `/healthz` and `/readyz` added to `planning/detailed-design/schemas/openapi.yaml` under tag `ops`; `tests/api/test_contract_routes.py` fails if the app ever serves an undeclared route.
 - **Docker:** first pass could not build (daemon off); verified later - `docker compose up --build` reaches `healthy`, `/healthz` and `/readyz` (4 checks) answer. Logged as AD-09. Generated opencode copies (`.agents/`, `.opencode/`) were removed afterwards (AD-10).
 - **Known follow-ups:** `docs/ai-decision-log.md` "Open assumptions" (selector `filter` convention, `browse` total for story 1.5, 96 GB server, night hours, generic 503). ATDD state-read tests stay red until story 1.5 (out of Impl-1 scope).
+- **Code review round (2026-10-24):** three independent layers (Blind, Edge Case, Acceptance Auditor) produced 3 decisions, 19 patches, 6 deferred, 7 dismissed. All decisions were resolved by the user and all 19 patches applied (see *Review Findings*, `deferred-work.md`, and `docs/ai-decision-log.md` AD-11..AD-13). Final state: **332 passed, 0 skipped**, `ruff check src tests` clean, `docker compose up --build` reaches `healthy` (non-root, SQLite WAL file in the volume), `/readyz` all four checks ok, `/docs` disabled.
+- **Review-driven behaviour changes:** `load_estate` never raises (strict policy-content model, impossible dates rejected, empty runbooks rejected); settings reject impossible instants and empty paths and anchor `db_path`; startup aborts only for fatal runtime problems (Python/SQLite/packages) while a missing estate stays visible through `/readyz` 503; migrations are atomic per file with PRAGMAs applied first (file databases); live migrations readiness check; `M12_LOG_LEVEL` applied and failures logged; HTTP errors use the `ErrorBody` envelope; the app serves exactly the contract routes; `SimClock` is thread-safe; `by_ids`/`select`/`RecordStore` consistency fixes; architecture audit hardened (22 self-tests).
 - Commits: `feat(scaffold)`, `docs(contract)`, `feat(story-1.1)` x4, `test(story-1.1)`; no co-author trailers.
 
 ### File List
@@ -241,9 +284,9 @@ New: `.env.example`, `Dockerfile`, `README.md`, `docker-compose.yml`, `pyproject
 `src/adapters/{__init__}.py`, `src/adapters/inbound/{__init__,app,errors}.py`, `src/adapters/outbound/{__init__}.py`,
 `src/adapters/outbound/db/{__init__,connection,migrate}.py`, `src/adapters/outbound/sim/{__init__,clock_adapter,estate_loader,fixtures_adapter,record_store}.py`,
 `tests/fixtures/nodes.json`, `tests/api/{test_contract_routes,test_health}.py`, `tests/integration/test_migrations.py`,
-`tests/unit/{conftest,test_architecture_imports,test_config,test_dependency_check,test_dto_contract,test_entity_key,test_fixture_estate,test_instants,test_ports_query_only,test_result,test_sim_clock,test_story_1_1_estate_ports,test_story_1_1_extensibility,test_story_1_1_read_only,test_story_1_1_typed_failures}.py`.
+`tests/unit/{conftest,test_bootstrap,test_record_store,test_architecture_imports,test_config,test_dependency_check,test_dto_contract,test_entity_key,test_fixture_estate,test_instants,test_ports_query_only,test_result,test_sim_clock,test_story_1_1_estate_ports,test_story_1_1_extensibility,test_story_1_1_read_only,test_story_1_1_typed_failures}.py`.
 
-Modified: `.gitignore`, `pytest.ini`, `requirements-test.txt`, `planning/detailed-design/schemas/openapi.yaml` (health probes only),
+Modified: `.gitignore`, `pytest.ini`, `requirements-test.txt`, `_bmad-output/implementation-artifacts/deferred-work.md` (new), `planning/detailed-design/schemas/openapi.yaml` (health probes only),
 `_bmad-output/implementation-artifacts/sprint-status.yaml` and its mirror `implementation-artifacts/sprint-status.yaml`.
 
 ### Change Log
@@ -256,3 +299,4 @@ Modified: `.gitignore`, `pytest.ini`, `requirements-test.txt`, `planning/detaile
 | 2026-10-24 | Seeded 32-node estate and S1-S4 fixtures; simulated read-only adapters; extension seam. |
 | 2026-10-24 | Architecture import audit (R1-R3) and ruff ban scope fix. |
 | 2026-10-24 | DoD verified (258 passed, 0 skipped, ruff clean); status -> `review`. |
+| 2026-10-24 | Code review (3 layers): 19 patches applied, 3 decisions resolved, 6 deferred; status -> `done`. |
