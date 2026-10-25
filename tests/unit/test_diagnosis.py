@@ -100,7 +100,7 @@ def test_the_fact_tokens_cover_everything_prose_must_not_say(providers) -> None:
     for expected in (
         "user#alex", "alex", "alex rivera", "student", "model#deepseek-coder", "deepseek-coder",
         "staff", "faculty", "privileged", "policy#catalog.4.2", "catalog.4.2", "rule-cat-04",
-        "not-in-allowlist", "event#evt-4711", "evt-4711", "denied", "2026-10-16", "15:00:00",
+        "not-in-allowlist", "event#evt-4711", "evt-4711", "cs-480", "2026-10-16", "15:00:00",
         "clk-0000000000000001", "13:42:10",
     ):  # fmt: skip
         assert expected in tokens, expected
@@ -291,3 +291,15 @@ def test_a_clause_is_cited_only_as_a_whole_token(clause_id: str, reason: str, ci
         USER, _model(["staff"]), [_clause(clause_id, "not-in-allowlist")], [event], CLOCK
     )
     assert isinstance(result, AccessDenialDiagnosis) is cited
+
+
+def test_the_generic_outcome_word_and_tiny_names_are_not_fact_tokens(providers) -> None:
+    """Review patch: banning 'denied' or a 1-letter name would reject ordinary connective prose."""
+    result = _diagnose(providers)
+    assert "denied" not in result.fact_tokens
+    short = USER.model_copy(update={"display_name": "A"})
+    out = diagnose_access_denial(
+        short, _model(["staff"]), [_clause("policy#clause1", "not-in-allowlist")],
+        [_event("event#e1", "policy#clause1")], CLOCK,
+    )  # fmt: skip
+    assert "a" not in out.fact_tokens  # the 1-letter name is not a token

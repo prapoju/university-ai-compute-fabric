@@ -97,6 +97,11 @@ class AccessDenialHandler:
     def _diagnose(
         self, turn: TurnInput, diagnosis: AccessDenialDiagnosis, entities: tuple[str, ...]
     ) -> Result[TurnOutput]:
+        prose = self._write_prose(diagnosis)
+        if is_failure(prose):
+            return prose
+        # ids are minted only once the turn can no longer fail on the LLM, so a rejected or
+        # unavailable writer never leaves gaps in the claim id sequence
         claims: list[ClaimDTO] = []
         for draft in diagnosis.claims:
             claim_id = self._idgen.new_id("claim")
@@ -107,9 +112,6 @@ class AccessDenialHandler:
                     claim_id=claim_id.value, text=draft.text, claim_citations=list(draft.citations)
                 )
             )
-        prose = self._write_prose(diagnosis)
-        if is_failure(prose):
-            return prose
         answer = AnswerDTO(
             answer_id=turn.answer_id,
             session_id=turn.session_id,
@@ -133,6 +135,9 @@ class AccessDenialHandler:
             written = self._prose.compose(prompt)
             if is_failure(written):
                 return written  # an unavailable writer is not retried
+            if not written.value.strip():
+                leaked = ["<empty prose>"]  # nothing to connect the evidence: same as a rejection
+                continue
             leaked = scan_prose(written.value, diagnosis.fact_tokens)
             if not leaked:
                 return written

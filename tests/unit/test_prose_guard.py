@@ -53,3 +53,16 @@ def test_hits_are_unique_and_sorted_for_stable_logging() -> None:
 
 def test_an_empty_token_set_never_matches() -> None:
     assert scan_prose("anything at all", set()) == []
+
+
+@pytest.mark.parametrize(
+    "prose",
+    [
+        "a​lex was refused",  # zero-width space
+        "al­ex was refused",  # soft hyphen
+        "ale⁠x was refused",  # word joiner
+        "﻿alex",  # byte-order mark
+    ],
+)
+def test_invisible_characters_cannot_split_a_fact_token(prose: str) -> None:
+    assert "alex" in scan_prose(prose, TOKENS)

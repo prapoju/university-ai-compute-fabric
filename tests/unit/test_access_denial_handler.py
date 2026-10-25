@@ -345,10 +345,10 @@ class _BrokenIds(IdGenPort):
         return Failure("PROVIDER_UNAVAILABLE", observed=("ids down",))
 
 
-def test_an_id_failure_aborts_before_the_llm_is_called(providers) -> None:
+def test_an_id_failure_aborts_the_turn_with_the_typed_failure(providers) -> None:
     rig = make_rig(providers, idgen=_BrokenIds())
-    assert isinstance(run(rig), Failure)
-    assert rig.prose.call_count == 0
+    result = run(rig)
+    assert isinstance(result, Failure) and result.code == "PROVIDER_UNAVAILABLE"
 
 
 def test_a_burst_of_turns_never_changes_the_estate(rig: Rig, providers) -> None:
@@ -380,3 +380,37 @@ def test_a_turn_is_far_below_the_latency_budget(rig: Rig) -> None:
     for _ in range(20):
         out(run(rig))
     assert (time.perf_counter() - started) / 20 < 0.1  # budget is 3000 ms p95 (NFR-5)
+
+
+# -- review patches ----------------------------------------------------------------------------
+@pytest.mark.parametrize("blank", ["", "   ", "\n\t "])
+def test_empty_prose_is_rejected_and_retried(rig: Rig, blank: str) -> None:
+    rig.prose.script(blank)
+    answer = out(run(rig)).answer
+    assert rig.prose.call_count == 2 and answer.prose == SimProse.DEFAULT
+
+
+def test_two_empty_attempts_fail_the_turn(rig: Rig) -> None:
+    rig.prose.script("", " ")
+    result = run(rig)
+    assert isinstance(result, Failure) and result.code == "LLM_PROSE_REJECTED"
+
+
+def test_a_failed_turn_does_not_burn_claim_ids(rig: Rig) -> None:
+    rig.prose.fail()
+    assert isinstance(run(rig), Failure)
+    rig.prose.recover()
+    claims = out(run(rig)).answer.claims
+    assert [c.claim_id for c in claims] == [f"clm-{n:016x}" for n in (1, 2, 3)]
+
+
+def test_prose_naming_a_course_code_from_the_clause_text_is_rejected(rig: Rig) -> None:
+    rig.prose.script("This usually needs CS-480.")
+    out(run(rig))
+    assert rig.prose.call_count == 2  # first attempt rejected, clean default accepted
+
+
+def test_ordinary_connective_words_such_as_denied_are_allowed(rig: Rig) -> None:
+    rig.prose.script("Access was denied, and the records below explain it.")
+    out(run(rig))
+    assert rig.prose.call_count == 1

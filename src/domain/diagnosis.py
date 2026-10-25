@@ -222,6 +222,10 @@ def _claims(
 
 
 # -- the vocabulary the prose guard must keep out of prose -------------------------------------
+_MIN_NAME = 3
+_IDENTIFIER = re.compile(r"\b[A-Za-z]{2,}-\d[\w-]*")  # CS-480, RULE-CAT-04 style codes
+
+
 def _bare(key: str) -> str:
     return key.partition("#")[2] or key
 
@@ -235,13 +239,18 @@ def _fact_tokens(
     diagnosis_class: str,
 ) -> frozenset[str]:
     tokens = {
-        user.id, _bare(user.id), user.display_name, user.role,
+        user.id, _bare(user.id), user.role,
         model.id, _bare(model.id), model.name, *model.allowed_roles,
         clause.clause_id, _bare(clause.clause_id), clause.rule, clause.reason_class,
-        event.event_id, _bare(event.event_id), event.outcome, event.timestamp,
+        event.event_id, _bare(event.event_id), event.timestamp,
         event.timestamp[:10], event.timestamp[11:19],
         clock.read_id, clock.instant, clock.instant[:10], clock.instant[11:19],
         diagnosis_class,
     }  # fmt: skip
-    tokens.update(word for word in user.display_name.split() if len(word) >= 3)
+    # names: a whole name and its words, but never a 1-2 letter fragment ("A" would ban "a")
+    tokens.update(
+        name for name in (user.display_name, *user.display_name.split()) if len(name) >= _MIN_NAME
+    )
+    # identifiers inside the clause text and rule (course codes such as CS-480)
+    tokens.update(_IDENTIFIER.findall(f"{clause.rule} {clause.text}"))
     return frozenset(t.casefold() for t in tokens if t)

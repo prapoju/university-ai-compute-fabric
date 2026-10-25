@@ -14,7 +14,12 @@ from collections.abc import Iterable
 
 
 def _fold(text: str) -> str:
-    return " ".join(unicodedata.normalize("NFKC", text).casefold().split())
+    """NFKC + case-fold + single spaces; invisible format characters (zero-width space, soft
+    hyphen, word joiner, BOM) are dropped so they cannot split a fact token in two."""
+    visible = "".join(
+        c for c in unicodedata.normalize("NFKC", text) if unicodedata.category(c) != "Cf"
+    )
+    return " ".join(visible.casefold().split())
 
 
 def scan_prose(prose: str, tokens: Iterable[str]) -> list[str]:
