@@ -89,3 +89,49 @@ def test_a_follow_up_names_exactly_one_reference(query: str, ref: str) -> None:
 )
 def test_text_that_is_not_a_follow_up_has_no_follow_up_reference(query: str) -> None:
     assert extract_follow_up_reference(query) is None
+
+
+# -- review patches: stop-words, quotes, possessives and width variants ------------------------
+@pytest.mark.parametrize(
+    "query",
+    [
+        "why was alex denied access to",  # a preposition is not a model
+        "why was alex denied access to model",
+        "why was alex denied the model",
+        "why was alex denied access to the",
+        "why was the student denied deepseek-coder",  # a role word / article is not a user
+        "why was a user denied deepseek-coder",
+        "why was he denied deepseek-coder",
+    ],
+)
+def test_stop_words_are_never_taken_as_a_user_or_a_model(query: str) -> None:
+    assert extract_access_denial_references(query) is None
+
+
+@pytest.mark.parametrize(
+    ("query", "user", "model"),
+    [
+        ("why was alex denied the access to deepseek-coder", "alex", "deepseek-coder"),
+        ("why was alex denied access to the model deepseek-coder", "alex", "deepseek-coder"),
+        ("why was 'alex' denied 'deepseek-coder'", "alex", "deepseek-coder"),
+        ('why was "alex" denied "deepseek-coder"', "alex", "deepseek-coder"),
+        ("why was alex denied deepseek-coder's", "alex", "deepseek-coder"),
+        ("why was ａｌｅｘ denied deepseek-coder", "alex", "deepseek-coder"),  # full-width (NFKC)
+    ],
+)
+def test_quotes_possessives_and_width_variants_are_normalised(
+    query: str, user: str, model: str
+) -> None:
+    assert extract_access_denial_references(query) == AccessDenialReferences(user, model)
+
+
+@pytest.mark.parametrize(
+    ("query", "ref"),
+    [
+        ("and what about mateo's?", "mateo"),
+        ("what about 'mateo'", "mateo"),
+        ("what about ｍａｔｅｏ", "mateo"),
+    ],
+)
+def test_follow_up_references_are_normalised_the_same_way(query: str, ref: str) -> None:
+    assert extract_follow_up_reference(query) == ref

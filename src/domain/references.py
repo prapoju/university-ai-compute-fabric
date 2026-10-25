@@ -9,6 +9,7 @@ the extractor cannot invent a reference.
 from __future__ import annotations
 
 import re
+import unicodedata
 from dataclasses import dataclass
 
 from src.domain.intent import fold_apostrophes
@@ -22,12 +23,17 @@ class AccessDenialReferences:
     model: str
 
 
-# a reference token: anything up to whitespace or sentence punctuation (ids may hold - . #)
-_TOKEN = r"[^\s,;:?!()\[\]\"]+"
-_WHO = rf"(?:(?:student|user|the|a)\s+)*(?P<user>{_TOKEN})"
-_WHAT = rf"(?:(?:model|the)\s+)*(?!access\b)(?P<model>{_TOKEN})"  # "access" is what is denied
+# a reference token: anything up to whitespace or sentence punctuation (ids may hold - . #);
+# surrounding quotes and a possessive 's are removed afterwards by _strip
+_TOKEN = r"[^\s,;:?!()\[\]]+"
+_END = r"(?=[\s,;:?!.]|$)"
+# words that can stand where a name should be but never are one (a stop-word is no reference)
+_USER_STOP = r"(?:the|a|an|student|user|he|she|they|it|someone|somebody|anyone)"
+_MODEL_STOP = r"(?:access|to|from|for|the|a|an|of|on|in|model)"
+_WHO = rf"(?:(?:student|user|the|a)\s+)*(?!{_USER_STOP}{_END})(?P<user>{_TOKEN})"
+_WHAT = rf"(?:(?:model|the)\s+)*(?!{_MODEL_STOP}{_END})(?P<model>{_TOKEN})"
 _VERB = r"(?:denied|blocked|refused)"
-_OBJECT = rf"(?:access\s+)?(?:(?:to|from|for)\s+)?{_WHAT}"
+_OBJECT = rf"(?:(?:the\s+)?access\s+)?(?:(?:to|from|for)\s+)?{_WHAT}"
 
 _ACCESS_DENIAL = (
     # why was alex denied (access to) deepseek-coder
@@ -51,11 +57,20 @@ _FOLLOW_UP = re.compile(
 
 
 def _clean(text: str) -> str:
-    return " ".join(fold_apostrophes(text).split())
+    """Same normalisation as the router (NFKC, apostrophe lookalikes folded before and after)."""
+    folded = unicodedata.normalize("NFKC", fold_apostrophes(text))
+    return " ".join(fold_apostrophes(folded).split())
+
+
+_QUOTES = "'\"`"
 
 
 def _strip(token: str) -> str:
-    return token.rstrip(".")
+    """Drop surrounding quotes, a trailing sentence dot and a possessive ``'s``."""
+    token = token.strip(_QUOTES).rstrip(".")
+    if token.lower().endswith("'s"):
+        token = token[:-2]
+    return token.strip(_QUOTES).rstrip(".")
 
 
 def extract_access_denial_references(query: str) -> AccessDenialReferences | None:
