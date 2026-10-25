@@ -71,6 +71,16 @@ which is rejected if it repeats any fact (one retry, then `503 LLM_PROSE_REJECTE
 * an unknown user or model is a `200` `ENTITY_NOT_FOUND` body naming every unresolved reference (`Entity Not Found in State: user#ghost.`);
 * existing entities with no matching clause/denial event are `CANNOT_CONFIRM` (the gathered evidence is kept on the stored turn);
 * `and what about mateo?` resolves `mateo` and reuses the model from the session context.
+
+### Night schedule inquiry (story 3.1)
+
+`why can't group 4 run their fine-tuning job right now` resolves `group#group-4`, reads its pending job
+(`job#job-8823`, constrained to `night`), the policy window `window#night` and the clock read, and answers
+with class `schedule_window_restricted`: at `2026-10-16T15:00:00.000Z` the window is closed, and the next open
+window is `2026-10-16T22:00:00.000Z` to `2026-10-17T06:00:00.000Z` (UTC), each fact cited. The window is half-open
+`[start, end)`; a group with no constrained job gets `schedule_no_constraint` and no window, an unknown group is
+`ENTITY_NOT_FOUND`, and a failed clock read is a `503 CLOCK_UNAVAILABLE` (a window is never invented).
+
 The clock is simulated (`M12_CLOCK_START`) and does not advance on its own.
 
 ## Architecture (Ports & Adapters)

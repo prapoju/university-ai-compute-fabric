@@ -4,7 +4,7 @@ baseline_commit: 93f67cd24aa10a4e9f0dda18eeb1dd92b669e629
 
 # Story 3.1: Schedule and window diagnosis
 
-Status: in-progress
+Status: review
 
 <!-- Annex 12.2 of the Impl-1 task ("Night schedule inquiry"). Scope is deliberately the annex, not
      the full epic: one diagnoser, reusing the 1.3 pipeline, resolver pattern and prose guard. -->
@@ -34,9 +34,9 @@ Source: `planning/epics.md` Story 3.1 and Annex 12.2. Requirements: FR-05, AD-2,
 - [x] **Task 2: Application** (AC: 1-5) -> `feat(story-3.1): window diagnosis through the pipeline`
   - [x] 2.1 `EntityResolver.resolve_group`; shared `write_prose` helper (guard + one retry) extracted from the 1.3 handler.
   - [x] 2.2 `src/application/window_diagnosis_handler.py` and registration in `bootstrap.py`.
-- [ ] **Task 3: Tests and DoD** (AC: 1-6)
-  - [ ] 3.1 Unit tests (domain, handler) and API tests through the real container: S2, boundary, no-constraint, not-found, clock failure, 10 variants.
-  - [ ] 3.2 README line, decision-log entry, `ruff`, full `pytest`, sprint-status to `review`.
+- [x] **Task 3: Tests and DoD** (AC: 1-6)
+  - [x] 3.1 Unit tests (domain, handler) and API tests through the real container: S2, boundary, no-constraint, not-found, clock failure, 10 variants.
+  - [x] 3.2 README line, decision-log entry, `ruff`, full `pytest`, sprint-status to `review`.
 
 ## Dev Notes
 
@@ -54,6 +54,21 @@ Claude Sonnet 5.5 (`claude-sonnet-5-5`)
 
 ### Debug Log References
 
+- Adding the schedule rule to the intent registry broke two story-1.2 tests (registry contents; the extension test reused the same intent code and now matched twice). Fixed in the tests, not in the router.
+- My "no constraint" test assumed group-2 had no constrained job; the fixture has `job-8824` (pending, `night`). Switched to group-7.
+
 ### Completion Notes List
 
+- Pure domain `src/domain/window_diagnosis.py` (group extraction, half-open window rule, claims, fact tokens) and the `diagnose_schedule_window` intent rule; application `EntityResolver.resolve_group`, `WindowDiagnosisHandler`, shared `turn_support.py` (guarded prose, claim ids, canonical turns) extracted from the 1.3 handler; registered in `bootstrap.py`. No endpoint, schema or DTO change.
+- AC1 S2 diagnosis with next open window + timezone, every claim citing group/job/window/clock; AC2 no-constraint; AC3 half-open boundary and `CLOCK_UNAVAILABLE` 503 (nothing stored); AC4 `ENTITY_NOT_FOUND group#group-99`; AC5 prose once, guarded; AC6 10 phrasings route and diagnose identically.
+- Tests: 60 new (domain, handler, API through the real container); suite 916 passing, 0 skipped; `ruff` clean. Scope kept to the annex on purpose (decision log AD-23); no subagent review was run, so the story stops at `review`.
+
 ### File List
+
+New: `src/domain/window_diagnosis.py`, `src/application/window_diagnosis_handler.py`, `src/application/turn_support.py`, `tests/unit/test_window_diagnosis.py`, `tests/unit/test_window_diagnosis_handler.py`, `tests/api/test_window_diagnosis_api.py`.
+
+Modified: `src/domain/intent.py`, `src/domain/diagnosis.py`, `src/domain/references.py`, `src/domain/canonical_strings.py`, `src/application/entity_resolver.py`, `src/application/access_denial_handler.py`, `src/bootstrap.py`, `tests/unit/test_intent.py`, `README.md`, `docs/ai-decision-log.md`, both `sprint-status.yaml` copies.
+
+### Change Log
+
+- 2026-10-25: story 3.1 implemented (Tasks 1-3); status -> review.

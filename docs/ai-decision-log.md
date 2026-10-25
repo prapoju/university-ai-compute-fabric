@@ -287,6 +287,29 @@ Open assumptions to confirm: see the end of this file.
 - **Design choices:** claims' text and the `fact_tokens` come from the same records, so the guard can only reject prose that repeats a real fact;
   prose is rejected whole, never stripped (D48); canonical outcomes never consult the LLM.
 
+## AD-23 - Scope for stories 3.1 and 4.1 cut to the annex (human decision)
+- **Phase:** Planning of the remaining Impl-1 stories.
+- **Context:** story 1.3 was built to the full acceptance criteria of `planning/epics.md` plus a three-layer review (851 tests). The user pointed
+  out that the course guide asks for working code with at least 2 tests per story, the BMad cycle and the decision log - not that depth - and
+  that token budget is limited.
+- **Decision (Juan, accepted by the AI):** stories 3.1 (Annex 12.2) and 4.1 (Annex 12.3) implement exactly the annex behaviour plus the epic's
+  explicit boundary/negative cases, reuse the 1.3 seams (pipeline, resolver, prose guard), run no subagent review and stop at status `review`
+  (a review that was not run is not claimed). The OpenAPI route (`/api/v1/sessions/{sid}/queries`) is kept over the path quoted in the guide prose:
+  the guide also requires endpoints identical to the OpenAPI, and the route audit forbids an undeclared path.
+
+## AD-24 - Story 3.1: window diagnosis decisions and two AI mistakes
+- **Decisions:** the Night window is `22:00-06:00` UTC as in the annex and the fixture (the epic text says `20:00-08:00`); a job's
+  `scheduling_constraint` `night` names `window#night`; the window is half-open `[start, end)`, so exactly `22:00:00.000Z` is open and `06:00:00.000Z`
+  is closed; past the only recorded window the answer is `CANNOT_CONFIRM`, never an invented later window; the prose helper, claim-id minting
+  and canonical turn shapes were extracted from the story-1.3 handler (`turn_support.py`) instead of copied.
+- **Correction 1 (regression caught by the suite):** adding the schedule intent rule broke two story-1.2 tests - the registry test that expected
+  only the access-denial rule, and the "register a rule only" extension test, which used the same intent code and a pattern that now matched twice
+  (`more than one intent matches`). The AI changed the fake intent in the extension test and the expected registry, not the router.
+- **Correction 2 (wrong test assumption):** the AI assumed `group-2` has no constrained job; the fixture has a pending `night` job for it
+  (`job-8824`), so the "no constraint" test was wrong, not the code. It now uses `group-7`, whose only live job is unconstrained.
+- **Process note:** a long shell command that combined several heredocs failed to parse and applied nothing; the files were then written with the
+  file tools (the same lesson as AD-05, AD-16, AD-22).
+
 ---
 
 ## Open assumptions to confirm at review
