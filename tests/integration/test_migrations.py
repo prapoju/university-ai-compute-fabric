@@ -101,3 +101,41 @@ def test_an_applied_migration_that_disappears_is_reported(tmp_path: Path) -> Non
     (tmp_path / "002_b.sql").write_text("create table b (x integer);", encoding="utf-8")
     with pytest.raises(MigrationError, match="001_a.sql"):
         apply_migrations(connection, tmp_path)
+
+
+def test_migrations_apply_to_a_file_database_and_enable_wal(tmp_path: Path) -> None:
+    # WAL cannot be switched on inside a transaction, so PRAGMAs must run outside the atomic part
+    database = tmp_path / "m12.db"
+    connection = sqlite3.connect(database)
+    assert apply_migrations(connection, MIGRATIONS) == ["001_module12_copilot_schema.sql"]
+    assert connection.execute("pragma journal_mode").fetchone() == ("wal",)
+    assert OWNED_TABLES <= _tables(connection)
+    connection.close()
+    # a second process start on the same file is a no-op
+    reopened = sqlite3.connect(database)
+    assert apply_migrations(reopened, MIGRATIONS) == []
+    reopened.close()
+
+
+def test_a_failure_in_the_body_still_rolls_back_when_pragmas_were_split_off(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "001_a.sql").write_text(
+        "PRAGMA foreign_keys = ON;\ncreate table a (x integer);\ncreate table a (x integer);",
+        encoding="utf-8",
+    )
+    connection = sqlite3.connect(tmp_path / "x.db")
+    with pytest.raises(MigrationError, match="rolled back"):
+        apply_migrations(connection, tmp_path)
+    assert "a" not in _tables(connection)
+
+
+@pytest.mark.parametrize("newline", ["\n", "\r\n"])
+def test_pragma_lines_are_split_off_with_unix_and_windows_line_endings(
+    tmp_path: Path, newline: str
+) -> None:
+    script = newline.join(["PRAGMA journal_mode = WAL;", "create table a (x integer);", ""])
+    (tmp_path / "001_a.sql").write_bytes(script.encode("utf-8"))
+    connection = sqlite3.connect(tmp_path / "x.db")
+    assert apply_migrations(connection, tmp_path) == ["001_a.sql"]
+    assert connection.execute("pragma journal_mode").fetchone() == ("wal",)

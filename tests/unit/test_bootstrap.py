@@ -90,3 +90,9 @@ def test_estate_and_database_failures_are_logged(tmp_path: Path, caplog) -> None
     build_container(_settings(fixtures_dir=str(tmp_path))).close()
     messages = " ".join(r.getMessage() for r in caplog.records if r.levelno >= logging.ERROR)
     assert "estate" in messages.lower()
+
+
+def test_a_file_database_migrates_and_reports_ready(tmp_path: Path) -> None:
+    container = build_container(_settings(db_path=str(tmp_path / "m12.db")))
+    assert container.readiness["migrations"]() is None
+    container.close()

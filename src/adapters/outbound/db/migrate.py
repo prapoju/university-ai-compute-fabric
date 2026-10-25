@@ -5,16 +5,21 @@ in filename order and recorded in ``schema_migrations`` with a SHA-256 checksum,
 edited after it was applied is reported instead of silently re-run. The operational estate
 is deliberately *not* migrated here - it lives behind read-only ports (AD-1, AD-13).
 
-Each migration runs in ONE transaction together with its bookkeeping row: either the whole
-file is applied and recorded, or nothing is, so a failed or interrupted run can simply be
-retried after the file is fixed.
+Each migration's DDL runs in ONE transaction together with its bookkeeping row: either the
+whole file is applied and recorded, or nothing is, so a failed or interrupted run can simply
+be retried after the file is fixed. ``PRAGMA`` lines (e.g. ``journal_mode = WAL``) cannot run
+inside a transaction, so they are applied first.
 """
 
 from __future__ import annotations
 
 import hashlib
+import re
 import sqlite3
 from pathlib import Path
+
+# ``\r?`` because the schema files may carry CRLF line endings (Windows checkouts)
+_PRAGMA_LINE = re.compile(r"^[ \t]*PRAGMA\b[^;\n]*;[ \t]*\r?$", re.IGNORECASE | re.MULTILINE)
 
 
 class MigrationError(RuntimeError):
@@ -65,13 +70,17 @@ def _apply_one(connection: sqlite3.Connection, name: str, raw: bytes, digest: st
     except UnicodeDecodeError as exc:
         raise MigrationError(f"{name} is not valid UTF-8: {exc}") from exc
 
+    pragmas = "\n".join(_PRAGMA_LINE.findall(script))
+    body = _PRAGMA_LINE.sub("", script)
     quoted_name = name.replace("'", "''")
     bookkeeping = (
         f"INSERT INTO schema_migrations (filename, sha256) VALUES ('{quoted_name}', '{digest}');"
     )
     try:
+        if pragmas:
+            connection.executescript(pragmas)
         # executescript() commits any open transaction first, so BEGIN/COMMIT live in the script
-        connection.executescript(f"BEGIN;\n{script}\n{bookkeeping}\nCOMMIT;")
+        connection.executescript(f"BEGIN;\n{body}\n{bookkeeping}\nCOMMIT;")
     except sqlite3.Error as exc:
         if connection.in_transaction:
             connection.rollback()
