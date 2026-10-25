@@ -104,3 +104,20 @@ def test_an_unavailable_database_gives_503_on_every_session_route_and_not_ready(
         assert any(
             o.startswith("sessions:") for o in ready.json()["explanation"]["observed_values"]
         )
+
+
+def _script() -> list[object]:
+    """One fixed conversation; returns every response body."""
+    bodies: list[object] = []
+    with client_for() as client:
+        sid = client.post(BASE, json={"operator_role": "role-operations"}).json()["session_id"]
+        for text in (S1, "what's the weather?", "and what about mateo?", S1):
+            bodies.append(client.post(f"{BASE}/{sid}/queries", json={"query_text": text}).json())
+        bodies.append(client.get(f"{BASE}/{sid}").json())
+        client.delete(f"{BASE}/{sid}")
+        bodies.append(client.get(f"{BASE}/{sid}").json())
+    return bodies
+
+
+def test_two_fresh_services_given_the_same_conversation_return_identical_bodies() -> None:
+    assert _script() == _script()  # ids, timestamps, answers: nothing depends on wall time or luck

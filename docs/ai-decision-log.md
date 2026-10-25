@@ -26,6 +26,10 @@ human reviewer decided. Earlier phases keep their own logs (`ai-log/decision-log
 | AD-11 | Review | Decision | Three-layer code review of story 1.1: 3 decisions, 19 patches, 6 deferred, 7 dismissed | Juan (decisions + "apply all") |
 | AD-12 | Review fix | **Correction (AI-written patch)** | The atomic-migration patch broke file databases; only Docker caught it | Pending |
 | AD-13 | Review fix | Decision | PyYAML added as a dev dependency (contract route test) | Pending |
+| AD-14 | Story 1.2 · create | Decision | Spec conflicts found before coding (no React console, no audit rows, wire shape, ...) | Juan (proceeded after the proposal) / Pending (rest) |
+| AD-15 | Story 1.2 · build | **Correction (test tooling)** | FastAPI 0.162 wraps included routers; the route audit silently saw only the probes | Pending |
+| AD-16 | Story 1.2 · build | Correction (scripted edits) | A here-doc dropped README line continuations and a script left junk in a test | Pending |
+| AD-17 | Story 1.2 · build | Decision | Mutation check proved the concurrency tests can fail | Pending |
 
 Open assumptions to confirm: see the end of this file.
 
@@ -157,6 +161,49 @@ Open assumptions to confirm: see the end of this file.
 
 ---
 
+## AD-14 - Story 1.2: spec conflicts found before coding
+- **Phase:** Create story (`bmad-create-story` for 1.2), analysis of epics, contracts section 2, openapi, dto.py and the migrated schema.
+- **AI findings (written as D1-D10 in the story's Dev Notes):**
+  1. The canonical story lists a React console; the course track is Python/FastAPI. The console is out of scope, the 1,000-character cap is
+     enforced on the server and the answer chain is the `answer_chain` field. (The agent proposed this before building; Juan asked to continue.)
+  2. contracts.md Q3 wants a `toolcall.*` audit row per call, but the audit writer is story 1.5 (outside the Impl-1 scope): no audit rows are
+     written, and the walkthrough must say NFR-8 "every tool call audited" is unmet until 1.5.
+  3. The contract says a canonical body has an `error_code` field; `dto.py` and openapi use `code`. The DTO wins.
+  4. `SubmitQueryRequest.query_text` is a `QueryText`, which would reject empty/over-long input as a generic error, yet the contract requires
+     `VALIDATION_EMPTY_QUERY` / `VALIDATION_QUERY_TOO_LONG` with their own messages: a local request model plus domain validation.
+  5. The epic mentions a SQL `turns` table; the schema has none. Turns are the session's `answers` rows.
+  6. FR-02 follow-ups are scoped to the *intent* (entity resolution is story 1.3 / 3.4).
+  7. Two ports that no contract defines for Module 12's own storage were added: OP-13 `IdGenPort` (contracted) and an internal `SessionStorePort`.
+- **Build-time decisions to confirm at review:** a query to a *reset* session returns 410 and persists `status = expired` (contract P2 taken
+  literally, so a later GET shows `expired`, not `reset`); a clarification is stored with `intent = "clarification"` and the 200 `ErrorBody` is
+  what goes on the wire; the simulated clock is frozen in Docker (`M12_CLOCK_START`), so idle expiry only occurs when a test advances it.
+
+## AD-15 - The route audit went blind to the new routes  *(correction of test tooling)*
+- **Phase:** Build, Task 5 (session REST endpoints).
+- **What happened:** the story-1.1 audit enumerated `app.routes` and compared it with the contract. After `include_router(...)` the audit
+  still listed only `/healthz` and `/readyz`: this FastAPI version (0.162) wraps included routers in an `_IncludedRouter` object whose routes
+  are not `APIRoute` instances at the top level. The equality assertion happened to fail (it listed the declared-but-"unserved" routes), but an
+  audit written only as "served is a subset of declared" would have kept passing while no longer seeing the real endpoints.
+- **Fix:** the audit now flattens included routers recursively and cross-checks the result with `app.openapi()` (the schema FastAPI
+  generates from the same routes); the route list of the story is explicit, so a missing or an extra endpoint both fail.
+
+## AD-16 - Scripted edits corrupted two files
+- **Phase:** Build, Tasks 5-6.
+- **What happened:** (a) a shell here-doc used to edit the README turned `\` + newline into spaces, merging the multi-line `curl` examples;
+  (b) a scripted replacement left a junk placeholder (`assert {type(None)} or True`) in an existing test while the real assertion was being
+  rewritten. Both are the same class of failure as story 1.1 (AD-05): editing through shell strings.
+- **How they were caught:** reading the README back after `ruff` passed, and re-reading the test when its name no longer matched what it asserted.
+- **Fix:** restored the line continuations with the file-edit tool and replaced the placeholder with the real assertion (the twelve provider
+  ports are registered, the session ring only adds ports).
+
+## AD-17 - Mutation check on the concurrency tests
+- **Phase:** Build, Task 7 (NFR-6).
+- **What:** the concurrency tests passed on the first run, which proves nothing by itself. A throw-away mutation disabled the per-session lock
+  and the "60 parallel queries in one session" test failed on both `:memory:` and file databases (lost updates), so the test can fail for the
+  right reason. The mutation script lives outside the repository.
+
+---
+
 ## Open assumptions to confirm at review
 1. `Selector.method == "filter"` (equality filter over record fields) is an adapter convention invented for `select()`; the contract only
    says "method + params". Decided with the user: deferred to story 2.2 (dry-run snapshot), where it is confirmed or replaced.
@@ -165,3 +212,6 @@ Open assumptions to confirm: see the end of this file.
 3. The 2 × 48 GB server is stored as `gpu_memory_gb = 96` because `NodeRecord` forbids extra fields.
 4. Night Policy hours are 22:00–06:00 UTC (PRD leaves fixture values open, A-10).
 5. Unexpected exceptions degrade to `PROVIDER_UNAVAILABLE` (503) because the error catalog has no generic internal-error code (AD-12 safe failure).
+6. A query to a reset session is 410 and persists `status = expired` (contracts.md P2 read literally); a later GET shows `expired`.
+7. Clarification turns are stored as `intent = "clarification"`, `canonical = "CLARIFICATION"`; the wire body is the 200 `ErrorBody` (D58).
+8. The simulated clock does not advance by itself (`M12_CLOCK_START`), so the 30-minute idle expiry is only exercised by tests that advance it.

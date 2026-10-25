@@ -28,19 +28,49 @@ reference; real environment variables only, no `.env` file is loaded); every var
 default. The service serves exactly the routes of
 [`openapi.yaml`](planning/detailed-design/schemas/openapi.yaml); the generated `/docs` is disabled.
 
+## Session API (story 1.2)
+
+The service exposes the session lifecycle of the contract (`planning/detailed-design/schemas/openapi.yaml`):
+
+```bash
+# 1. open a session
+curl -s -X POST localhost:8000/api/v1/sessions -H 'content-type: application/json' \
+     -d '{"operator_role": "role-operations"}'
+#    -> 201 {"session_id": "sess-0000000000000001", "status": "active", "context": {...}, ...}
+
+# 2. ask a question (routed by deterministic rules, no LLM)
+curl -s -X POST localhost:8000/api/v1/sessions/sess-0000000000000001/queries \
+     -H 'content-type: application/json' -d '{"query_text": "why was alex denied deepseek-coder"}'
+#    -> 200 {"answers": [{"intent": "diagnose_access_denial", "answer_chain": ["observation"], ...}]}
+#    an out-of-domain query ("what's the weather?") is a 200 clarification:
+#    {"code": "CLARIFICATION_REQUIRED", "message": "Clarification required: no registered intent matches this query.", ...}
+
+# 3. read it back, then clear it
+curl -s localhost:8000/api/v1/sessions/sess-0000000000000001       # 200 context + turns
+curl -s -X DELETE localhost:8000/api/v1/sessions/sess-0000000000000001   # 204
+```
+
+Errors are always the typed `ErrorBody` JSON (`code`, `status`, `message`, `retryable`): empty or
+over-1000-character queries are `400`, an unknown session `404`, a reset/expired or 30-minutes-idle
+session `410`, a dependency failure `503`. Sessions and turns live in SQLite (`M12_DB_PATH`;
+`:memory:` by default, a file in Docker) and survive restarts. Until story 1.3 a routed query
+returns an observation-only answer; the diagnosis plugs into `AnswerPipeline.register`.
+The clock is simulated (`M12_CLOCK_START`) and does not advance on its own.
+
 ## Architecture (Ports & Adapters)
 
 ```
 src/
 ├── domain/                 # pure logic: no FastAPI, no DB driver, no real clock, no randomness
+├── application/            # use-case implementations: session service, answer pipeline
 ├── ports/
-│   ├── inbound/            # use-case interfaces
-│   └── outbound/           # read-only provider ports (users, catalog, nodes, clock, ...)
+│   ├── inbound/            # use-case interfaces (session use cases)
+│   └── outbound/           # read-only provider ports + id generator + session store
 ├── adapters/
 │   ├── inbound/            # FastAPI app, routers, error envelope
 │   └── outbound/
-│       ├── sim/            # fixture-backed simulated providers + freezable clock
-│       └── db/             # SQLite connection + migration runner (Module-12-owned stores only)
+│       ├── sim/            # fixture-backed simulated providers, freezable clock, id generator
+│       └── db/             # SQLite connection, migration runner, session store (Module-12-owned)
 ├── config.py               # validated settings (M12_* variables)
 ├── dependency_check.py     # startup environment validation
 └── bootstrap.py            # composition root: the only place adapters are wired

@@ -4,7 +4,7 @@ baseline_commit: ec4da8a8cc592d338aaf44fa43fdf77478c42c86
 
 # Story 1.2: Console shell, session store and conversational intake
 
-Status: in-progress
+Status: review
 
 <!-- Impl-1 scope note: the canonical story title says "console shell", but the course track is Python/FastAPI
      (no React console). This story delivers the server side of the console: the session REST API, the
@@ -113,11 +113,11 @@ Full Ceremony: test first, then code, per subtask. Commit per numbered task (con
 - [x] **Task 6: Composition root** (AC: 6) → `feat(story-1.2): wire sessions into the container`
   - [x] 6.1 `src/bootstrap.py`: register `SessionStorePort`, `IdGenPort` (seeded from the store) and the use-case service; if the database is unavailable the container still builds and readiness reports it (existing behaviour); add a `sessions` readiness check; routes return 503 `PROVIDER_UNAVAILABLE` when the store is down.
   - [x] 6.2 Tests: wiring, 503 behaviour with a closed/unavailable DB, readiness.
-- [ ] **Task 7: NFR-6, determinism and DoD** (AC: 6) → `test(story-1.2): concurrency and persistence`
-  - [ ] 7.1 Concurrency test (6 sessions x 20 queries in parallel threads against one container; no leakage, unique ids, per-operation latency far below the 50 ms/3 s budgets on fixtures) and the restart-persistence test on a file database.
-  - [ ] 7.2 Determinism: two fresh containers with the same clock produce identical ids and answers for the same script.
-  - [ ] 7.3 README: document the session API with a `curl` walkthrough; `ruff check src tests`, full `pytest` (0 skipped), Docker `up --build` smoke (`POST /api/v1/sessions`, query, GET, DELETE).
-  - [ ] 7.4 Update `docs/ai-decision-log.md`; promote the story status in both `sprint-status.yaml` copies.
+- [x] **Task 7: NFR-6, determinism and DoD** (AC: 6) → `test(story-1.2): concurrency and persistence`
+  - [x] 7.1 Concurrency test (6 sessions x 20 queries in parallel threads against one container; no leakage, unique ids, per-operation latency far below the 50 ms/3 s budgets on fixtures) and the restart-persistence test on a file database.
+  - [x] 7.2 Determinism: two fresh containers with the same clock produce identical ids and answers for the same script.
+  - [x] 7.3 README: document the session API with a `curl` walkthrough; `ruff check src tests`, full `pytest` (0 skipped), Docker `up --build` smoke (`POST /api/v1/sessions`, query, GET, DELETE).
+  - [x] 7.4 Update `docs/ai-decision-log.md`; promote the story status in both `sprint-status.yaml` copies.
 
 ## Dev Notes
 
@@ -188,10 +188,46 @@ No new dependency (FastAPI, Pydantic v2, stdlib `sqlite3`/`threading` only). Fas
 
 ### Agent Model Used
 
-_(filled by dev-story)_
+claude-sonnet-5-5 (Claude Code, BMad `bmad-dev-story` ceremony)
 
 ### Debug Log References
 
+- Baseline before any change: `pytest` -> 332 passed. Final: **593 passed, 0 skipped**, `ruff check src tests` clean, `test/ci/schema_check.py` -> GATE PASS.
+- Task 5: the story-1.1 route audit stopped seeing routes after `include_router` (FastAPI 0.162 `_IncludedRouter`); the audit now flattens included routers and cross-checks `app.openapi()` (AD-15).
+- Task 6: the extensibility test still asserted "exactly 12 ports"; it now asserts the twelve provider ports are present (the session ring adds ports).
+- Scripted edits corrupted the README (here-doc line continuations) and left a junk line in a test; both fixed and logged (AD-16).
+- Task 7: a throw-away mutation (per-session lock disabled) made the parallel-queries test fail on memory and file databases, proving it can fail (AD-17).
+- Docker smoke (`docker compose up --build`): create -> S1 query (observation-only answer) -> out-of-domain clarification (200 ErrorBody) -> GET -> DELETE 204 -> query 410; after `docker compose restart` session 1 and its turns are still there and the next session gets id 2 (no collision); `/readyz` shows the new `sessions` check.
+
 ### Completion Notes List
 
+- **AC1 (lifecycle):** four routes exactly as `openapi.yaml` declares them (`POST /api/v1/sessions` 201, `POST .../{sid}/queries` 200, `GET .../{sid}` 200, `DELETE .../{sid}` 204; 400/404/410/503). Sessions and turns persist in the existing `sessions`/`answers` tables; the context retains `prior_intents` and `active_answer_ids` (one entry per returned Answer) and `DELETE` clears it. Follow-ups resolve the *intent* from the session context (D5).
+- **AC2 (routing):** deterministic rule registry (`src/domain/intent.py`, no LLM): 9 S1 variants route 100% to `diagnose_access_denial`; 8 out-of-domain queries are clarified, never force-routed; compound queries with a destructive verb (4 variants) and follow-ups mixing a destructive verb are clarified. New intents are added by registering a rule.
+- **AC3 (envelope):** every turn carries `answer_chain = ["observation"]` (a contiguous prefix); clarifications are HTTP 200 `ErrorBody` with the literal `Clarification required: {reason}.` and are also stored as turns. `AnswerPipeline.register` is the seam where stories 1.3, 3.1 and 4.1 plug their diagnosers in.
+- **AC4 (limits):** query trimmed once; empty -> `VALIDATION_EMPTY_QUERY`, > 1000 -> `VALIDATION_QUERY_TOO_LONG` with the contract messages; exactly 1000 accepted; a rejected call reads no clock, mints no id and leaves the session untouched; a body with `session_id` is 400.
+- **AC5 (states):** absent 404, malformed id 400, reset/expired/idle > 30 min 410 with the expiry persisted idempotently; exactly 30 min idle still works and the timer counts from the last turn.
+- **AC6 (NFR-6):** 6 parallel operator sessions x 20 queries on memory and file databases: no cross-session leakage, unique ids, p95 far below the contract budgets; one lock per session plus one store lock serialize writes.
+- **Contract fidelity:** no endpoint or status beyond openapi/contracts (the documented 400 for path/body validation); the route audit lists the served operations explicitly and still passes.
+- **Known scope limits (logged AD-14):** no React console (D1); no audit rows until story 1.5 (D2), so NFR-8 "every tool call audited" stays unmet in Impl-1; entity follow-ups come with 1.3/3.4; the ATDD stub tests for sessions stay red by design (D9).
+- Commits: `feat(story-1.2)` x6, `docs(story-1.2)`; no co-author trailers.
+
 ### File List
+
+New: `src/domain/{canonical_strings,error_catalog,session_rules,intent}.py`, `src/ports/outbound/{idgen,session_store}.py`, `src/ports/inbound/session_use_cases.py`,
+`src/application/{__init__,pipeline,session_service,unavailable}.py`, `src/adapters/outbound/db/session_store.py`, `src/adapters/outbound/sim/idgen_adapter.py`,
+`src/adapters/inbound/sessions.py`, `tests/api/{conftest,test_sessions,test_sessions_wiring}.py`, `tests/integration/{test_session_store,test_sessions_concurrency}.py`,
+`tests/unit/{test_canonical_strings,test_error_catalog,test_idgen_adapter,test_intent,test_session_ports,test_session_rules,test_session_service}.py`.
+
+Modified: `src/domain/result.py` (Failure.message), `src/adapters/inbound/{app,errors}.py`, `src/bootstrap.py`, `src/ports/inbound/__init__.py`, `src/ports/outbound/__init__.py`,
+`tests/api/{test_contract_routes,test_health}.py`, `tests/unit/{test_bootstrap,test_ports_query_only,test_story_1_1_extensibility}.py`, `README.md`, `docs/ai-decision-log.md`,
+`_bmad-output/implementation-artifacts/sprint-status.yaml` and its mirror `implementation-artifacts/sprint-status.yaml`.
+
+### Change Log
+
+| Date | Change |
+|---|---|
+| 2026-10-25 | Story created (`ready-for-dev`) with spec-conflict analysis (D1-D10). |
+| 2026-10-25 | Domain rules: canonical strings, error catalog, session rules, intent classifier. |
+| 2026-10-25 | Ports: id generator, session store, session use cases. |
+| 2026-10-25 | SQLite session store and seeded id generator; session service and pipeline; REST routes; container wiring. |
+| 2026-10-25 | NFR-6 concurrency and restart tests, README, decision log; DoD verified (593 passed, 0 skipped, ruff clean, Docker smoke); status -> `review`. |
