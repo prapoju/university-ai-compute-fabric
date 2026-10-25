@@ -36,9 +36,11 @@ CONTRACT_METHODS: dict[str, set[str]] = {
 
 # Ports for the Module-12-OWNED stores and id generation. They are not estate providers, so the
 # query-only rule (AD-1/AD-13) does not apply to them: AD-1 protects the operational estate.
-#  - IdGenPort is contract OP-13; SessionStorePort is an internal port (story 1.2, decision D6).
+#  - IdGenPort is OP-13 and LlmProsePort is OP-14 (contracts.md section 3.1); SessionStorePort is an
+#    internal port (story 1.2, decision D6).
 OWNED_PORT_METHODS: dict[str, set[str]] = {
     "IdGenPort": {"new_id"},
+    "LlmProsePort": {"compose"},
     "SessionStorePort": {
         "create", "get", "list_turns", "append_turn", "mark_expired", "reset", "highest_counters",
     },
