@@ -26,14 +26,35 @@ def test_healthz_is_a_liveness_probe_that_needs_no_dependencies(tmp_path: Path) 
     assert response.json() == {"status": "ok"}
 
 
-def test_readyz_reports_every_check_when_the_service_is_ready(tmp_path: Path) -> None:
-    present = Settings.from_env({"M12_FIXTURES_DIR": str(tmp_path)})
-    response = _client(present).get("/readyz")
+def test_readyz_reports_every_check_when_the_service_is_ready() -> None:
+    response = _client().get("/readyz")
     body = response.json()
     assert response.status_code == 200
     assert body["status"] == "ready"
-    assert body["checks"]["dependencies"] == "ok"
-    assert body["checks"]["migrations"] == "ok"
+    assert body["checks"] == {
+        "dependencies": "ok",
+        "migrations": "ok",
+        "estate": "ok",
+        "clock": "ok",
+    }
+
+
+def test_probing_readiness_does_not_consume_clock_read_ids() -> None:
+    app = create_app(Settings.from_env({}))
+    client = TestClient(app)
+    for _ in range(3):
+        client.get("/readyz")
+    from src.ports.outbound import ClockPort
+
+    first = app.state.container.port(ClockPort).now().value
+    assert first.read_id == "clk-0000000000000001"
+
+
+def test_readyz_is_503_when_the_estate_cannot_load(tmp_path: Path) -> None:
+    empty = Settings.from_env({"M12_FIXTURES_DIR": str(tmp_path)})
+    body = _client(empty).get("/readyz").json()
+    assert body["code"] == "PROVIDER_UNAVAILABLE"
+    assert any(o.startswith("estate:") for o in body["explanation"]["observed_values"])
 
 
 def test_readyz_is_503_with_a_structured_error_when_a_dependency_is_missing(tmp_path: Path) -> None:
