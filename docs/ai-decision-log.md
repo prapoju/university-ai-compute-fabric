@@ -387,6 +387,15 @@ Open assumptions to confirm: see the end of this file.
 - **To confirm with the team:** `schedule_no_constraint` for "the named window is not on record" is the contract's literal choice; if the team prefers a
   typed no-window canonical (the other option in the detailed-design review), the contract changes first.
 
+## AD-30 - Audit fix: the epic pinned Night hours that no fixture has  *(planning text)*
+- **Phase:** post-delivery audit of Impl-1 (audit questions 3 and 4), 2026-10-26.
+- **What was wrong:** the story-3.1 AC in `planning/epics.md` gave the S2 fixture as `night` `20:00–08:00`. The fixture
+  (`fixtures/estate/windows.json`) and Annex 12.2 use `22:00–06:00` UTC, and PRD A-10 says the hours are fixture content ("the PRD pins behavior, not
+  fixture values"). The code already followed the fixture (story 3.1 D1, assumption 4); only the AC text contradicted it.
+- **Fix:** the AC now names `22:00–06:00` UTC, its sources and A-10, in `planning/epics.md` and in its mirror `_bmad-output/planning-artifacts/epics.md`
+  (kept byte-identical, AD-02). The PRD and UX examples ("today 20:00–08:00") are left as they are: they are illustrations under A-10, and the PRD-phase
+  decision on explicit date + timezone already replaced that rendering.
+
 ---
 
 ## Open assumptions to confirm at review
@@ -395,7 +404,7 @@ Open assumptions to confirm: see the end of this file.
 2. Port `browse` returns `list[Record]` exactly as `contracts.md` §3 says, but the inbound `browse_state` response needs a `total`.
    Story 1.5 will need a contract-level decision (count method or a page type).
 3. The 2 × 48 GB server is stored as `gpu_memory_gb = 96` because `NodeRecord` forbids extra fields.
-4. Night Policy hours are 22:00–06:00 UTC (PRD leaves fixture values open, A-10).
+4. Night Policy hours are 22:00–06:00 UTC (PRD leaves fixture values open, A-10). The story-3.1 AC in `planning/epics.md` now says the same (AD-30).
 5. Unexpected exceptions degrade to `PROVIDER_UNAVAILABLE` (503) because the error catalog has no generic internal-error code (AD-12 safe failure).
 6. A query to a reset session is 410 and persists `status = expired` (contracts.md P2 read literally); a later GET shows `expired`. Confirmed by the user in the story 1.2 review (AD-18).
 7. Clarification turns are stored as `intent = "clarification"`, `canonical = "CLARIFICATION"`; the wire body is the 200 `ErrorBody` (D58).

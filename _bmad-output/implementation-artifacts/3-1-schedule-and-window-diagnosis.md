@@ -40,7 +40,7 @@ Source: `planning/epics.md` Story 3.1 and Annex 12.2. Requirements: FR-05, AD-2,
 
 ## Dev Notes
 
-- **D1 - Night window.** The annex and the fixture use `22:00-06:00` UTC; the epics text says `20:00-08:00`. The fixture/annex win (assumption 4 of the decision log).
+- **D1 - Night window.** The annex and the fixture use `22:00-06:00` UTC; the epics text said `20:00-08:00`. The fixture/annex win (assumption 4 of the decision log); the epic AC was aligned by the audit (AD-30).
 - **D2 - Constraint to window.** A job's `scheduling_constraint` `night` governs `window#night`; the group's *constrained, not finished* job (status `pending`/`running`) is the one diagnosed. Several: lowest `job_id`.
 - **D3 - Group reference.** `group 4`, `Group-4`, `group#group-4` resolve to `group#group-4` (exact after a fixed canonical form, never fuzzy). Anything else is `ENTITY_NOT_FOUND` named as typed.
 - **D4 - Reuse.** Same pipeline seam (`AnswerPipeline.register`), `LlmProsePort`, `scan_prose`, canonical strings and the claim-id-after-prose order as story 1.3. No new endpoint, no schema or DTO change.
