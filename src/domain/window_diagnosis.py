@@ -14,7 +14,6 @@ from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 
 from src.domain.diagnosis import (
-    CannotConfirm,
     ClaimDraft,
     bare_id,
     clip,
@@ -80,7 +79,7 @@ def diagnose_schedule_window(
     jobs: Sequence[JobRecordDTO],
     windows: Sequence[PolicyWindowDTO],
     clock: ClockReadDTO,
-) -> ScheduleDiagnosis | CannotConfirm:
+) -> ScheduleDiagnosis:
     """Why the group's constrained job cannot run at ``clock`` and when the window next opens."""
     waiting = sorted(
         (
@@ -96,26 +95,22 @@ def diagnose_schedule_window(
     job = waiting[0]
     window_id = f"window#{job.scheduling_constraint}"
     window = next((w for w in windows if w.window_id == window_id), None)
-    checked = (group.id, job.id, window_id)
     gathered = [
         ("group", group.id, clip(_group_snippet(group))),
         ("job", job.id, clip(_job_snippet(job))),
     ]
-    if window is None:
-        return CannotConfirm(checked, number_evidence([*gathered, clock_entry(clock)]))
+    if window is None:  # contracts.md Q1 (D55): an empty window set restricts nothing
+        return _no_window_on_record(group, job, window_id, clock, gathered)
 
     now = parse_instant(clock.instant)
     start, end = parse_instant(window.start), parse_instant(window.end)
     evidence = number_evidence(
         [*gathered, ("window", window.window_id, clip(_window_snippet(window))), clock_entry(clock)]
     )
-    if now >= end:  # the only window on record is over: never invent a later one
-        return CannotConfirm(checked, evidence)
-
     cites = tuple(e.citation_id for e in evidence)
     where = f"{window.start} to {window.end} ({window.timezone})"
     tokens = _tokens(group, job, window, clock)
-    if start <= now:
+    if start <= now < end:
         claim = ClaimDraft(
             f"The window {window.window_id} for {window.applies_to} is open now ({where}) at "
             f"the clock read {clock.read_id} ({clock.instant}); no window restriction blocks "
@@ -123,12 +118,28 @@ def diagnose_schedule_window(
             cites,
         )
         return ScheduleDiagnosis("schedule_no_constraint", evidence, (claim,), tokens)
+    constrained = ClaimDraft(
+        f"{group.name} ({group.id}) has the {job.status} job {job.id} for {job.course} "
+        f"constrained to the {job.scheduling_constraint} window {window.window_id}.",
+        cites,
+    )
+    if now >= end:  # the only window on record is over: say so, never invent a later one (D55)
+        claims = (
+            constrained,
+            ClaimDraft(
+                f"{window.window_id} permits {window.applies_to} only from {where}; the clock "
+                f"read {clock.read_id} is {clock.instant}, at or after its end, so {job.id} "
+                f"cannot run now.",
+                cites,
+            ),
+            ClaimDraft(
+                f"No later {window.window_id} is on record, so no next open window can be given.",
+                cites,
+            ),
+        )
+        return ScheduleDiagnosis("schedule_window_restricted", evidence, claims, tokens)
     claims = (
-        ClaimDraft(
-            f"{group.name} ({group.id}) has the {job.status} job {job.id} for {job.course} "
-            f"constrained to the {job.scheduling_constraint} window {window.window_id}.",
-            cites,
-        ),
+        constrained,
         ClaimDraft(
             f"{window.window_id} permits {window.applies_to} only from {where}; the clock read "
             f"{clock.read_id} is {clock.instant}, outside it, so {job.id} cannot run now.",
@@ -154,6 +165,30 @@ def _no_constraint(group: GroupRecordDTO, clock: ClockReadDTO) -> ScheduleDiagno
         tuple(e.citation_id for e in evidence),
     )
     tokens = {group.id, bare_id(group.id), group.name, clock.read_id, clock.instant}
+    return ScheduleDiagnosis(
+        "schedule_no_constraint", evidence, (claim,), frozenset(t.casefold() for t in tokens)
+    )
+
+
+def _no_window_on_record(
+    group: GroupRecordDTO,
+    job: JobRecordDTO,
+    window_id: str,
+    clock: ClockReadDTO,
+    gathered: list[tuple[str, str, str]],
+) -> ScheduleDiagnosis:
+    evidence = number_evidence([*gathered, clock_entry(clock)])
+    claim = ClaimDraft(
+        f"{group.name} ({group.id}) has the {job.status} job {job.id} constrained to the "
+        f"{job.scheduling_constraint} window, but no {window_id} is on record at the clock read "
+        f"{clock.read_id}; no window restriction can be stated and no window is given.",
+        tuple(e.citation_id for e in evidence),
+    )
+    tokens = {
+        group.id, bare_id(group.id), group.name,
+        job.id, bare_id(job.id), job.course, str(job.scheduling_constraint),
+        window_id, bare_id(window_id), clock.read_id, clock.instant,
+    }  # fmt: skip
     return ScheduleDiagnosis(
         "schedule_no_constraint", evidence, (claim,), frozenset(t.casefold() for t in tokens)
     )

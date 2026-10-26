@@ -78,7 +78,8 @@ session. An unknown user is `ENTITY_NOT_FOUND`; a student with no recorded denia
 **12.2 Night schedule (story 3.1).** `why can't group 4 run their fine-tuning job right now` at `2026-10-16T15:00:00.000Z` -> class
 `schedule_window_restricted`: job `job#job-8823` is constrained to `window#night`; the next open window is `2026-10-16T22:00:00.000Z` to
 `2026-10-17T06:00:00.000Z` (UTC), stated in the claims and returned as `recommendation.next_open_window` (chain
-`observation -> evidence -> diagnosis -> recommendation`, as in `planning/ux/EXPERIENCE.md`). The window is half-open `[start, end)`; a group with no
+`observation -> evidence -> diagnosis -> recommendation`, as in `planning/ux/EXPERIENCE.md`). The window is half-open `[start, end)`; past the only
+recorded window the answer stays restricted with `next_open_window: null` and says no later window is on record (contracts.md Q1, D55); a group with no
 constrained job gets `schedule_no_constraint` and `next_open_window: null`; a failed clock read is a 503 and no window is invented.
 
 **12.3 No invented entities (story 4.1).** `why was ghost_user_99 denied deepseek-coder` -> `200 ENTITY_NOT_FOUND`,

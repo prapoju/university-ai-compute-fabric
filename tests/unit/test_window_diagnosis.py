@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import re
+
 import pytest
 
-from src.domain.diagnosis import CannotConfirm
 from src.domain.intent import Routed, classify
 from src.domain.window_diagnosis import (
     NextOpenWindow,
@@ -99,6 +100,7 @@ def test_every_claim_cites_group_job_window_and_clock_and_every_citation_resolve
         ("2026-10-16T21:59:59.999Z", True),  # one millisecond before the window opens
         ("2026-10-16T22:00:00.000Z", False),  # start is inclusive: open
         ("2026-10-17T05:59:59.999Z", False),  # still open
+        ("2026-10-17T06:00:00.000Z", True),  # end is exclusive: closed again
     ],
 )
 def test_the_window_is_half_open_start_inclusive(providers, instant: str, restricted: bool) -> None:
@@ -115,17 +117,30 @@ def test_when_the_window_is_open_now_no_restriction_is_stated_and_none_is_render
     assert "open now" in " ".join(claim.text for claim in result.claims)
 
 
-def test_at_the_exclusive_end_there_is_no_later_window_so_it_cannot_confirm(providers) -> None:
+def test_at_the_exclusive_end_it_is_restricted_and_says_no_later_window_is_on_record(
+    providers,
+) -> None:
+    # contracts.md Q1 (D55): no window starts after now, so next_open_window is null and the
+    # answer states that explicitly (the ATDD stub ..._boundary_is_half_open asserts the null)
     result = diagnose(providers, "2026-10-17T06:00:00.000Z")  # end is exclusive
-    assert isinstance(result, CannotConfirm)
-    assert result.checked[0] == "group#group-4"
+    assert result.diagnosis_class == "schedule_window_restricted"
+    assert result.next_open_window is None
+    assert result.recommendation == {"next_open_window": None}
+    assert "No later window#night is on record" in result.claims[-1].text
+    # nothing is invented: every instant a claim states is the window's or the clock read's
+    stated = re.findall(r"\d{4}-\d\d-\d\dT[\d:.]+Z", " ".join(c.text for c in result.claims))
+    assert set(stated) == {"2026-10-16T22:00:00.000Z", "2026-10-17T06:00:00.000Z"}
 
 
-def test_a_missing_window_record_is_cannot_confirm_never_a_fabricated_window(providers) -> None:
+def test_a_missing_window_record_is_no_constraint_and_never_a_fabricated_window(providers) -> None:
+    # contracts.md Q1 (D55): an empty window set is schedule_no_constraint, no window computed
     group, jobs, _ = inputs(providers)
     result = diagnose_schedule_window(group, jobs, [], clock())
-    assert isinstance(result, CannotConfirm)
-    assert "window#night" in " ".join(result.checked)
+    assert result.diagnosis_class == "schedule_no_constraint"
+    assert result.next_open_window is None
+    assert not [e for e in result.evidence if e.source_type == "window"]
+    assert "no window#night is on record" in result.claims[0].text
+    assert all(claim.citations for claim in result.claims)
 
 
 def test_only_the_window_named_by_the_constraint_is_used(providers) -> None:

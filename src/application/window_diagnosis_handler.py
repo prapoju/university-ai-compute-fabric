@@ -2,8 +2,9 @@
 
 Order of a turn: extract the group -> resolve it exactly (AD-7) -> read the group's jobs and the
 policy windows -> diagnose in the pure domain (AD-2) -> guarded prose, once (AD-8) -> mint claim
-ids. An unknown group or an unconfirmable window is a canonical outcome that never reaches the
-LLM; any provider failure aborts the turn (AD-12) - a window is never fabricated.
+ids. An unknown group is a canonical outcome that never reaches the LLM; a missing or past
+window is stated as such (contracts.md Q1, D55); any provider failure aborts the turn (AD-12) -
+a window is never fabricated.
 """
 
 from __future__ import annotations
@@ -17,7 +18,6 @@ from src.application.turn_support import (
     write_prose,
 )
 from src.domain import canonical_strings as cs
-from src.domain.diagnosis import CannotConfirm
 from src.domain.result import Ok, Result, is_failure
 from src.domain.window_diagnosis import diagnose_schedule_window, extract_group_reference
 from src.dto import AnswerDTO, SelectorDTO
@@ -64,20 +64,6 @@ class WindowDiagnosisHandler:
             return windows
 
         outcome = diagnose_schedule_window(group, jobs.value, windows.value, turn.now)
-        entities = (group.id,)
-        if isinstance(outcome, CannotConfirm):
-            message = cs.cannot_confirm(outcome.checked)
-            return Ok(
-                canonical_turn(
-                    turn,
-                    INTENT,
-                    "CANNOT_CONFIRM",
-                    message,
-                    kept_evidence=outcome.evidence,
-                    entities=entities,
-                )
-            )
-
         prose = write_prose(self._prose, outcome.evidence, outcome.fact_tokens)
         if is_failure(prose):
             return prose
@@ -99,7 +85,7 @@ class WindowDiagnosisHandler:
             recommendation=outcome.recommendation,
             prose=prose.value,
         )
-        return Ok(TurnOutput(answer, resolved_entities=entities))
+        return Ok(TurnOutput(answer, resolved_entities=(group.id,)))
 
 
 __all__ = ["INTENT", "WindowDiagnosisHandler"]

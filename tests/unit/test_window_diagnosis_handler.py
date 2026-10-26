@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 
 import pytest
@@ -184,14 +185,29 @@ def test_a_query_naming_no_group_is_a_clarification(rig: Rig) -> None:
     assert rig.prose.call_count == 0
 
 
-def test_past_the_only_window_it_cannot_confirm_and_never_invents_one(rig: Rig) -> None:
+def test_past_the_only_window_it_is_restricted_and_never_invents_a_later_one(rig: Rig) -> None:
     output = out(run(rig, instant="2026-10-17T06:00:00.000Z"))
-    assert output.canonical.code == "CANNOT_CONFIRM"
-    assert output.canonical.message == cs.cannot_confirm(
-        ("group#group-4", "job#job-8823", "window#night")
-    )
-    assert output.answer.claims == [] and output.answer.answer_chain == ["observation", "evidence"]
-    assert rig.prose.call_count == 0
+    answer = output.answer
+    assert output.canonical is None
+    assert answer.diagnosis_class == "schedule_window_restricted"
+    assert answer.recommendation == {"next_open_window": None}  # contracts.md Q1 (D55)
+    assert answer.answer_chain == ["observation", "evidence", "diagnosis"]  # nothing to recommend
+    assert "No later window#night is on record" in answer.claims[-1].text
+    assert rig.prose.call_count == 1  # a diagnosis: guarded prose, once
+
+
+def test_a_constraint_whose_window_is_not_on_record_is_no_constraint(
+    fixtures_copy, providers_from
+) -> None:
+    windows = fixtures_copy / "estate" / "windows.json"
+    other = json.loads(windows.read_text(encoding="utf-8"))
+    other[0]["window_id"] = "window#weekend"  # window#night, the one job-8823 names, is gone
+    windows.write_text(json.dumps(other), encoding="utf-8")
+    answer = out(run(make_rig(providers_from(fixtures_copy)))).answer
+    assert answer.diagnosis_class == "schedule_no_constraint"
+    assert answer.recommendation == {"next_open_window": None}
+    assert not [e for e in answer.evidence if e.source_type == "window"]
+    assert "no window#night is on record" in answer.claims[0].text
 
 
 # -- failures are safe and reads are read-only -----------------------------------------------

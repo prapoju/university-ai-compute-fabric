@@ -310,7 +310,7 @@ Open assumptions to confirm: see the end of this file.
 ## AD-24 - Story 3.1: window diagnosis decisions and two AI mistakes
 - **Decisions:** the Night window is `22:00-06:00` UTC as in the annex and the fixture (the epic text says `20:00-08:00`); a job's
   `scheduling_constraint` `night` names `window#night`; the window is half-open `[start, end)`, so exactly `22:00:00.000Z` is open and `06:00:00.000Z`
-  is closed; past the only recorded window the answer is `CANNOT_CONFIRM`, never an invented later window; the prose helper, claim-id minting
+  is closed; past the only recorded window the answer is `CANNOT_CONFIRM`, never an invented later window (superseded by AD-29); the prose helper, claim-id minting
   and canonical turn shapes were extracted from the story-1.3 handler (`turn_support.py`) instead of copied.
 - **Correction 1 (regression caught by the suite):** adding the schedule intent rule broke two story-1.2 tests - the registry test that expected
   only the access-denial rule, and the "register a rule only" extension test, which used the same intent code and a pattern that now matched twice
@@ -370,6 +370,22 @@ Open assumptions to confirm: see the end of this file.
   with the clean answer, which is stricter (the payload cannot move the window either). AC3 of story 4.1 and AC1 of story 3.1 were reworded.
 - **Proof:** new domain, handler, API and annex-endpoint assertions; with the old handler 5 of them fail. The stored turn round-trips the recommendation
   (`GET /sessions/{sid}` returns exactly the posted answer).
+
+## AD-29 - Audit fix: the window edge cases follow the contract instead of `CANNOT_CONFIRM`  *(contract deviation, AI decision reversed)*
+- **Phase:** post-delivery audit of Impl-1 (audit question 4), 2026-10-26.
+- **What was wrong:** the first version of the audit said that the answer at the exclusive end of the window was "not specified". It was: `contracts.md`
+  `diagnose_schedule_window` Q1 (D55) says "if no window satisfies `start > now`, `next_open_window == null` and an explicit no-future-window state is
+  rendered", and "if `windows` is empty, the class is `schedule_no_constraint`". The ATDD stub `test_diagnose_schedule_window_invariant_boundary_is_half_open`
+  asserts the null, and `planning/reviews/review-detailed-design.md` lists both cases. Story 3.1 (D5, an AI decision recorded in AD-24) answered
+  `CANNOT_CONFIRM` in both instead, which says "insufficient evidence" when the evidence is complete: the job is constrained and its only window is over.
+- **Fix (`src/domain/window_diagnosis.py`):** at or after the end of the only window the class stays `schedule_window_restricted`, `next_open_window` is
+  null and the last claim says "No later window#night is on record, so no next open window can be given" (every stated instant is a record's); a
+  constraint whose window is not on record is `schedule_no_constraint` with no window evidence and a claim that names the missing window. The
+  `CannotConfirm` branch of `src/application/window_diagnosis_handler.py` became unreachable and was removed.
+- **Proof:** 6 tests (domain, handler with a fixture whose only window is not `window#night`, API with `M12_CLOCK_START` at the window end) fail on
+  the previous code and pass now.
+- **To confirm with the team:** `schedule_no_constraint` for "the named window is not on record" is the contract's literal choice; if the team prefers a
+  typed no-window canonical (the other option in the detailed-design review), the contract changes first.
 
 ---
 
