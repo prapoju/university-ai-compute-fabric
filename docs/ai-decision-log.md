@@ -169,7 +169,7 @@ Open assumptions to confirm: see the end of this file.
      enforced on the server and the answer chain is the `answer_chain` field. (The agent proposed this before building; Juan asked to continue.)
   2. contracts.md Q3 wants a `toolcall.*` audit row per call, but the audit writer is story 1.5 (outside the Impl-1 scope): no audit rows are
      written, and the walkthrough must say NFR-8 "every tool call audited" is unmet until 1.5.
-  3. The contract says a canonical body has an `error_code` field; `dto.py` and openapi use `code`. The DTO wins.
+  3. The contract says a canonical body has an `error_code` field; `dto.py` and openapi use `code`. The DTO wins (contracts.md text aligned in AD-31).
   4. `SubmitQueryRequest.query_text` is a `QueryText`, which would reject empty/over-long input as a generic error, yet the contract requires
      `VALIDATION_EMPTY_QUERY` / `VALIDATION_QUERY_TOO_LONG` with their own messages: a local request model plus domain validation.
   5. The epic mentions a SQL `turns` table; the schema has none. Turns are the session's `answers` rows.
@@ -395,6 +395,14 @@ Open assumptions to confirm: see the end of this file.
 - **Fix:** the AC now names `22:00–06:00` UTC, its sources and A-10, in `planning/epics.md` and in its mirror `_bmad-output/planning-artifacts/epics.md`
   (kept byte-identical, AD-02). The PRD and UX examples ("today 20:00–08:00") are left as they are: they are illustrations under A-10, and the PRD-phase
   decision on explicit date + timezone already replaced that rendering.
+
+## AD-31 - Audit fix: contracts.md named the `ErrorBody` field `error_code`  *(planning text)*
+- **Phase:** post-delivery audit of Impl-1 (audit question 4), 2026-10-26.
+- **What was wrong:** the canonical-wire-shape rule of `contracts.md` §2 (D58) said the canonical code travels in `error_code`; the contract schemas
+  (`planning/detailed-design/schemas/dto.py`, `openapi.yaml`, `required: [code, status, message, retryable]`) and the service use `code`. Story 1.2
+  followed the schema (AD-14 #3) but left the prose wrong, so a client written from the prose would read a field that never exists.
+- **Fix:** one word in `planning/detailed-design/contracts.md`; D58 itself (`ai-log/decision-log-solu2.md`) never named the field, so nothing else changes.
+  The other `error_code` occurrences in the contract are the node's error code (`ERR_THERMAL_88`) and are correct.
 
 ---
 

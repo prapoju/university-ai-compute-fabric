@@ -359,7 +359,7 @@ Shared preamble for every inbound read route unless overridden:
 - **Q2:** `operational_state_before == operational_state_after` (AD-1).
 - **Q3:** one `ToolCall` audit row per underlying core/port call (AD-10).
 - **Q-fail:** on P1/P2 violation the operation returns the typed error and performs no state change and no audit row for the rejected call; `operational_state_before == operational_state_after` and, for session-scoped routes, `session.context` is unchanged. Every route in this section inherits this Q-fail clause.
-- **Canonical wire shape (D58):** a 200 canonical response is returned as an `ErrorBody` object whose `error_code` is the canonical code and whose `message` is the literal from the canonical-strings table. A bare unquoted string is never the response body.
+- **Canonical wire shape (D58):** a 200 canonical response is returned as an `ErrorBody` object whose `code` is the canonical code and whose `message` is the literal from the canonical-strings table. A bare unquoted string is never the response body.
 - **L1:** the route exposes no state-mutating operation outside `/api/v1/destructive/*` and `/executor/v1/*` (route-local; AD-13, S-6).
 - **Time:** Clock port only.
 - **Latency budget:** as allocated per route below from NFR-5.
