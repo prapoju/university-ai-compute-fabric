@@ -2,7 +2,7 @@
 
 Working code for the Impl-1 delivery of the **AI Operations Copilot** (Python 3.11, FastAPI, SQLite, Ports & Adapters).
 Run it with `docker compose up --build` or `pip install -e . && pytest`. Decisions, AI corrections and process notes are in
-[`docs/ai-decision-log.md`](docs/ai-decision-log.md) (26 entries); sprint progression is in
+[`docs/ai-decision-log.md`](docs/ai-decision-log.md) (31 entries; AD-27 to AD-31 are the post-delivery audit fixes); sprint progression is in
 [`implementation-artifacts/sprint-status.yaml`](implementation-artifacts/sprint-status.yaml).
 
 ## 1. Scope delivered
@@ -77,8 +77,10 @@ session. An unknown user is `ENTITY_NOT_FOUND`; a student with no recorded denia
 
 **12.2 Night schedule (story 3.1).** `why can't group 4 run their fine-tuning job right now` at `2026-10-16T15:00:00.000Z` -> class
 `schedule_window_restricted`: job `job#job-8823` is constrained to `window#night`; the next open window is `2026-10-16T22:00:00.000Z` to
-`2026-10-17T06:00:00.000Z` (UTC). The window is half-open `[start, end)`; a group with no constrained job gets `schedule_no_constraint`; a failed clock read
-is a 503 and no window is invented.
+`2026-10-17T06:00:00.000Z` (UTC), stated in the claims and returned as `recommendation.next_open_window` (chain
+`observation -> evidence -> diagnosis -> recommendation`, as in `planning/ux/EXPERIENCE.md`). The window is half-open `[start, end)`; past the only
+recorded window the answer stays restricted with `next_open_window: null` and says no later window is on record (contracts.md Q1, D55); a group with no
+constrained job gets `schedule_no_constraint` and `next_open_window: null`; a failed clock read is a 503 and no window is invented.
 
 **12.3 No invented entities (story 4.1).** `why was ghost_user_99 denied deepseek-coder` -> `200 ENTITY_NOT_FOUND`,
 `Entity Not Found in State: user#ghost_user_99.`, with no claims, evidence or diagnosis. The same holds for a non-existent model, group or `policy#...`.
@@ -98,7 +100,7 @@ Q: why was ghost_user_99 denied deepseek-coder
 ## 6. Test evidence
 
 ```
-$ pytest -q                 956 passed, 0 skipped   (unit 784, integration 74, api 95)
+$ pytest -q                 979 passed, 0 skipped   (unit 806, integration 74, api 96)
 $ ruff check src tests      All checks passed!
 ```
 
@@ -114,7 +116,7 @@ $ ruff check src tests      All checks passed!
 ## 7. Process and AI use
 
 The BMad cycle was run per story (sprint planning, create-story, dev-story, code-review, sprint-status updates) with a commit per phase
-(`git log --oneline`). `docs/ai-decision-log.md` records 26 entries, including these AI mistakes caught and corrected:
+(`git log --oneline`). `docs/ai-decision-log.md` records 31 entries, including these AI mistakes caught and corrected:
 
 * a database migration that broke file databases (found only by running Docker) - AD-12;
 * route audit blind to included routers - AD-15;
@@ -123,11 +125,16 @@ The BMad cycle was run per story (sprint planning, create-story, dev-story, code
 * a stale follow-up entity, an unbacked clause hiding a confirmed denial, substring clause matching, a prose guard that a display name could
   disable (story 1.3 review and story 4.1) - AD-22, AD-25;
 * the architecture ban silently disabled by a ruff glob - AD-04;
-* tool-corruption of files by scripted edits, four times (AD-05, AD-16, AD-22, AD-25).
+* tool-corruption of files by scripted edits, four times (AD-05, AD-16, AD-22, AD-25);
+* found by the post-delivery audit: an accepted review patch that refused diagnoses reporting a past cancellation (AD-27), the S2 answer missing the
+  contract's `recommendation.next_open_window` (AD-28), `CANNOT_CONFIRM` where contracts.md D55 asks for an explicit no-window state (AD-29), and two
+  planning texts contradicting the fixture and the schema (AD-30, AD-31).
 
 ## 8. Known limits
 
 * The LLM is a deterministic simulation (no Ollama); the prose guard is lexical, so inflections and homoglyphs of a fact can pass (deferred, AD-22).
+* Destructive wording is also detected lexically: any `-ing` form of a destructive verb counts, so `why can't group 4 run their job, is the
+  scheduler killing it?` is clarified as mixing in a destructive action (safe direction, AD-27).
 * The React console, the tool-call audit log and the state-inspection viewer (stories 1.4, 1.5) are Impl-2; no audit rows are written yet.
 * The simulated clock is frozen at `2026-10-16T15:00:00.000Z` unless a scenario advances it.
 * Stories 3.1 and 4.1 were not code-reviewed with subagents; the ATDD stub tests of the course template stay red by design.

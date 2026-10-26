@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import re
+
 import pytest
 
-from src.domain.diagnosis import CannotConfirm
 from src.domain.intent import Routed, classify
 from src.domain.window_diagnosis import (
+    NextOpenWindow,
     ScheduleDiagnosis,
     diagnose_schedule_window,
     extract_group_reference,
@@ -44,6 +46,35 @@ def test_s2_is_restricted_with_the_exact_next_window(providers) -> None:
     assert "UTC" in text and "window#night" in text and "job#job-8823" in text
 
 
+def test_s2_recommends_the_next_open_window_as_the_contract_shapes_it(providers) -> None:
+    # contracts.md diagnose_schedule_window Q1: recommendation.next_open_window = {start, end, tz}
+    result = diagnose(providers)
+    window = NextOpenWindow("2026-10-16T22:00:00.000Z", "2026-10-17T06:00:00.000Z", "UTC")
+    assert result.next_open_window == window
+    assert result.recommendation == {
+        "next_open_window": {
+            "start": "2026-10-16T22:00:00.000Z", "end": "2026-10-17T06:00:00.000Z",
+            "timezone": "UTC",
+        }
+    }  # fmt: skip
+
+
+@pytest.mark.parametrize(
+    ("instant", "group_id"),
+    [
+        ("2026-10-16T22:00:00.000Z", "group#group-4"),  # open now: no window starts after now
+        ("2026-10-16T15:00:00.000Z", "group#group-7"),  # no constrained job: no window at all
+    ],
+)
+def test_no_next_window_is_recommended_when_none_is_due(
+    providers, instant: str, group_id: str
+) -> None:
+    result = diagnose(providers, instant, group_id=group_id)
+    assert result.diagnosis_class == "schedule_no_constraint"
+    assert result.next_open_window is None
+    assert result.recommendation == {"next_open_window": None}
+
+
 def test_evidence_is_group_job_window_then_the_clock_read(providers) -> None:
     result = diagnose(providers)
     assert [e.citation_id for e in result.evidence] == [
@@ -69,6 +100,7 @@ def test_every_claim_cites_group_job_window_and_clock_and_every_citation_resolve
         ("2026-10-16T21:59:59.999Z", True),  # one millisecond before the window opens
         ("2026-10-16T22:00:00.000Z", False),  # start is inclusive: open
         ("2026-10-17T05:59:59.999Z", False),  # still open
+        ("2026-10-17T06:00:00.000Z", True),  # end is exclusive: closed again
     ],
 )
 def test_the_window_is_half_open_start_inclusive(providers, instant: str, restricted: bool) -> None:
@@ -85,17 +117,30 @@ def test_when_the_window_is_open_now_no_restriction_is_stated_and_none_is_render
     assert "open now" in " ".join(claim.text for claim in result.claims)
 
 
-def test_at_the_exclusive_end_there_is_no_later_window_so_it_cannot_confirm(providers) -> None:
+def test_at_the_exclusive_end_it_is_restricted_and_says_no_later_window_is_on_record(
+    providers,
+) -> None:
+    # contracts.md Q1 (D55): no window starts after now, so next_open_window is null and the
+    # answer states that explicitly (the ATDD stub ..._boundary_is_half_open asserts the null)
     result = diagnose(providers, "2026-10-17T06:00:00.000Z")  # end is exclusive
-    assert isinstance(result, CannotConfirm)
-    assert result.checked[0] == "group#group-4"
+    assert result.diagnosis_class == "schedule_window_restricted"
+    assert result.next_open_window is None
+    assert result.recommendation == {"next_open_window": None}
+    assert "No later window#night is on record" in result.claims[-1].text
+    # nothing is invented: every instant a claim states is the window's or the clock read's
+    stated = re.findall(r"\d{4}-\d\d-\d\dT[\d:.]+Z", " ".join(c.text for c in result.claims))
+    assert set(stated) == {"2026-10-16T22:00:00.000Z", "2026-10-17T06:00:00.000Z"}
 
 
-def test_a_missing_window_record_is_cannot_confirm_never_a_fabricated_window(providers) -> None:
+def test_a_missing_window_record_is_no_constraint_and_never_a_fabricated_window(providers) -> None:
+    # contracts.md Q1 (D55): an empty window set is schedule_no_constraint, no window computed
     group, jobs, _ = inputs(providers)
     result = diagnose_schedule_window(group, jobs, [], clock())
-    assert isinstance(result, CannotConfirm)
-    assert "window#night" in " ".join(result.checked)
+    assert result.diagnosis_class == "schedule_no_constraint"
+    assert result.next_open_window is None
+    assert not [e for e in result.evidence if e.source_type == "window"]
+    assert "no window#night is on record" in result.claims[0].text
+    assert all(claim.citations for claim in result.claims)
 
 
 def test_only_the_window_named_by_the_constraint_is_used(providers) -> None:

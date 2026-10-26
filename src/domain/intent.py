@@ -89,10 +89,30 @@ _DESTRUCTIVE = _rx(
 
 # A destructive request can also be phrased as a causative or passive ("have his jobs deleted",
 # "get them cancelled", "should be drained"). Without a causative/modal marker a bare past
-# participle is a report of what happened ("was cordoned") and is not a request.
+# participle is a report of what happened ("was cordoned") and is not a request - and so is a
+# participle inside an embedded question ("tell me why job 8823 was cancelled", "let me know if
+# it was drained") or a perfect passive ("why have the jobs been cancelled"): the text between
+# the marker and the participle never crosses into one. "got" is past ("it got cancelled"), and
+# "get" with no object is a passive ("did it get cancelled"); neither is a request.
+_PARTICIPLE = (
+    r"(?:deleted|cancel(?:l)?ed|drained|cordoned|removed|killed|purged|wiped|terminated)"
+)
+_REPORTED = (
+    r"\b(?:why|how|whether|been)\b"
+    # "which"/"who"/"what" are also relative pronouns ("the jobs which are pending"), so like
+    # "if"/"when"/"where" they only open a question after a verb that asks or tells
+    r"|\b(?:know|tell|ask|check|see|confirm|show|explain|wonder)\s+(?:(?:me|us|him|her|them)\s+)?"
+    r"(?:if|when|where|what|which|who|whom|whose)\b"
+)
+_UNTIL_PARTICIPLE = rf"(?:(?!{_REPORTED}).)*?"
 _DESTRUCTIVE_REQUEST = _rx(
-    r"\b(?:hav(?:e|ing)|get(?:s|ting)?|got|mak(?:e|ing)|let|please|should|must|to be)\b"
-    r".*\b(?:deleted|cancel(?:l)?ed|drained|cordoned|removed|killed|purged|wiped|terminated)\b"
+    # causative or imperative: "have his jobs deleted", "please make sure they are removed"
+    rf"\b(?:hav(?:e|ing)|mak(?:e|ing)|let|please)\b{_UNTIL_PARTICIPLE}\b{_PARTICIPLE}\b"
+    # "get" takes its object first: "get them cancelled" asks, "did it get cancelled" reports
+    rf"|\bget(?:s|ting)?\b(?!\s*{_PARTICIPLE}\b){_UNTIL_PARTICIPLE}\b{_PARTICIPLE}\b"
+    # modal or infinitive passive: "should be drained", "must all be purged", "to be removed"
+    rf"|\b(?:should|must)\s+(?:\S+\s+){{0,3}}be\s+{_PARTICIPLE}\b"
+    rf"|\bto be\s+(?:\S+\s+)?{_PARTICIPLE}\b"
 )
 
 _FOLLOW_UP = _rx(r"^(?:(?:and|also|then)\s+)?(?:what|how) about\b")

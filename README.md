@@ -88,9 +88,12 @@ which is rejected if it repeats any fact (one retry, then `503 LLM_PROSE_REJECTE
 `why can't group 4 run their fine-tuning job right now` resolves `group#group-4`, reads its pending job
 (`job#job-8823`, constrained to `night`), the policy window `window#night` and the clock read, and answers
 with class `schedule_window_restricted`: at `2026-10-16T15:00:00.000Z` the window is closed, and the next open
-window is `2026-10-16T22:00:00.000Z` to `2026-10-17T06:00:00.000Z` (UTC), each fact cited. The window is half-open
-`[start, end)`; a group with no constrained job gets `schedule_no_constraint` and no window, an unknown group is
-`ENTITY_NOT_FOUND`, and a failed clock read is a `503 CLOCK_UNAVAILABLE` (a window is never invented).
+window is `2026-10-16T22:00:00.000Z` to `2026-10-17T06:00:00.000Z` (UTC), each fact cited. The same window is
+returned as `recommendation.next_open_window` (`{start, end, timezone}`, contracts.md Q1) and the chain reaches
+`recommendation`. The window is half-open `[start, end)`; past the only recorded window the job is still restricted,
+`next_open_window` is `null` and the answer says no later window is on record. A group with no constrained job gets
+`schedule_no_constraint`, no window and `next_open_window: null`, an unknown group is `ENTITY_NOT_FOUND`, and a
+failed clock read is a `503 CLOCK_UNAVAILABLE` (a window is never invented).
 
 ### No invented entities (story 4.1)
 

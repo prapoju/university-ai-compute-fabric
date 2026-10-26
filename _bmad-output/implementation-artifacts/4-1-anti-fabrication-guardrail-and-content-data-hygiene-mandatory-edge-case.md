@@ -21,7 +21,7 @@ Source: `planning/epics.md` Story 4.1 and Annex 12.3. Requirements: FR-03, FR-15
 
 1. **Imaginary entity.** A reference to a user, model, group or `policy#...` that is not in state returns the literal `Entity Not Found in State: {ref_list}.` naming every unresolved reference (user, model, then policy), with no claims, evidence, diagnosis class, recommendation or proposal (0 fabricated detail). The diagnosis never proceeds.
 2. **Corpus.** On at least 10 non-existent references (prefixes, typos, truncations, wrong types, groups, policies) 100% return `ENTITY_NOT_FOUND`; the fabricated-entity rate is 0.
-3. **Content is data.** An instruction-like payload embedded in retrieved records (user display name, clause text, event reason, group name) yields the same diagnosis class, answer chain, evidence ids and claim count as the clean fixtures, no recommendation or proposal, and leaves the estate unchanged. The same payload in the query text does not change the diagnosis; a destructive instruction is refused by the router before any handler runs.
+3. **Content is data.** An instruction-like payload embedded in retrieved records (user display name, clause text, event reason, group name) yields the same diagnosis class, answer chain, evidence ids, claim count and recommendation as the clean fixtures (none for S1, the recorded next window for S2: the payload adds none), no proposal, and leaves the estate unchanged. The same payload in the query text does not change the diagnosis; a destructive instruction is refused by the router before any handler runs.
 4. **Quality.** At least 2 tests per criterion; `pytest` green and `ruff` clean.
 
 ## Tasks / Subtasks
@@ -66,3 +66,4 @@ Modified: `src/domain/references.py`, `src/domain/diagnosis.py`, `src/applicatio
 ### Change Log
 
 - 2026-10-25: story 4.1 implemented; status -> review.
+- 2026-10-26: AC3 reworded with the audit fix AD-28: S2 now carries the contract's next-window recommendation, so "no recommendation" means "none added by the payload" (the tests compare with the clean answer).

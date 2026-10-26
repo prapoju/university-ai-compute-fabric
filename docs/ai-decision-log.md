@@ -169,7 +169,7 @@ Open assumptions to confirm: see the end of this file.
      enforced on the server and the answer chain is the `answer_chain` field. (The agent proposed this before building; Juan asked to continue.)
   2. contracts.md Q3 wants a `toolcall.*` audit row per call, but the audit writer is story 1.5 (outside the Impl-1 scope): no audit rows are
      written, and the walkthrough must say NFR-8 "every tool call audited" is unmet until 1.5.
-  3. The contract says a canonical body has an `error_code` field; `dto.py` and openapi use `code`. The DTO wins.
+  3. The contract says a canonical body has an `error_code` field; `dto.py` and openapi use `code`. The DTO wins (contracts.md text aligned in AD-31).
   4. `SubmitQueryRequest.query_text` is a `QueryText`, which would reject empty/over-long input as a generic error, yet the contract requires
      `VALIDATION_EMPTY_QUERY` / `VALIDATION_QUERY_TOO_LONG` with their own messages: a local request model plus domain validation.
   5. The epic mentions a SQL `turns` table; the schema has none. Turns are the session's `answers` rows.
@@ -310,7 +310,7 @@ Open assumptions to confirm: see the end of this file.
 ## AD-24 - Story 3.1: window diagnosis decisions and two AI mistakes
 - **Decisions:** the Night window is `22:00-06:00` UTC as in the annex and the fixture (the epic text says `20:00-08:00`); a job's
   `scheduling_constraint` `night` names `window#night`; the window is half-open `[start, end)`, so exactly `22:00:00.000Z` is open and `06:00:00.000Z`
-  is closed; past the only recorded window the answer is `CANNOT_CONFIRM`, never an invented later window; the prose helper, claim-id minting
+  is closed; past the only recorded window the answer is `CANNOT_CONFIRM`, never an invented later window (superseded by AD-29); the prose helper, claim-id minting
   and canonical turn shapes were extracted from the story-1.3 handler (`turn_support.py`) instead of copied.
 - **Correction 1 (regression caught by the suite):** adding the schedule intent rule broke two story-1.2 tests - the registry test that expected
   only the access-denial rule, and the "register a rule only" extension test, which used the same intent code and a pattern that now matched twice
@@ -336,13 +336,83 @@ Open assumptions to confirm: see the end of this file.
 
 ---
 
+## AD-27 - Audit fix: the causative rule refused diagnoses that only report a cancellation  *(correction of an accepted AI patch)*
+- **Phase:** post-delivery audit of Impl-1 (audit question 5, "a generated change accepted without fully understanding it"), 2026-10-26.
+- **What was wrong:** the story-1.2 review patch `_DESTRUCTIVE_REQUEST` (AD-18, accepted with "apply all patches") let the marker and the participle
+  sit anywhere in the query (`.*`) and counted `got` and a bare `get` as causative markers. Ten diagnoses that only *report* a past action were refused
+  as "mixed with a destructive action", e.g. `why can't group 4 run their fine-tuning job, it got cancelled yesterday` and
+  `please tell me why alex was denied deepseek-coder after his job was cancelled`. Nothing was executed (the safe direction), but the answer was lost.
+- **Fix (`src/domain/intent.py`):** the text between a marker and its participle may not cross into an embedded question (`why`, `how`, `whether`, or
+  `if`/`when`/`where`/`what`/`which`/`who` after a verb that asks or tells: `let me know if`, `tell me which`) or a perfect passive (`been`); `got` is no
+  longer a marker; `get` needs an object first (`get them cancelled` asks, `did it get cancelled` reports); modals need `be` next to the participle within
+  three words (`should his jobs be cancelled`), and `to be` must be followed by it (`i want to be sure job 8823 was cancelled` is not a request).
+- **Proof:** a 38-query corpus outside the repository: the old rule was wrong on 12 (all false refusals), the new one on 0. In `tests/unit/test_intent.py`
+  the 10 routed cases fail on the old rule (mutation check, as AD-17) and 7 new refusal cases guard against narrowing it too far. Worst case on a
+  1,000-character adversarial query: ~6 ms.
+- **The audit's first proposal was itself half wrong:** "drop `please` and `got`". Without `please`, `why was alex denied deepseek-coder? please ensure
+  his jobs are cancelled` would have been diagnosed and the request silently dropped (the AD-18 bug class); and treating every `which`/`who` as a question
+  would have hidden `make sure the jobs which are pending are cancelled`. Both are now tests.
+- **Still lexical (not changed):** `_DESTRUCTIVE` refuses every `-ing` form, so `why can't group 4 run their job, is the scheduler killing it?` is still
+  a clarification (safe direction); a real parser is out of scope while routing is rule-based (AD-11).
+
+## AD-28 - Audit fix: the S2 answer did not return the next open window the contract asks for  *(contract deviation)*
+- **Phase:** post-delivery audit of Impl-1 (audit question 4, "a missing or ambiguous requirement"), 2026-10-26.
+- **What was wrong:** `contracts.md` `diagnose_schedule_window` Q1 says that a restricted diagnosis returns
+  `recommendation.next_open_window = {start, end, timezone}`, the ATDD stub `test_diagnose_schedule_window_happy_computes_next_open_window` asserts that
+  shape, and `planning/ux/EXPERIENCE.md` (S2 journey) shows the chain `Observation -> Evidence -> Diagnosis -> Recommendation` with "recommendation = next
+  window". Story 3.1 was written from the epic and the annex only ("explanation and next open window"), so its AC1 fixed the chain at `diagnosis` and the
+  handler left `recommendation` null: the window was only in claim text, not machine-readable. The deviation was never logged.
+- **Fix:** `src/domain/window_diagnosis.py` computes `NextOpenWindow` in the pure domain (AD-2) and exposes the contract's
+  `recommendation` (`{"next_open_window": {...} | null}`); `src/application/window_diagnosis_handler.py` stores it and adds the `recommendation` stage only
+  when a window is actually recommended (open now and no constraint stop at `diagnosis`, with `next_open_window: null`). No DTO, schema or route change:
+  `AnswerDTO.recommendation` and the `answers.recommendation` column already existed.
+- **Knock-on (story 4.1):** the injection tests asserted `recommendation is None` for S2; AC3 means "the payload adds no recommendation", so they now compare
+  with the clean answer, which is stricter (the payload cannot move the window either). AC3 of story 4.1 and AC1 of story 3.1 were reworded.
+- **Proof:** new domain, handler, API and annex-endpoint assertions; with the old handler 5 of them fail. The stored turn round-trips the recommendation
+  (`GET /sessions/{sid}` returns exactly the posted answer).
+
+## AD-29 - Audit fix: the window edge cases follow the contract instead of `CANNOT_CONFIRM`  *(contract deviation, AI decision reversed)*
+- **Phase:** post-delivery audit of Impl-1 (audit question 4), 2026-10-26.
+- **What was wrong:** the first version of the audit said that the answer at the exclusive end of the window was "not specified". It was: `contracts.md`
+  `diagnose_schedule_window` Q1 (D55) says "if no window satisfies `start > now`, `next_open_window == null` and an explicit no-future-window state is
+  rendered", and "if `windows` is empty, the class is `schedule_no_constraint`". The ATDD stub `test_diagnose_schedule_window_invariant_boundary_is_half_open`
+  asserts the null, and `planning/reviews/review-detailed-design.md` lists both cases. Story 3.1 (D5, an AI decision recorded in AD-24) answered
+  `CANNOT_CONFIRM` in both instead, which says "insufficient evidence" when the evidence is complete: the job is constrained and its only window is over.
+- **Fix (`src/domain/window_diagnosis.py`):** at or after the end of the only window the class stays `schedule_window_restricted`, `next_open_window` is
+  null and the last claim says "No later window#night is on record, so no next open window can be given" (every stated instant is a record's); a
+  constraint whose window is not on record is `schedule_no_constraint` with no window evidence and a claim that names the missing window. The
+  `CannotConfirm` branch of `src/application/window_diagnosis_handler.py` became unreachable and was removed.
+- **Proof:** 6 tests (domain, handler with a fixture whose only window is not `window#night`, API with `M12_CLOCK_START` at the window end) fail on
+  the previous code and pass now.
+- **To confirm with the team:** `schedule_no_constraint` for "the named window is not on record" is the contract's literal choice; if the team prefers a
+  typed no-window canonical (the other option in the detailed-design review), the contract changes first.
+
+## AD-30 - Audit fix: the epic pinned Night hours that no fixture has  *(planning text)*
+- **Phase:** post-delivery audit of Impl-1 (audit questions 3 and 4), 2026-10-26.
+- **What was wrong:** the story-3.1 AC in `planning/epics.md` gave the S2 fixture as `night` `20:00–08:00`. The fixture
+  (`fixtures/estate/windows.json`) and Annex 12.2 use `22:00–06:00` UTC, and PRD A-10 says the hours are fixture content ("the PRD pins behavior, not
+  fixture values"). The code already followed the fixture (story 3.1 D1, assumption 4); only the AC text contradicted it.
+- **Fix:** the AC now names `22:00–06:00` UTC, its sources and A-10, in `planning/epics.md` and in its mirror `_bmad-output/planning-artifacts/epics.md`
+  (kept byte-identical, AD-02). The PRD and UX examples ("today 20:00–08:00") are left as they are: they are illustrations under A-10, and the PRD-phase
+  decision on explicit date + timezone already replaced that rendering.
+
+## AD-31 - Audit fix: contracts.md named the `ErrorBody` field `error_code`  *(planning text)*
+- **Phase:** post-delivery audit of Impl-1 (audit question 4), 2026-10-26.
+- **What was wrong:** the canonical-wire-shape rule of `contracts.md` §2 (D58) said the canonical code travels in `error_code`; the contract schemas
+  (`planning/detailed-design/schemas/dto.py`, `openapi.yaml`, `required: [code, status, message, retryable]`) and the service use `code`. Story 1.2
+  followed the schema (AD-14 #3) but left the prose wrong, so a client written from the prose would read a field that never exists.
+- **Fix:** one word in `planning/detailed-design/contracts.md`; D58 itself (`ai-log/decision-log-solu2.md`) never named the field, so nothing else changes.
+  The other `error_code` occurrences in the contract are the node's error code (`ERR_THERMAL_88`) and are correct.
+
+---
+
 ## Open assumptions to confirm at review
 1. `Selector.method == "filter"` (equality filter over record fields) is an adapter convention invented for `select()`; the contract only
    says "method + params". Decided with the user: deferred to story 2.2 (dry-run snapshot), where it is confirmed or replaced.
 2. Port `browse` returns `list[Record]` exactly as `contracts.md` §3 says, but the inbound `browse_state` response needs a `total`.
    Story 1.5 will need a contract-level decision (count method or a page type).
 3. The 2 × 48 GB server is stored as `gpu_memory_gb = 96` because `NodeRecord` forbids extra fields.
-4. Night Policy hours are 22:00–06:00 UTC (PRD leaves fixture values open, A-10).
+4. Night Policy hours are 22:00–06:00 UTC (PRD leaves fixture values open, A-10). The story-3.1 AC in `planning/epics.md` now says the same (AD-30).
 5. Unexpected exceptions degrade to `PROVIDER_UNAVAILABLE` (503) because the error catalog has no generic internal-error code (AD-12 safe failure).
 6. A query to a reset session is 410 and persists `status = expired` (contracts.md P2 read literally); a later GET shows `expired`. Confirmed by the user in the story 1.2 review (AD-18).
 7. Clarification turns are stored as `intent = "clarification"`, `canonical = "CLARIFICATION"`; the wire body is the 200 `ErrorBody` (D58).

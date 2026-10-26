@@ -356,7 +356,7 @@ So that I can plan the launch instead of retrying blindly.
 
 **Acceptance Criteria:**
 
-**Given** the S2 fixture (`group-4`, clock `15:00`, Night Policy window `night` `20:00–08:00`, half-open interval)
+**Given** the S2 fixture (`group-4`, clock `15:00`, Night Policy window `night` `22:00–06:00` UTC as in Annex 12.2 and `fixtures/estate/windows.json` — hours are fixture content, A-10 — half-open interval)
 **When** Nadia asks `why can't group 4 run their fine-tuning job right now`
 **Then** the diagnosis states the governing policy restriction and renders the exact next open window with explicit date + timezone, each fact cited (FR-05, AD-14)
 **And** 100% fixture match on S2 and ≥ 95% across 10 window variants (NFR-1); the window diagnosis renders within the p95 ≤ 3 s answer budget (NFR-5)
