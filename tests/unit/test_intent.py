@@ -170,6 +170,46 @@ def test_plain_reports_of_what_happened_are_still_not_requests() -> None:
 
 
 @pytest.mark.parametrize(
+    "query",
+    [
+        # "got" is past and "get" without an object is a passive: both report
+        "please tell me why alex was denied deepseek-coder, his job got cancelled",
+        "why can't group 4 run their fine-tuning job, it got cancelled yesterday",
+        "why can't group 4 run their fine-tuning job, did it get cancelled?",
+        "why can't group 4 run their job, it keeps getting cancelled",
+        # the participle sits inside an embedded question
+        "please tell me why alex was denied deepseek-coder after his job was cancelled",
+        "why was alex denied deepseek-coder? let me know if his jobs were cancelled",
+        "why can't group 4 run their fine-tuning job? please check whether job 8823 was cancelled",
+        "why was alex denied deepseek-coder? please tell me which of his jobs were cancelled",
+        # a perfect passive, and an infinitive that is not a passive
+        "why was alex denied deepseek-coder even though his old jobs have been cancelled",
+        "why was alex denied deepseek-coder? i want to be sure job 8823 was cancelled",
+    ],
+)
+def test_reports_of_a_past_action_are_routed_not_refused(query: str) -> None:
+    # audit Q5: the causative rule refused these diagnoses as "mixed with a destructive action"
+    assert isinstance(classify(query, prior_intents=[]), Routed)
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "why was alex denied deepseek-coder? please ensure his jobs are cancelled",
+        "why was alex denied deepseek-coder? please make sure, if possible, his jobs are removed",
+        "why was alex denied deepseek-coder and let his jobs be deleted",
+        "why can't group 4 run their fine-tuning job? its old jobs need to be removed",
+        "why was alex denied deepseek-coder; get it cancelled now",
+        "why was alex denied deepseek-coder? make sure the jobs which are pending are cancelled",
+        "why was alex denied deepseek-coder and have the jobs of students who were denied deleted",
+    ],
+)
+def test_narrowing_the_rule_still_refuses_every_destructive_request(query: str) -> None:
+    # relative pronouns, a parenthetical "if possible" and a later "get" must not hide a request
+    assert classify(query, prior_intents=[]) == Clarify(cs.R_COMPOUND_DESTRUCTIVE)
+
+
+@pytest.mark.parametrize(
     "apostrophe", ["'", "\u2019", "\u2018", "\u201b", "\u02bc", "\u00b4", "`", "\u2032"]
 )
 def test_every_common_apostrophe_lookalike_routes_the_same(apostrophe: str) -> None:

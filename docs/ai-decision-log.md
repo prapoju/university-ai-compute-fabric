@@ -336,6 +336,27 @@ Open assumptions to confirm: see the end of this file.
 
 ---
 
+## AD-27 - Audit fix: the causative rule refused diagnoses that only report a cancellation  *(correction of an accepted AI patch)*
+- **Phase:** post-delivery audit of Impl-1 (audit question 5, "a generated change accepted without fully understanding it"), 2026-10-26.
+- **What was wrong:** the story-1.2 review patch `_DESTRUCTIVE_REQUEST` (AD-18, accepted with "apply all patches") let the marker and the participle
+  sit anywhere in the query (`.*`) and counted `got` and a bare `get` as causative markers. Ten diagnoses that only *report* a past action were refused
+  as "mixed with a destructive action", e.g. `why can't group 4 run their fine-tuning job, it got cancelled yesterday` and
+  `please tell me why alex was denied deepseek-coder after his job was cancelled`. Nothing was executed (the safe direction), but the answer was lost.
+- **Fix (`src/domain/intent.py`):** the text between a marker and its participle may not cross into an embedded question (`why`, `how`, `whether`, or
+  `if`/`when`/`where`/`what`/`which`/`who` after a verb that asks or tells: `let me know if`, `tell me which`) or a perfect passive (`been`); `got` is no
+  longer a marker; `get` needs an object first (`get them cancelled` asks, `did it get cancelled` reports); modals need `be` next to the participle within
+  three words (`should his jobs be cancelled`), and `to be` must be followed by it (`i want to be sure job 8823 was cancelled` is not a request).
+- **Proof:** a 38-query corpus outside the repository: the old rule was wrong on 12 (all false refusals), the new one on 0. In `tests/unit/test_intent.py`
+  the 10 routed cases fail on the old rule (mutation check, as AD-17) and 7 new refusal cases guard against narrowing it too far. Worst case on a
+  1,000-character adversarial query: ~6 ms.
+- **The audit's first proposal was itself half wrong:** "drop `please` and `got`". Without `please`, `why was alex denied deepseek-coder? please ensure
+  his jobs are cancelled` would have been diagnosed and the request silently dropped (the AD-18 bug class); and treating every `which`/`who` as a question
+  would have hidden `make sure the jobs which are pending are cancelled`. Both are now tests.
+- **Still lexical (not changed):** `_DESTRUCTIVE` refuses every `-ing` form, so `why can't group 4 run their job, is the scheduler killing it?` is still
+  a clarification (safe direction); a real parser is out of scope while routing is rule-based (AD-11).
+
+---
+
 ## Open assumptions to confirm at review
 1. `Selector.method == "filter"` (equality filter over record fields) is an adapter convention invented for `select()`; the contract only
    says "method + params". Decided with the user: deferred to story 2.2 (dry-run snapshot), where it is confirmed or replaced.
