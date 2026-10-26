@@ -108,7 +108,14 @@ def test_s2_returns_a_cited_restricted_diagnosis(rig: Rig) -> None:
     output = out(run(rig))
     answer = output.answer
     assert answer.intent == "diagnose_schedule_window" and answer.canonical is None
-    assert answer.answer_chain == ["observation", "evidence", "diagnosis"]
+    # EXPERIENCE.md S2: the chain reaches the recommendation, which is the next open window
+    assert answer.answer_chain == ["observation", "evidence", "diagnosis", "recommendation"]
+    assert answer.recommendation == {
+        "next_open_window": {
+            "start": "2026-10-16T22:00:00.000Z", "end": "2026-10-17T06:00:00.000Z",
+            "timezone": "UTC",
+        }
+    }  # fmt: skip
     assert answer.diagnosis_class == "schedule_window_restricted"
     assert [e.citation_id for e in answer.evidence] == [
         "group#group-4", "job#job-8823", "window#night", "clock#clk-0000000000000001",
@@ -147,6 +154,9 @@ def test_two_rejected_attempts_fail_the_turn_and_unavailable_is_not_retried(rig:
 def test_when_the_window_is_open_no_restriction_is_stated(rig: Rig) -> None:
     answer = out(run(rig, instant="2026-10-16T22:00:00.000Z")).answer  # start is inclusive
     assert answer.diagnosis_class == "schedule_no_constraint"
+    # nothing to recommend: the window is open, so the chain stops at the diagnosis
+    assert answer.answer_chain == ["observation", "evidence", "diagnosis"]
+    assert answer.recommendation == {"next_open_window": None}
 
 
 def test_a_group_with_no_constrained_job_states_no_restriction_and_no_window(rig: Rig) -> None:

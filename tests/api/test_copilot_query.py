@@ -49,6 +49,9 @@ def test_the_other_annex_scenarios_work_on_the_same_endpoint() -> None:
     assert SubmitQueryResponse.model_validate(window.json()).answers[0].diagnosis_class == (
         "schedule_window_restricted"
     )
+    assert window.json()["answers"][0]["recommendation"]["next_open_window"] == {
+        "start": "2026-10-16T22:00:00.000Z", "end": "2026-10-17T06:00:00.000Z", "timezone": "UTC",
+    }  # fmt: skip
     body = ErrorBody.model_validate(ghost.json())
     assert (ghost.status_code, body.code) == (200, "ENTITY_NOT_FOUND")
 

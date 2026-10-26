@@ -84,15 +84,19 @@ class WindowDiagnosisHandler:
         claims = mint_claims(self._idgen, outcome.claims)
         if is_failure(claims):
             return claims
+        chain = ["observation", "evidence", "diagnosis"]
+        if outcome.next_open_window is not None:
+            chain.append("recommendation")  # EXPERIENCE.md S2: the recommendation is the window
         answer = AnswerDTO(
             answer_id=turn.answer_id,
             session_id=turn.session_id,
             query=turn.query,
             intent=INTENT,
-            answer_chain=["observation", "evidence", "diagnosis"],
+            answer_chain=chain,
             diagnosis_class=outcome.diagnosis_class,
             claims=claims.value,
             evidence=list(outcome.evidence),
+            recommendation=outcome.recommendation,
             prose=prose.value,
         )
         return Ok(TurnOutput(answer, resolved_entities=entities))

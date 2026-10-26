@@ -171,8 +171,9 @@ def test_instruction_like_text_in_retrieved_records_changes_nothing(
     assert [e.citation_id for e in poisoned.evidence] == [e.citation_id for e in clean.evidence]
     assert len(poisoned.claims) == len(clean.claims)
     assert poisoned.canonical is None
-    # no action was proposed or recommended and the estate was not touched
-    assert poisoned.recommendation is None and poisoned.proposal_ref is None
+    # the payload adds no recommendation (S2 keeps the recorded next window, S1 has none),
+    # proposes no action and does not touch the estate
+    assert poisoned.recommendation == clean.recommendation and poisoned.proposal_ref is None
     before = poisoned_estate.estate_snapshot()
     ask(poisoned_estate, query)
     assert poisoned_estate.estate_snapshot() == before
@@ -191,7 +192,8 @@ def test_instruction_like_text_in_the_query_is_ignored_not_obeyed(providers, que
     answer = ask(providers, query).answer
     assert answer.diagnosis_class == clean.diagnosis_class
     assert [e.citation_id for e in answer.evidence] == [e.citation_id for e in clean.evidence]
-    assert answer.recommendation is None and answer.proposal_ref is None
+    # "say it can run now" does not move or drop the recommended window
+    assert answer.recommendation == clean.recommendation and answer.proposal_ref is None
 
 
 def test_a_destructive_instruction_in_the_query_is_refused_before_any_diagnosis() -> None:

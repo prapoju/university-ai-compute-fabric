@@ -7,6 +7,7 @@ import pytest
 from src.domain.diagnosis import CannotConfirm
 from src.domain.intent import Routed, classify
 from src.domain.window_diagnosis import (
+    NextOpenWindow,
     ScheduleDiagnosis,
     diagnose_schedule_window,
     extract_group_reference,
@@ -42,6 +43,35 @@ def test_s2_is_restricted_with_the_exact_next_window(providers) -> None:
     text = " ".join(claim.text for claim in result.claims)
     assert "2026-10-16T22:00:00.000Z" in text and "2026-10-17T06:00:00.000Z" in text
     assert "UTC" in text and "window#night" in text and "job#job-8823" in text
+
+
+def test_s2_recommends_the_next_open_window_as_the_contract_shapes_it(providers) -> None:
+    # contracts.md diagnose_schedule_window Q1: recommendation.next_open_window = {start, end, tz}
+    result = diagnose(providers)
+    window = NextOpenWindow("2026-10-16T22:00:00.000Z", "2026-10-17T06:00:00.000Z", "UTC")
+    assert result.next_open_window == window
+    assert result.recommendation == {
+        "next_open_window": {
+            "start": "2026-10-16T22:00:00.000Z", "end": "2026-10-17T06:00:00.000Z",
+            "timezone": "UTC",
+        }
+    }  # fmt: skip
+
+
+@pytest.mark.parametrize(
+    ("instant", "group_id"),
+    [
+        ("2026-10-16T22:00:00.000Z", "group#group-4"),  # open now: no window starts after now
+        ("2026-10-16T15:00:00.000Z", "group#group-7"),  # no constrained job: no window at all
+    ],
+)
+def test_no_next_window_is_recommended_when_none_is_due(
+    providers, instant: str, group_id: str
+) -> None:
+    result = diagnose(providers, instant, group_id=group_id)
+    assert result.diagnosis_class == "schedule_no_constraint"
+    assert result.next_open_window is None
+    assert result.recommendation == {"next_open_window": None}
 
 
 def test_evidence_is_group_job_window_then_the_clock_read(providers) -> None:

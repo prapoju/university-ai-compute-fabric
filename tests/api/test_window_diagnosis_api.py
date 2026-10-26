@@ -38,7 +38,14 @@ def test_s2_explains_the_restriction_and_gives_the_next_open_window() -> None:
     answer = SubmitQueryResponse.model_validate(response.json()).answers[0]  # extra="forbid"
     assert answer.intent == "diagnose_schedule_window"
     assert answer.diagnosis_class == "schedule_window_restricted"
-    assert answer.answer_chain == ["observation", "evidence", "diagnosis"]
+    assert answer.answer_chain == ["observation", "evidence", "diagnosis", "recommendation"]
+    # the next open window is also machine-readable (contracts.md diagnose_schedule_window Q1)
+    assert response.json()["answers"][0]["recommendation"] == {
+        "next_open_window": {
+            "start": "2026-10-16T22:00:00.000Z", "end": "2026-10-17T06:00:00.000Z",
+            "timezone": "UTC",
+        }
+    }  # fmt: skip
     text = " ".join(claim.text for claim in answer.claims)
     assert "2026-10-16T22:00:00.000Z" in text and "2026-10-17T06:00:00.000Z" in text
     assert "(UTC)" in text and "2026-10-16T15:00:00.000Z" in text  # date + timezone, at "now"
@@ -64,6 +71,8 @@ def test_a_group_without_a_constraint_gets_no_restriction_and_no_window() -> Non
         ).answers[0]
     assert answer.diagnosis_class == "schedule_no_constraint"
     assert not [e for e in answer.evidence if e.source_type == "window"]
+    assert answer.recommendation == {"next_open_window": None}  # Q4: no window is rendered
+    assert answer.answer_chain == ["observation", "evidence", "diagnosis"]
 
 
 def test_a_missing_group_is_a_200_entity_not_found() -> None:

@@ -19,7 +19,7 @@ so that I can plan the launch instead of retrying blindly.
 
 Source: `planning/epics.md` Story 3.1 and Annex 12.2. Requirements: FR-05, AD-2, AD-14, NFR-5.
 
-1. **S2 diagnosis.** Given the clock at `2026-10-16T15:00Z` and the Night window `window#night` (`22:00-06:00`, UTC, half-open `[start, end)`), when Nadia asks `why can't group 4 run their fine-tuning job right now`, the answer (class `schedule_window_restricted`, chain `observation -> evidence -> diagnosis`) states that the job `job#job-8823` is constrained to `night`, that the clock read is outside the window, and the **next open window with explicit date and timezone** (`2026-10-16T22:00:00.000Z` to `2026-10-17T06:00:00.000Z`, UTC). Every claim cites the group, job, window and clock read; evidence positions are `0..n-1`.
+1. **S2 diagnosis.** Given the clock at `2026-10-16T15:00Z` and the Night window `window#night` (`22:00-06:00`, UTC, half-open `[start, end)`), when Nadia asks `why can't group 4 run their fine-tuning job right now`, the answer (class `schedule_window_restricted`, chain `observation -> evidence -> diagnosis -> recommendation`) states that the job `job#job-8823` is constrained to `night`, that the clock read is outside the window, and the **next open window with explicit date and timezone** (`2026-10-16T22:00:00.000Z` to `2026-10-17T06:00:00.000Z`, UTC), which it also returns as `recommendation.next_open_window = {start, end, timezone}` (contracts.md `diagnose_schedule_window` Q1; `planning/ux/EXPERIENCE.md` S2: "recommendation = next window"; amended by the audit, AD-28). Every claim cites the group, job, window and clock read; evidence positions are `0..n-1`.
 2. **No constraint.** A group whose jobs carry no scheduling constraint gets class `schedule_no_constraint` with an explicit "no restriction applies" and **no** window rendered.
 3. **Boundary and clock.** The window is half-open: at exactly `22:00:00.000Z` it is open (no restriction now), at `06:00:00.000Z` it is closed. A failed clock read is `CLOCK_UNAVAILABLE` (503), never a fabricated window.
 4. **Entity not found.** A group that does not exist returns the canonical `ENTITY_NOT_FOUND` naming it (`group#group-99`), with no diagnosis.
@@ -72,3 +72,4 @@ Modified: `src/domain/intent.py`, `src/domain/diagnosis.py`, `src/domain/referen
 ### Change Log
 
 - 2026-10-25: story 3.1 implemented (Tasks 1-3); status -> review.
+- 2026-10-26: audit fix (AD-28): AC1 had dropped the contract's `recommendation.next_open_window` and the UX's `recommendation` stage; both are returned now.

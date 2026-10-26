@@ -1,16 +1,17 @@
 """Pure schedule/window diagnosis (Annex 12.2, FR-05): why a group's job cannot run now.
 
-Deterministic in its inputs (AD-2): the class, claims, citations and evidence order never depend
-on an LLM or on a clock read inside this module. A job's ``scheduling_constraint`` names the
-policy window that governs it (``night`` -> ``window#night``); the window is half-open
-``[start, end)``. The application ring does the provider reads and mints the claim ids (R2).
+Deterministic in its inputs (AD-2): the class, claims, citations, evidence order and the
+recommended next open window never depend on an LLM or on a clock read inside this module. A
+job's ``scheduling_constraint`` names the policy window that governs it (``night`` ->
+``window#night``); the window is half-open ``[start, end)``. The application ring does the
+provider reads and mints the claim ids (R2).
 """
 
 from __future__ import annotations
 
 import re
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 
 from src.domain.diagnosis import (
     CannotConfirm,
@@ -37,11 +38,27 @@ _NAMED_GROUP = re.compile(r"\bgroup[\s-]+(?P<ref>[a-z0-9][^\s,;:?!()\[\]]*)", re
 
 
 @dataclass(frozen=True)
+class NextOpenWindow:
+    """``recommendation.next_open_window`` of contracts.md ``diagnose_schedule_window`` Q1."""
+
+    start: str
+    end: str
+    timezone: str
+
+
+@dataclass(frozen=True)
 class ScheduleDiagnosis:
     diagnosis_class: str  # schedule_window_restricted | schedule_no_constraint
     evidence: tuple[EvidenceDTO, ...]
     claims: tuple[ClaimDraft, ...]
     fact_tokens: frozenset[str]  # everything prose must not say (AD-8)
+    next_open_window: NextOpenWindow | None = None  # only a window that starts after now (D55)
+
+    @property
+    def recommendation(self) -> dict[str, dict[str, str] | None]:
+        """The contract's recommendation object: the next open window, or null when none is due."""
+        window = self.next_open_window
+        return {"next_open_window": None if window is None else asdict(window)}
 
 
 def extract_group_reference(query: str) -> str | None:
@@ -123,7 +140,8 @@ def diagnose_schedule_window(
             cites,
         ),
     )
-    return ScheduleDiagnosis("schedule_window_restricted", evidence, claims, tokens)
+    upcoming = NextOpenWindow(window.start, window.end, window.timezone)
+    return ScheduleDiagnosis("schedule_window_restricted", evidence, claims, tokens, upcoming)
 
 
 def _no_constraint(group: GroupRecordDTO, clock: ClockReadDTO) -> ScheduleDiagnosis:

@@ -355,6 +355,22 @@ Open assumptions to confirm: see the end of this file.
 - **Still lexical (not changed):** `_DESTRUCTIVE` refuses every `-ing` form, so `why can't group 4 run their job, is the scheduler killing it?` is still
   a clarification (safe direction); a real parser is out of scope while routing is rule-based (AD-11).
 
+## AD-28 - Audit fix: the S2 answer did not return the next open window the contract asks for  *(contract deviation)*
+- **Phase:** post-delivery audit of Impl-1 (audit question 4, "a missing or ambiguous requirement"), 2026-10-26.
+- **What was wrong:** `contracts.md` `diagnose_schedule_window` Q1 says that a restricted diagnosis returns
+  `recommendation.next_open_window = {start, end, timezone}`, the ATDD stub `test_diagnose_schedule_window_happy_computes_next_open_window` asserts that
+  shape, and `planning/ux/EXPERIENCE.md` (S2 journey) shows the chain `Observation -> Evidence -> Diagnosis -> Recommendation` with "recommendation = next
+  window". Story 3.1 was written from the epic and the annex only ("explanation and next open window"), so its AC1 fixed the chain at `diagnosis` and the
+  handler left `recommendation` null: the window was only in claim text, not machine-readable. The deviation was never logged.
+- **Fix:** `src/domain/window_diagnosis.py` computes `NextOpenWindow` in the pure domain (AD-2) and exposes the contract's
+  `recommendation` (`{"next_open_window": {...} | null}`); `src/application/window_diagnosis_handler.py` stores it and adds the `recommendation` stage only
+  when a window is actually recommended (open now and no constraint stop at `diagnosis`, with `next_open_window: null`). No DTO, schema or route change:
+  `AnswerDTO.recommendation` and the `answers.recommendation` column already existed.
+- **Knock-on (story 4.1):** the injection tests asserted `recommendation is None` for S2; AC3 means "the payload adds no recommendation", so they now compare
+  with the clean answer, which is stricter (the payload cannot move the window either). AC3 of story 4.1 and AC1 of story 3.1 were reworded.
+- **Proof:** new domain, handler, API and annex-endpoint assertions; with the old handler 5 of them fail. The stored turn round-trips the recommendation
+  (`GET /sessions/{sid}` returns exactly the posted answer).
+
 ---
 
 ## Open assumptions to confirm at review
