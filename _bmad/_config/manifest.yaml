@@ -1,26 +1,26 @@
 installation:
   version: 6.10.0
   installDate: 2026-09-28T02:56:46.499Z
-  lastUpdated: 2026-10-25T02:55:12.697Z
+  lastUpdated: 2026-11-01T20:54:34.065Z
 modules:
   - name: core
     version: 6.10.0
     installDate: 2026-09-28T02:56:46.123Z
-    lastUpdated: 2026-10-25T02:55:12.683Z
+    lastUpdated: 2026-11-01T20:54:34.045Z
     source: built-in
     npmPackage: null
     repoUrl: null
   - name: bmm
     version: 6.10.0
     installDate: 2026-09-28T02:56:46.280Z
-    lastUpdated: 2026-10-25T02:55:12.685Z
+    lastUpdated: 2026-11-01T20:54:34.047Z
     source: built-in
     npmPackage: null
     repoUrl: null
   - name: bmb
     version: v2.2.2
     installDate: 2026-09-28T02:56:46.371Z
-    lastUpdated: 2026-10-25T02:55:12.691Z
+    lastUpdated: 2026-11-01T20:54:34.053Z
     source: external
     npmPackage: bmad-builder
     repoUrl: https://github.com/bmad-code-org/bmad-builder
@@ -29,12 +29,21 @@ modules:
   - name: wds
     version: v0.4.3
     installDate: 2026-09-28T03:29:22.176Z
-    lastUpdated: 2026-10-25T02:55:12.697Z
+    lastUpdated: 2026-11-01T20:54:34.059Z
     source: external
     npmPackage: bmad-wds
     repoUrl: https://github.com/bmad-code-org/bmad-method-wds-expansion
     channel: stable
     sha: cc16f09fcfab26d35635af1491f36a38a8431c8d
+  - name: tea
+    version: v1.24.0
+    installDate: 2026-11-01T20:54:33.828Z
+    lastUpdated: 2026-11-01T20:54:34.065Z
+    source: external
+    npmPackage: bmad-method-test-architecture-enterprise
+    repoUrl: https://github.com/bmad-code-org/bmad-method-test-architecture-enterprise
+    channel: pinned
+    sha: 7ba2130193c473b53d2e323b4da9a80697eef88e
 ides:
-  - opencode
   - claude-code
+  - opencode
