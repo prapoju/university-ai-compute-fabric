@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from src.domain.entity_key import parse_entity_key
 from src.domain.result import Failure, Ok, Result, is_failure
 from src.dto import GroupRecordDTO, ModelCatalogEntryDTO, UserRecordDTO
-from src.ports.outbound import CatalogPort, GroupsPort, UsersPort
+from src.ports.outbound import CatalogPort, GroupsPort, PolicyPort, UsersPort
 
 
 @dataclass(frozen=True)
@@ -67,11 +67,36 @@ class ResolvedGroup:
 
 class EntityResolver:
     def __init__(
-        self, *, users: UsersPort, catalog: CatalogPort, groups: GroupsPort | None = None
+        self,
+        *,
+        users: UsersPort,
+        catalog: CatalogPort,
+        groups: GroupsPort | None = None,
+        policy: PolicyPort | None = None,
     ) -> None:
         self._users = users
         self._catalog = catalog
         self._groups = groups
+        self._policy = policy
+
+    # -- typed ``policy#...`` references of any diagnosis (story 4.1) ----------------------------
+    def missing_policies(self, refs: Sequence[str]) -> Result[tuple[str, ...]]:
+        """The ``policy#...`` references that are not in state, in input order.
+
+        A malformed id is a miss ("no such clause"); a provider failure aborts the turn.
+        """
+        if not refs:
+            return Ok(())
+        if self._policy is None:
+            return Failure("PROVIDER_UNAVAILABLE", observed=("policy port is not wired",))
+        missing: list[str] = []
+        for ref in refs:
+            found = self._lookup(self._policy.get, ref)
+            if is_failure(found):
+                return found
+            if found.value is None:
+                missing.append(ref)
+        return Ok(tuple(missing))
 
     # -- "why can't <group> run their job" (story 3.1) -------------------------------------------
     def resolve_group(self, token: str) -> Result[ResolvedGroup | Unresolved]:

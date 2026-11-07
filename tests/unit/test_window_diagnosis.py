@@ -162,6 +162,33 @@ def test_a_group_without_a_constrained_job_has_no_restriction_and_no_window(prov
     assert not [e for e in result.evidence if e.source_type == "window"]
 
 
+def test_a_running_constrained_job_is_not_blocked_and_no_window_is_rendered(providers) -> None:
+    # contracts.md P1: only a pending job waits for its window; a running one never "cannot run"
+    group, jobs, windows = inputs(providers)
+    running = [j.model_copy(update={"status": "running"}) if j.scheduling_constraint else j
+               for j in jobs]  # fmt: skip
+    result = diagnose_schedule_window(group, running, windows, clock())
+    assert result.diagnosis_class == "schedule_no_constraint"
+    assert result.next_open_window is None
+    assert [e.citation_id for e in result.evidence] == [
+        "group#group-4", "job#job-8823", "clock#clk-0000000000000001",
+    ]  # fmt: skip
+    (claim,) = result.claims
+    assert "is running" in claim.text and "no window restriction blocks it now" in claim.text
+    assert "cannot run" not in claim.text
+    assert set(claim.citations) == {e.citation_id for e in result.evidence}
+
+
+def test_a_pending_constrained_job_is_diagnosed_before_a_running_one(providers) -> None:
+    group, jobs, windows = inputs(providers)
+    (pending,) = [j for j in jobs if j.scheduling_constraint]
+    earlier = pending.model_copy(update={"id": "job#job-0001", "status": "running"})
+    result = diagnose_schedule_window(group, [earlier, *jobs], windows, clock())
+    assert result.diagnosis_class == "schedule_window_restricted"
+    assert "job#job-8823" in [e.citation_id for e in result.evidence]
+    assert "job#job-0001" not in [e.citation_id for e in result.evidence]
+
+
 # -- the vocabulary prose must not carry -----------------------------------------------------------
 def test_the_fact_tokens_cover_what_prose_must_not_say(providers) -> None:
     tokens = diagnose(providers).fact_tokens
@@ -186,6 +213,7 @@ def test_the_same_inputs_give_identical_results(providers) -> None:
         ("when can group 7 run its job", "group-7"),
         ("why won't group#group-4 start", "group#group-4"),
         ("why can't Group 99 run their job.", "group-99"),
+        ("why can't the group run, i mean group 4", "group-4"),
     ],
 )
 def test_the_group_token_is_extracted(query: str, ref: str) -> None:
@@ -193,7 +221,17 @@ def test_the_group_token_is_extracted(query: str, ref: str) -> None:
 
 
 @pytest.mark.parametrize(
-    "query", ["why can't they run the job", "group", "", "why was alex denied"]
+    "query",
+    [
+        "why can't they run the job",
+        "group",
+        "",
+        "why was alex denied",
+        # a word after "group" is not an id: never invent group#group-run (references.py)
+        "why can't the group run their job right now",
+        "why can't Thorne's group run their fine-tuning job",
+        "why is the group job pending",
+    ],
 )
 def test_no_group_means_no_reference(query: str) -> None:
     assert extract_group_reference(query) is None

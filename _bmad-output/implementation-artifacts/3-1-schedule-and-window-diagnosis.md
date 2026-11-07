@@ -4,7 +4,7 @@ baseline_commit: 93f67cd24aa10a4e9f0dda18eeb1dd92b669e629
 
 # Story 3.1: Schedule and window diagnosis
 
-Status: review
+Status: done
 
 <!-- Annex 12.2 of the Impl-1 task ("Night schedule inquiry"). Scope is deliberately the annex, not
      the full epic: one diagnoser, reusing the 1.3 pipeline, resolver pattern and prose guard. -->
@@ -38,10 +38,18 @@ Source: `planning/epics.md` Story 3.1 and Annex 12.2. Requirements: FR-05, AD-2,
   - [x] 3.1 Unit tests (domain, handler) and API tests through the real container: S2, boundary, no-constraint, not-found, clock failure, 10 variants.
   - [x] 3.2 README line, decision-log entry, `ruff`, full `pytest`, sprint-status to `review`.
 
+### Review Findings
+
+Code review 2026-11-06 (three layers run inline; story commits `c9d03ab..f12be75` incl. audit fixes AD-28..AD-30).
+
+- [x] [Review][Patch] A running constrained job is told it "cannot run now" (resolved decision, option 1: follow contracts.md P1) — only `pending` jobs are diagnosed; a running constrained job gets a `schedule_no_constraint` claim "job X is running; no window restriction blocks it now", citing the job and the clock; D2 updated [src/domain/window_diagnosis.py:33]
+- [x] [Review][Patch] Named group extraction invents a reference from an ordinary word: "why can't the group run their job" yields `group-run` and `ENTITY_NOT_FOUND group#group-run`, a token that is not in the query (violates references.py "the extractor cannot invent a reference"; should be the `R_MISSING_GROUP` clarification). Fixed with a stop-word lookahead after "group"; a digit-only rule was rejected because it broke story 4.1's `group seven` corpus case [src/domain/window_diagnosis.py:36]
+- [x] [Review][Defer] contracts.md Q3 audit event `toolcall.diagnose_schedule_window` is not emitted [src/application/window_diagnosis_handler.py:72] — deferred, pre-existing (no diagnoser emits tool-call audit events yet; same gap in story 1.3)
+
 ## Dev Notes
 
 - **D1 - Night window.** The annex and the fixture use `22:00-06:00` UTC; the epics text said `20:00-08:00`. The fixture/annex win (assumption 4 of the decision log); the epic AC was aligned by the audit (AD-30).
-- **D2 - Constraint to window.** A job's `scheduling_constraint` `night` governs `window#night`; the group's *constrained, not finished* job (status `pending`/`running`) is the one diagnosed. Several: lowest `job_id`.
+- **D2 - Constraint to window.** A job's `scheduling_constraint` `night` governs `window#night`; the group's constrained `pending` job is the one diagnosed (contracts.md P1). Several: lowest `job_id`. ~~`pending`/`running`~~ Corrected by the code review (I2-10): a constrained job that is `running` is not blocked, so it gets `schedule_no_constraint` with a claim that it is running, citing the job and the clock.
 - **D3 - Group reference.** `group 4`, `Group-4`, `group#group-4` resolve to `group#group-4` (exact after a fixed canonical form, never fuzzy). Anything else is `ENTITY_NOT_FOUND` named as typed.
 - **D4 - Reuse.** Same pipeline seam (`AnswerPipeline.register`), `LlmProsePort`, `scan_prose`, canonical strings and the claim-id-after-prose order as story 1.3. No new endpoint, no schema or DTO change.
 - **D5 - Next open window.** The fixture holds one window; the next open window is the first window with `start > now` (contracts.md Q1). Inside the window nothing is restricted and none is recommended. ~~Past all windows: `CANNOT_CONFIRM`.~~ Superseded by the audit (AD-29): `CANNOT_CONFIRM` contradicted contracts.md Q1 (D55), which asks for `next_open_window: null` plus an explicit no-future-window state, and `schedule_no_constraint` for an empty window set.
@@ -74,3 +82,4 @@ Modified: `src/domain/intent.py`, `src/domain/diagnosis.py`, `src/domain/referen
 - 2026-10-25: story 3.1 implemented (Tasks 1-3); status -> review.
 - 2026-10-26: audit fix (AD-28): AC1 had dropped the contract's `recommendation.next_open_window` and the UX's `recommendation` stage; both are returned now.
 - 2026-10-26: audit fix (AD-29): past the only window and with no window on record the answer follows contracts.md Q1 (D55) instead of `CANNOT_CONFIRM` (AC3, D5).
+- 2026-11-06: code review (I2-10): only pending jobs are diagnosed (P1), a running constrained job is stated as not blocked, and a word after "group" is no longer taken as a group id; Q3 audit event deferred. Status -> done.

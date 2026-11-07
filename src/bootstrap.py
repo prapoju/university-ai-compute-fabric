@@ -145,7 +145,9 @@ def build_container(settings: Settings) -> Container:
     pipeline.register(
         ACCESS_DENIAL_INTENT,
         AccessDenialHandler(
-            resolver=EntityResolver(users=providers.users, catalog=providers.catalog),
+            resolver=EntityResolver(
+                users=providers.users, catalog=providers.catalog, policy=providers.policy
+            ),
             assembler=EvidenceAssembler(policy=providers.policy, events=providers.event_store),
             prose=prose,
             idgen=idgen,
@@ -155,7 +157,10 @@ def build_container(settings: Settings) -> Container:
         WINDOW_INTENT,
         WindowDiagnosisHandler(
             resolver=EntityResolver(
-                users=providers.users, catalog=providers.catalog, groups=providers.groups
+                users=providers.users,
+                catalog=providers.catalog,
+                groups=providers.groups,
+                policy=providers.policy,
             ),
             jobs=providers.jobs,
             windows=providers.windows,

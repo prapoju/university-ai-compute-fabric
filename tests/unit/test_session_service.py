@@ -22,6 +22,7 @@ from src.application.session_service import SessionService
 from src.config import PROJECT_ROOT
 from src.domain import canonical_strings as cs
 from src.domain.result import Failure, Ok, is_ok
+from src.domain.session_rules import empty_context
 from src.dto import AnswerDTO, AnswerEnvelopeDTO, GetSessionResponse, SessionDTO
 from src.ports.inbound import CanonicalOutcome
 
@@ -468,6 +469,28 @@ def test_a_failed_expiry_write_does_not_hide_the_410(rig: Rig) -> None:
     rig.store.mark_expired = lambda *args: Failure("PROVIDER_UNAVAILABLE", observed=("disk full",))
     result = ask(rig, sid)
     assert isinstance(result, Failure) and result.code == "SESSION_EXPIRED"
+
+
+def test_an_answer_that_could_not_be_saved_is_never_returned(rig: Rig) -> None:
+    failing, healthy = new_session(rig), new_session(rig)
+    # the context UPDATE is append_turn's last statement: the answer row is already inserted in
+    # the open transaction when it aborts, so only the store's rollback can remove it
+    connection = rig.store._connection  # noqa: SLF001
+    connection.execute(
+        "CREATE TEMP TRIGGER disk_full BEFORE UPDATE ON sessions"
+        f" WHEN NEW.session_id = '{failing}' AND NEW.last_turn_at IS NOT NULL"
+        " BEGIN SELECT RAISE(ABORT, 'disk full'); END"
+    )
+
+    result = ask(rig, failing)
+    assert isinstance(result, Failure) and result.code == "PROVIDER_UNAVAILABLE"
+    assert ok(rig.store.list_turns(failing)) == []
+    orphans = connection.execute("SELECT count(*) FROM answers WHERE session_id = ?", (failing,))
+    assert orphans.fetchone() == (0,)
+    assert ok(rig.store.get(failing)).session.context == empty_context()
+
+    answer = ok(ask(rig, healthy)).answers[0]  # the failure is scoped to one session
+    assert [turn.answer_id for turn in ok(rig.store.list_turns(healthy))] == [answer.answer_id]
 
 
 def test_get_session_is_a_consistent_snapshot_while_turns_are_being_written(rig: Rig) -> None:

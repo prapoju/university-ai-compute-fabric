@@ -18,6 +18,7 @@ from src.application.turn_support import (
     write_prose,
 )
 from src.domain import canonical_strings as cs
+from src.domain.references import extract_policy_references, in_input_order
 from src.domain.result import Ok, Result, is_failure
 from src.domain.window_diagnosis import diagnose_schedule_window, extract_group_reference
 from src.dto import AnswerDTO, SelectorDTO
@@ -44,15 +45,23 @@ class WindowDiagnosisHandler:
 
     def __call__(self, turn: TurnInput) -> Result[TurnOutput]:
         token = extract_group_reference(turn.query)
-        if token is None:
-            return Ok(clarification_turn(turn, cs.R_MISSING_GROUP))
-        resolution = self._resolver.resolve_group(token)
-        if is_failure(resolution):
-            return resolution
-        found = resolution.value
-        if isinstance(found, Unresolved):
-            message = cs.entity_not_found(found.refs)
+        found: ResolvedGroup | Unresolved | None = None
+        if token is not None:
+            resolution = self._resolver.resolve_group(token)
+            if is_failure(resolution):
+                return resolution
+            found = resolution.value
+        # a named policy#... must exist too (AD-7, story 4.1), and a missing entity outranks the
+        # missing-group clarification: no answer to it could make the diagnosis proceed
+        missing = self._resolver.missing_policies(extract_policy_references(turn.query))
+        if is_failure(missing):
+            return missing
+        unresolved = (*(found.refs if isinstance(found, Unresolved) else ()), *missing.value)
+        if unresolved:
+            message = cs.entity_not_found(in_input_order(turn.query, unresolved))
             return Ok(canonical_turn(turn, INTENT, "ENTITY_NOT_FOUND", message))
+        if found is None:
+            return Ok(clarification_turn(turn, cs.R_MISSING_GROUP))
         assert isinstance(found, ResolvedGroup)
         group = found.group
 

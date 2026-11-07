@@ -17,6 +17,7 @@ from src.domain.intent import Routed, classify
 from src.domain.result import Failure, is_ok
 from src.dto import ClockReadDTO, SessionContextDTO
 from src.ports.inbound import CanonicalOutcome
+from src.ports.outbound import IdGenPort, JobsPort, WindowsPort
 
 pytestmark = pytest.mark.unit
 
@@ -31,17 +32,17 @@ class Rig:
     providers: object
 
 
-def make_rig(providers, *, resolver=None) -> Rig:
+def make_rig(providers, *, resolver=None, jobs=None, windows=None, idgen=None) -> Rig:
     prose = SimProse()
     handler = WindowDiagnosisHandler(
         resolver=resolver
         or EntityResolver(
             users=providers.users, catalog=providers.catalog, groups=providers.groups
         ),
-        jobs=providers.jobs,
-        windows=providers.windows,
+        jobs=jobs or providers.jobs,
+        windows=windows or providers.windows,
         prose=prose,
-        idgen=SimIdGen(),
+        idgen=idgen or SimIdGen(),
     )
     return Rig(handler, prose, providers)
 
@@ -177,8 +178,15 @@ def test_an_unknown_group_is_entity_not_found(rig: Rig) -> None:
     assert rig.prose.call_count == 0 and output.resolved_entities == ()
 
 
-def test_a_query_naming_no_group_is_a_clarification(rig: Rig) -> None:
-    output = out(run(rig, "why can't they run the job"))
+@pytest.mark.parametrize(
+    "query",
+    [
+        "why can't they run the job",
+        "why can't the group run their job right now",  # never ENTITY_NOT_FOUND group#group-run
+    ],
+)
+def test_a_query_naming_no_group_is_a_clarification(rig: Rig, query: str) -> None:
+    output = out(run(rig, query))
     assert output.canonical == CanonicalOutcome(
         "CLARIFICATION_REQUIRED", cs.clarification(cs.R_MISSING_GROUP)
     )
@@ -217,6 +225,89 @@ def test_a_failed_estate_aborts_before_any_prose(fixtures_copy, providers_from) 
     result = run(broken)
     assert isinstance(result, Failure) and result.code == "PROVIDER_UNAVAILABLE"
     assert broken.prose.call_count == 0
+
+
+# The estate loads all or nothing, so a deleted fixture file already fails the group lookup and
+# the jobs / windows reads are never reached. These wrappers fail one port past the resolver.
+DOWN = Failure("PROVIDER_UNAVAILABLE", observed=("injected outage",))
+
+
+class _JobsDownFor(JobsPort):
+    def __init__(self, real: JobsPort, group_ids: set[str]) -> None:
+        self._real, self._group_ids = real, group_ids
+
+    def get(self, job_id):
+        return self._real.get(job_id)
+
+    def select(self, selector):
+        if selector.params.get("group_id") in self._group_ids:
+            return DOWN
+        return self._real.select(selector)
+
+    def browse(self, q, page, page_size):
+        return self._real.browse(q, page, page_size)
+
+
+class _WindowsDown(WindowsPort):
+    def __init__(self) -> None:
+        self.list_calls = 0
+
+    def get(self, window_id):
+        return DOWN
+
+    def list(self):
+        self.list_calls += 1
+        return DOWN
+
+
+class _IdGenDownFor(IdGenPort):
+    def __init__(self, real: IdGenPort, kinds: set[str]) -> None:
+        self._real, self._kinds, self.drawn = real, kinds, []
+
+    def new_id(self, kind):
+        self.drawn.append(kind)
+        return DOWN if kind in self._kinds else self._real.new_id(kind)
+
+
+def test_a_jobs_outage_for_the_group_aborts_before_windows_or_prose(providers) -> None:
+    windows = _WindowsDown()
+    broken = make_rig(
+        providers, jobs=_JobsDownFor(providers.jobs, {"group#group-4"}), windows=windows
+    )
+    assert run(broken) == DOWN
+    assert (windows.list_calls, broken.prose.call_count) == (0, 0)
+
+
+def test_a_windows_outage_is_never_read_as_no_window_on_record(providers) -> None:
+    """AD-12 / D55: an unreadable window store must not become "no restriction"."""
+    broken = make_rig(providers, windows=_WindowsDown())
+    assert run(broken) == DOWN
+    assert broken.prose.call_count == 0
+
+
+def test_a_claim_id_failure_fails_the_turn_instead_of_an_answer_without_claims(
+    providers,
+) -> None:
+    broken = make_rig(providers, idgen=_IdGenDownFor(SimIdGen(), {"claim"}))
+    assert run(broken) == DOWN
+    assert broken.prose.call_count == 1  # claims are minted after the prose (turn_support)
+
+
+@pytest.mark.parametrize(
+    ("break_prose", "code"),
+    [
+        (lambda prose: prose.fail(), "LLM_UNAVAILABLE"),
+        (lambda prose: prose.script("Group 4 waits.", "The night window."), "LLM_PROSE_REJECTED"),
+    ],
+)
+def test_a_failed_prose_step_draws_no_claim_id(providers, break_prose, code: str) -> None:
+    """mint_claims runs once the turn can no longer fail on the LLM: no id is burned (FR-14)."""
+    idgen = _IdGenDownFor(SimIdGen(), set())
+    rig = make_rig(providers, idgen=idgen)
+    break_prose(rig.prose)
+    result = run(rig)
+    assert isinstance(result, Failure) and result.code == code
+    assert idgen.drawn == []
 
 
 def test_the_estate_is_never_changed(rig: Rig, providers) -> None:

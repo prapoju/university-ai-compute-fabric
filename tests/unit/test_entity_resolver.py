@@ -15,6 +15,7 @@ from src.application.entity_resolver import (
 )
 from src.domain.result import Failure, is_ok
 from src.dto import ModelCatalogEntryDTO, UserRecordDTO
+from src.ports.outbound import CatalogPort, UsersPort
 
 pytestmark = pytest.mark.unit
 
@@ -123,7 +124,9 @@ def test_without_a_context_entity_of_the_other_type_the_follow_up_cannot_proceed
 
 
 def test_a_context_entity_is_re_resolved_against_the_provider_before_use(providers) -> None:
-    result = follow_up(providers, "mateo", ["model#removed-since", "user#alex"])
+    # an older model that still resolves must not silently stand in for the stale newest one
+    context = ["model#deepseek-coder", "model#removed-since", "user#alex"]
+    result = follow_up(providers, "mateo", context)
     assert isinstance(result, Unresolved) and result.refs == ("model#removed-since",)
 
 
@@ -147,3 +150,81 @@ def test_follow_up_provider_failures_propagate(fixtures_copy, providers_from) ->
     (fixtures_copy / "estate" / "catalog.json").unlink()
     result = resolver(providers_from(fixtures_copy)).resolve_follow_up("mateo", CONTEXT)
     assert isinstance(result, Failure) and result.code == "PROVIDER_UNAVAILABLE"
+
+
+def test_a_model_follow_up_without_a_user_in_the_session_cannot_proceed(providers) -> None:
+    assert isinstance(follow_up(providers, "qwen-2.5-coder-7b", []), MissingContext)
+    assert isinstance(
+        follow_up(providers, "qwen-2.5-coder-7b", ["model#deepseek-coder"]), MissingContext
+    )
+
+
+def test_a_context_user_removed_since_is_named_not_silently_replaced(providers) -> None:
+    # user#alex is older and still resolves: it must not silently stand in for the stale user
+    context = ["user#alex", "user#removed-since", "model#deepseek-coder"]
+    result = follow_up(providers, "qwen-2.5-coder-7b", context)
+    assert isinstance(result, Unresolved) and result.refs == ("user#removed-since",)
+
+
+# -- one port down while the other answers (AD-12) -----------------------------------------------
+# The estate loads all or nothing, so deleting a fixture file fails *every* port. These wrappers
+# fail one port for chosen keys and let the real records through otherwise.
+DOWN = Failure("PROVIDER_UNAVAILABLE", observed=("injected outage",))
+
+
+class _UsersDownFor(UsersPort):
+    def __init__(self, real: UsersPort, keys: set[str]) -> None:
+        self._real, self._keys = real, keys
+
+    def get(self, id):
+        return DOWN if id in self._keys else self._real.get(id)
+
+    def browse(self, q, page, page_size):
+        return self._real.browse(q, page, page_size)
+
+    def by_ids(self, ids):
+        return self._real.by_ids(ids)
+
+
+class _CatalogDownFor(CatalogPort):
+    def __init__(self, real: CatalogPort, keys: set[str]) -> None:
+        self._real, self._keys = real, keys
+
+    def get(self, model_id):
+        return DOWN if model_id in self._keys else self._real.get(model_id)
+
+    def browse(self, q, page, page_size):
+        return self._real.browse(q, page, page_size)
+
+
+def test_a_catalog_outage_after_the_user_resolved_is_never_a_model_not_found(providers) -> None:
+    catalog = _CatalogDownFor(providers.catalog, {"model#deepseek-coder"})
+    result = EntityResolver(users=providers.users, catalog=catalog).resolve_user_and_model(
+        "alex", "deepseek-coder"
+    )
+    assert result == DOWN
+
+
+def test_a_catalog_outage_on_the_follow_up_ref_aborts_the_turn(providers) -> None:
+    catalog = _CatalogDownFor(providers.catalog, {"model#mateo"})
+    result = EntityResolver(users=providers.users, catalog=catalog).resolve_follow_up(
+        "mateo", CONTEXT
+    )
+    assert result == DOWN
+
+
+@pytest.mark.parametrize(
+    ("ref", "users_down", "catalog_down"),
+    [
+        ("mateo", set(), {"model#deepseek-coder"}),  # the session's model cannot be re-read
+        ("qwen-2.5-coder-7b", {"user#alex"}, set()),  # the session's user cannot be re-read
+    ],
+)
+def test_an_outage_while_re_resolving_the_session_entity_is_not_a_miss(
+    providers, ref: str, users_down: set[str], catalog_down: set[str]
+) -> None:
+    """D35 re-resolves context entities; an outage there must not read as "removed since"."""
+    users = _UsersDownFor(providers.users, users_down)
+    catalog = _CatalogDownFor(providers.catalog, catalog_down)
+    result = EntityResolver(users=users, catalog=catalog).resolve_follow_up(ref, CONTEXT)
+    assert result == DOWN

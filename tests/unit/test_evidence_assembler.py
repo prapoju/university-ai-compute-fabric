@@ -7,6 +7,7 @@ import pytest
 from src.application.evidence_assembler import EvidenceAssembler
 from src.domain.result import Failure, is_ok
 from src.dto import ClockReadDTO
+from src.ports.outbound import EventStorePort, PolicyPort
 
 pytestmark = pytest.mark.unit
 
@@ -36,6 +37,40 @@ def test_the_look_back_is_thirty_days_and_an_event_stamped_now_is_included(provi
     assert gather(providers, "2026-11-20T15:00:00.000Z").value.events == ()
     exactly = gather(providers, "2026-10-16T13:42:10.000Z")  # now == the event's own timestamp
     assert [e.event_id for e in exactly.value.events] == ["event#evt-4711"]
+
+
+DOWN = Failure("PROVIDER_UNAVAILABLE", observed=("injected outage",))
+
+
+class _PolicyDown(PolicyPort):
+    def get(self, clause_id):
+        return DOWN
+
+    def for_model(self, model_id):
+        return DOWN
+
+    def browse(self, q, page, page_size):
+        return DOWN
+
+
+class _RecordingEvents(EventStorePort):
+    def __init__(self, real: EventStorePort) -> None:
+        self._real, self.calls = real, []
+
+    def query(self, entity_ref, type, window):
+        self.calls.append((entity_ref, type, window))
+        return self._real.query(entity_ref, type, window)
+
+
+def test_a_policy_outage_aborts_before_any_event_is_read(providers) -> None:
+    """AD-12: no diagnosis from partial evidence, so the events are never fetched either."""
+    events = _RecordingEvents(providers.event_store)
+    assembler = EvidenceAssembler(policy=_PolicyDown(), events=events)
+    user = providers.users.get("user#alex").value
+    model = providers.catalog.get("model#deepseek-coder").value
+    result = assembler.gather(user, model, clock_at("2026-10-16T15:00:00.000Z"))
+    assert result == DOWN  # the policy's own failure, not the event-window one (same code)
+    assert events.calls == []
 
 
 @pytest.mark.parametrize("instant", ["0001-01-10T00:00:00.000Z", "9999-12-31T23:59:59.999Z"])

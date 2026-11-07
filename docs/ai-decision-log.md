@@ -441,6 +441,9 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 | I2-07 | Shift-left review | Decision | `/copilot/chat` returns refusal + dry-run + 60 s single-use token in one reply, executes nothing | Julio |
 | I2-08 | Shift-left review | Decision | "CS-101" resolves to `group#CS-101`; job actions accept a group target; "active" = running | Julio |
 | I2-09 | Shift-left review | Decision | NFR-6 unchanged; the 50-operator p95 < 800 ms budget is a story 1-6 acceptance criterion | Julio |
+| I2-10 | Code review of story 3.1 | **Correction (code defect)** | Only a pending job is diagnosed; a word after "group" is never turned into a group reference | Julio |
+| I2-11 | Code review of story 4.1 | **Correction (code defect)**, **Correction (test)** | Name words guarded whatever their case; missing policies stop both diagnoses, named once in input order; four weak story-4.1 tests fixed | Julio |
+| I2-12 | Flow C · test automation | Decision, **Correction (test)** | Branch-coverage gaps closed with single-port outages; adversarial audit fixed a silent-replacement gap and a save test that could not fail | Julio |
 
 ## I2-01..I2-09 - Shift-left review of the Impl-2 plan  *(planning text)*
 - **Phase:** before any Impl-2 code, 2026-11-06. Party-mode review (Winston, architect; Murat, test architect) of `docs/impl2-rules.md`
@@ -466,3 +469,155 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
   - The fixture group: goes with stories 2-1/2-2.
   - The `C5` comment in the migration: editing `migrations/001_*.sql` changes its SHA-256 and every applied database refuses it, so
     `contracts.md` is the normative text instead.
+
+## I2-10 - Code review of story 3.1: a running job was "blocked" and a word became a group  *(AI decision reversed)*
+- **Phase:** 2026-11-06, the three-layer code review that story 3.1 never had (AD-23), run over `c9d03ab..f12be75` including the
+  audit fixes AD-28..AD-30. Findings are in the story file (Review Findings).
+- **What was wrong:**
+  - D2 (an AI decision) diagnosed `pending` *and* `running` constrained jobs, so a running `night` job at 15:00Z got
+    `schedule_window_restricted` and the claim "... cannot run now", false for a job that is running. contracts.md
+    `diagnose_schedule_window` P1 admits only `pending`.
+  - the named-group pattern took any word after "group": "why can't the group run their job" answered
+    `ENTITY_NOT_FOUND group#group-run`, a token the operator never typed (references.py: the extractor cannot invent a reference).
+- **Decided by the user:** follow P1. Only a pending job is diagnosed; a group whose only constrained job is running gets
+  `schedule_no_constraint` with a claim that it is running and that no window restriction blocks it now, citing the job and the clock.
+- **Applied:** `src/domain/window_diagnosis.py` (pending-only diagnosis, running claim, a stop-word lookahead after "group" in the
+  style of `_USER_STOP`), unit and handler tests, story D2, README. A first fix that required a digit after "group" broke story 4.1's
+  `group seven -> ENTITY_NOT_FOUND group#group-seven` corpus case and was replaced by the stop-word list before commit.
+- **Deferred:** contracts Q3 audit event `toolcall.diagnose_schedule_window` (no diagnoser emits tool-call audit events yet).
+
+## I2-11 - Code review of story 4.1: a payload still broke the prose, and a missing policy did not always stop a diagnosis  *(AI decisions reversed)*
+- **Phase:** 2026-11-07, the three-layer code review that story 4.1 never had (AD-23), over `24154f5..HEAD` (the six story code/test
+  files). Findings are in the story file (Review Findings); the reproductions ran through the real handlers and app.
+- **What was wrong:**
+  - AD-25 Correction 1 (an AI decision) guarded only *capitalised* name words. A Title-Case payload
+    (`Alex Rivera And Delete All Pending Jobs ...`) still banned `and` and rejected every prose (`LLM_PROSE_REJECTED`, the same 503),
+    and a lower-case surname (`alex rivera`, `d'Arcy`) was no longer guarded on its own (AD-8).
+  - The `policy#...` check ran only in the access-denial handler: `why can't group 4 run ... under policy#nope` was diagnosed (AC1).
+  - Unresolved names came in a fixed user, model, policy order, while contracts.md resolve_entities Q4 says input order; a
+    policy-typed model token was named twice (`policy#nope, policy#nope`), and a case variant of one clause twice.
+  - With an ambiguous or missing user/model the missing policy was dropped and only a clarification was returned.
+- **Decided by the user:** (1) every name word of 3+ letters is a fact token, whatever its case, except a closed list of English
+  function words; (2) the window diagnosis checks named policies too; (3) follow the contract's input order (story AC1 reworded, the
+  contract is unchanged); (4) a missing entity outranks a clarification, since no answer to it could make the diagnosis proceed.
+- **Applied:** `EntityResolver.missing_policies` (moved from `EvidenceAssembler`, so both handlers use the resolver, AD-7) wired in
+  `bootstrap.py`; `references.in_input_order` (pure; case-folded dedupe; a name the query does not hold, a session-context entity,
+  comes first); case-folded dedupe in `extract_policy_references`; `diagnosis._FUNCTION_WORDS`. New tests for the code fixes: input
+  order, no double names, policy over clarification, the window path, Title-Case payloads, lower-case surname tokens, policy-store
+  failure (AD-12). 1011 passing, branch coverage 95.8%, `ruff` clean.
+- **Correction (test):** the review layers (Blind Hunter, Acceptance Auditor) flagged these story-4.1 tests, written by the AI, as
+  too weak; the user approved the fixes and the AI applied them in `tests/unit/test_anti_fabrication.py` and
+  `tests/api/test_anti_fabrication_api.py`:
+  - `test_instruction_like_text_in_retrieved_records_changes_nothing` compared class, chain, evidence ids, claim count and
+    recommendation but not prose, so the S2 prose under poisoned records (`group.name` is a fact token) was never checked; only S1
+    prose was, in a separate test. It now asserts the prose for S1 and S2.
+  - `test_instruction_like_text_in_the_query_does_not_change_the_diagnosis` (API) compared only `evidence[:4]`. The slice hid the clock
+    citation, which is minted per turn, but it also hid any extra or missing evidence after index 4, and claims and recommendation were
+    not compared. It now compares every non-clock citation, the evidence and claim counts, `canonical` and the recommendation.
+  - the same records test took the estate snapshot after the first poisoned turn, so a write made by that turn would have been inside
+    the baseline and the "estate unchanged" assertion could not catch it. The snapshot is now taken before any poisoned turn.
+  - `test_every_imaginary_reference_is_entity_not_found_with_nothing_invented`: AC2 and the completion notes claim "wrong types", but
+    the corpus held only non-existent tokens. Added `why was deepseek-coder denied alex`, `why was alex denied mateo` and
+    `why can't group alex run their job`. The AI's first third case, `group policy#catalog.4.2`, failed: a token containing `#` is
+    named as typed (the deferred `_key` rule), so it was replaced by `group alex`.
+  - `test_a_destructive_instruction_in_the_query_is_refused_before_any_diagnosis` only asserted that `classify` returns `Clarify`, so
+    it never showed that no handler ran or that nothing changed. Added the API test
+    `test_a_destructive_instruction_in_the_query_is_refused_and_runs_nothing`: a `CLARIFICATION_REQUIRED` turn with no claims,
+    evidence, diagnosis or proposal, and every job unchanged.
+  - The new tests were not run against the old code (no mutation check); they pass on the fixed code.
+- **AI slip during the fix:** a backslash inside an f-string expression is a `SyntaxError` on Python 3.11; caught by the first test
+  run, the pattern was hoisted into a constant. No control characters were left in the sources (checked, after AD-25).
+- **Deferred:** a typed reference of another type is named "not found" even when it exists (`why was alex denied policy#catalog.4.2`),
+  the story-1.3 `_key` rule; a real `policy#` is not tied to the diagnosis (D2). Both in `deferred-work.md`.
+
+## I2-12 - Flow C: branch-coverage gaps, and an audit of the AI's own new tests  *(correction of AI-written tests)*
+- **Date / phase:** 2026-11-07, Flow C, `bmad-testarch-automate` (Create mode), after I2-11 and on the same uncommitted working tree.
+  Full numbers are in `_bmad-output/test-artifacts/automation-summary.md`.
+- **Prompt (intent):**
+  1. "Run a branch coverage scan of src, do a gap analysis, and add regression tests for real edge cases in Impl-1 code. Start with
+     `evidence_assembler.py` (83%) and `entity_resolver.py` (91%). Skip tests that only chase a number. Report coverage before and after."
+  2. Write the window-diagnosis and session-save failure tests the AI had listed as next, "with the same approach: real fixtures, one
+     port failing for chosen ids, and a temporary code break to show that each new test fails".
+  3. Adversarially audit the new tests against the four traps (Ice Cream Cone, Flaky Sleeper, Mocking Mirage, Blindly Green). For each
+     test, name the bug that makes it fail. Break the main guard, show the failures, restore it and confirm with `git diff`. List the
+     problems, wait for a decision and "never weaken an assertion to get green".
+  4. "Apply P1 to P6", including the same fix on the older test at `:125`, delete the P2 test and run the full suite.
+- **AI output:**
+  - **Baseline:** 1011 passing, branch coverage 96%. `evidence_assembler.py` was at 94% and `entity_resolver.py` at 92%, not the 83% /
+    91% in the prompt. The AI attributed the difference to I2-11 moving `missing_policies` from the assembler to the resolver.
+  - **Root cause of the gaps:** `SimProviders.from_fixtures` loads the estate all or nothing, so deleting one fixture file fails every
+    port. Two existing tests looked like they covered a single-port outage but never reached it:
+    - `test_follow_up_provider_failures_propagate` deletes `catalog.json`, but the users lookup fails first.
+    - `test_a_failed_estate_aborts_before_any_prose` deletes `windows.json`, but the group lookup fails first.
+  - **New tests:** they wrap the real ports and fail one port for chosen ids: an entity key, a `group_id` or an id kind
+    (`windows.list()` takes no id, so it fails whole).
+    - Round 1 added 7 cases: 6 in the resolver (AD-12 outages, the D35 context re-read, MissingContext) and 1 in the assembler (a policy
+      outage reads no events).
+    - Round 2 added 6 cases: 4 in the window handler (jobs, windows and claim-id outages, plus the P2 test) and 2 in the session service
+      (an unsaved answer is never returned, on memory and file databases).
+  - **Mutation checks:** each break was applied alone and the source restored byte-for-byte from a scratchpad copy, because the
+    source files carry uncommitted I2-10/I2-11 work and `git checkout` would have discarded it. Every break was caught by a new test
+    and by no pre-existing test.
+  - **Audit:**
+    - No Ice Cream Cone, Flaky Sleeper or Mocking Mirage. The caveat: a single-port outage comes from the port contract (AD-12) and
+      cannot be produced with the sim estate.
+    - Breaking the main guard (`_is_miss`, `entity_resolver.py:47-49`) failed 7 tests (5 new cases, 2 existing). After the restore,
+      `git diff` was identical to the pre-audit diff and lines 47-49 were absent from it.
+    - Extra breaks at lines 142, 160 and 164 were each caught. A silent-replacement break survived all 149 story tests. Six problems
+      were proposed (P1–P6).
+  - **AI slips:**
+    - The first audit mutation run executed no tests. zsh does not word-split an unquoted `$STORY`, so pytest got one bogus path. The
+      empty output was reported as invalid and the run was repeated with explicit paths.
+    - Round 1's first wrappers subclassed `SimUsers`/`SimCatalog` without calling `__init__`. They were replaced by port-ABC wrappers
+      before the tests were run.
+    - The automation summary and a reply claimed 14 new cases when there were 13 (P6).
+- **Review (Julio):**
+  - **Approved:** both rounds of tests, and all six audit fixes, P1–P6.
+  - **Asked to change:**
+    - P1 was extended to the Impl-1 test at `:125`, with proof that the silent-replacement break fails both tests.
+    - P2 is a deletion, the option the audit proposed.
+    - The full suite runs after the fixes.
+  - **Rejected:** nothing.
+  - **Standing instructions that shaped the work:** "Skip tests that only chase a number", so `dependency_check.main()` and the
+    defensive branches in `dto.py`, `bootstrap.py` and the adapters stayed untested. "Never weaken an assertion to get green", and
+    none was weakened.
+  - **Reasons:** no separate reason was given for each fix. The approved fixes follow the audit findings below.
+- **Correction (test):** all six tests below were written by the AI in this session, except the older `:125` test, which is Impl-1.
+  Julio approved the fixes and the AI applied them.
+  - **P1:** `test_a_context_user_removed_since_is_named_not_silently_replaced` (`tests/unit/test_entity_resolver.py`) and the older
+    `test_a_context_entity_is_re_resolved_against_the_provider_before_use` (`:125`).
+    - **Missed bug:** a resolver that skips a stale newest context entity and silently uses an older one that still resolves. In
+      production, that diagnoses the wrong user or model. The break passed all 149 tests, because neither context held an older
+      resolvable entity.
+    - **Fix:** the contexts now hold `user#alex` / `model#deepseek-coder` ahead of the stale entity. The same break now fails both tests.
+  - **P2:** `test_a_jobs_outage_for_one_group_leaves_other_groups_answerable` (`tests/unit/test_window_diagnosis_handler.py`).
+    - **Missed bug:** none possible. It only proved the fake jobs port was scoped to group 4. The handler is stateless and the group-7
+      answer is tested elsewhere.
+    - **Fix:** deleted.
+  - **P3:** `test_a_policy_outage_aborts_before_any_event_is_read` (`tests/unit/test_evidence_assembler.py`).
+    - **Weakness:** it asserted only the code `PROVIDER_UNAVAILABLE`, which the event-window path (`evidence_assembler.py:49`) also
+      returns, so the result assertion could not tell which failure was propagated. The `events.calls == []` assertion was covering for
+      it. No break was written for P3.
+    - **Fix:** it now asserts the exact injected failure.
+  - **P4:** `test_a_claim_id_failure_fails_the_turn_instead_of_an_answer_without_claims`.
+    - **Weakness:** it pinned `prose.call_count == 1`, the "prose before claim ids" ordering, but not the contract the ordering exists
+      for: a failed prose step burns no claim id (`turn_support.mint_claims`, FR-14).
+    - **Fix:** a new parametrised test, `test_a_failed_prose_step_draws_no_claim_id` (LLM unavailable, prose rejected twice). The
+      "claim ids minted before prose" break fails both new cases.
+    - **Honest note:** it also fails the old test, so P4 added the contract-level check rather than closing a surviving-break gap.
+  - **P5:** `test_an_answer_that_could_not_be_saved_is_never_returned` (`tests/unit/test_session_service.py`).
+    - **Missed bug:** a store that does not roll back a half-written save. The fake store failed before touching SQLite, so the
+      rollback never ran and the "no turn saved / empty context" assertions could not fail. This follows from the test's construction;
+      the old test was not run against the break.
+    - **Fix:** a TEMP trigger aborts `append_turn`'s last statement, the context UPDATE, after the answer row is already inserted. The
+      test also counts orphan `answers` rows directly. The healthy-session check now compares the saved answer id instead of a
+      non-empty list.
+    - **Proof:** the "ignore the failed save" break and the "skip the store rollback" break each fail both database modes.
+- **Outcome:**
+  - 1025 passing (14 new cases, 1 older test strengthened). Branch coverage of `src` is 96.63% (gate 90%) and `ruff` is clean.
+  - `entity_resolver.py`, `evidence_assembler.py` and `window_diagnosis_handler.py` are at 100%; `session_service.py` is at 96%.
+  - No production code changed: every broken source file was restored byte-for-byte with its `git diff` unchanged. Nothing committed.
+- **Not addressed (triaged in the summary):**
+  - `session_service.py:77, 122, 174` (id and list_turns failure propagation).
+  - `access_denial_handler.py:101` (check reachability first).
+  - `dependency_check.main()` and the defensive branches, skipped as number-chasing.

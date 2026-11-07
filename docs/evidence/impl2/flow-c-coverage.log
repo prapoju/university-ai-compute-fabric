@@ -1,0 +1,87 @@
+........................................................................ [  7%]
+........................................................................ [ 14%]
+........................................................................ [ 21%]
+........................................................................ [ 28%]
+........................................................................ [ 35%]
+........................................................................ [ 42%]
+........................................................................ [ 49%]
+........................................................................ [ 56%]
+........................................................................ [ 63%]
+........................................................................ [ 70%]
+........................................................................ [ 77%]
+........................................................................ [ 84%]
+........................................................................ [ 91%]
+........................................................................ [ 98%]
+.................                                                        [100%]
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.11.15-final-0 _______________
+
+Name                                            Stmts   Miss Branch BrPart  Cover
+---------------------------------------------------------------------------------
+src/__init__.py                                     0      0      0      0   100%
+src/adapters/__init__.py                            0      0      0      0   100%
+src/adapters/inbound/__init__.py                    0      0      0      0   100%
+src/adapters/inbound/app.py                        37      0      2      0   100%
+src/adapters/inbound/copilot.py                    18      1      2      1    90%
+src/adapters/inbound/errors.py                     47      2      4      0    96%
+src/adapters/inbound/sessions.py                   46      0     10      0   100%
+src/adapters/outbound/__init__.py                   0      0      0      0   100%
+src/adapters/outbound/db/__init__.py                0      0      0      0   100%
+src/adapters/outbound/db/connection.py              4      0      0      0   100%
+src/adapters/outbound/db/migrate.py                48      2     14      1    95%
+src/adapters/outbound/db/session_store.py         109      5     18      2    94%
+src/adapters/outbound/sim/__init__.py               0      0      0      0   100%
+src/adapters/outbound/sim/clock_adapter.py         41      0      6      0   100%
+src/adapters/outbound/sim/estate_loader.py         99      4     38      4    94%
+src/adapters/outbound/sim/fixtures_adapter.py     211      7     52      7    95%
+src/adapters/outbound/sim/idgen_adapter.py         23      0      2      0   100%
+src/adapters/outbound/sim/prose_adapter.py         39      0      2      0   100%
+src/adapters/outbound/sim/record_store.py          40      1      8      0    98%
+src/application/__init__.py                         0      0      0      0   100%
+src/application/access_denial_handler.py           73      1     24      1    98%
+src/application/entity_resolver.py                121      0     54      0   100%
+src/application/evidence_assembler.py              29      0      4      0   100%
+src/application/pipeline.py                        46      0      4      0   100%
+src/application/session_service.py                117      3     42      3    96%
+src/application/turn_support.py                    42      0     12      0   100%
+src/application/unavailable.py                     15      0      0      0   100%
+src/application/window_diagnosis_handler.py        56      0     20      0   100%
+src/bootstrap.py                                  125      6     30      5    93%
+src/config.py                                      56      2      8      1    95%
+src/dependency_check.py                            51     13     16      1    73%
+src/domain/__init__.py                              0      0      0      0   100%
+src/domain/canonical_strings.py                    24      0      0      0   100%
+src/domain/diagnosis.py                            86      1      6      1    98%
+src/domain/entity_key.py                           39      2     12      1    94%
+src/domain/error_catalog.py                        21      0      0      0   100%
+src/domain/instants.py                             23      0      2      0   100%
+src/domain/intent.py                               54      0     14      0   100%
+src/domain/prose_guard.py                          17      1      6      1    91%
+src/domain/references.py                           71      0     20      1    99%
+src/domain/result.py                               22      0      2      0   100%
+src/domain/session_rules.py                        28      0      6      0   100%
+src/domain/window_diagnosis.py                     92      0     14      0   100%
+src/dto.py                                        372      9     10      3    96%
+src/ports/__init__.py                               0      0      0      0   100%
+src/ports/inbound/__init__.py                       2      0      0      0   100%
+src/ports/inbound/session_use_cases.py             18      0      0      0   100%
+src/ports/outbound/__init__.py                     16      0      0      0   100%
+src/ports/outbound/catalog.py                       9      0      0      0   100%
+src/ports/outbound/clock.py                         7      0      0      0   100%
+src/ports/outbound/event_store.py                  12      0      0      0   100%
+src/ports/outbound/groups.py                        9      0      0      0   100%
+src/ports/outbound/idgen.py                         6      0      0      0   100%
+src/ports/outbound/jobs.py                         11      0      0      0   100%
+src/ports/outbound/llm_prose.py                     7      0      0      0   100%
+src/ports/outbound/nodes.py                        11      0      0      0   100%
+src/ports/outbound/policy.py                       11      0      0      0   100%
+src/ports/outbound/policy_content.py               12      0      0      0   100%
+src/ports/outbound/reservations.py                  9      0      0      0   100%
+src/ports/outbound/runbook_registry.py              7      0      0      0   100%
+src/ports/outbound/session_store.py                24      0      0      0   100%
+src/ports/outbound/users.py                        11      0      0      0   100%
+src/ports/outbound/windows.py                       9      0      0      0   100%
+---------------------------------------------------------------------------------
+TOTAL                                            2533     60    464     33    97%
+Required test coverage of 90% reached. Total coverage: 96.63%
+1025 passed in 16.26s

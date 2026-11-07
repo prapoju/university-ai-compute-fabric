@@ -32,6 +32,7 @@ from src.domain.references import (
     extract_access_denial_references,
     extract_follow_up_reference,
     extract_policy_references,
+    in_input_order,
 )
 from src.domain.result import Ok, Result, is_failure
 from src.dto import AnswerDTO
@@ -60,16 +61,14 @@ class AccessDenialHandler:
             return resolution
         found = resolution.value
         # a policy the query names (policy#...) must exist too: never explain a denial by a
-        # clause that is not in state (AD-7, Annex 12.3)
-        missing = self._assembler.missing_policies(extract_policy_references(turn.query))
+        # clause that is not in state (AD-7, Annex 12.3). A missing entity outranks a
+        # clarification: no answer to the clarification could make the diagnosis proceed.
+        missing = self._resolver.missing_policies(extract_policy_references(turn.query))
         if is_failure(missing):
             return missing
-        if isinstance(found, Resolved | Unresolved) and missing.value:
-            earlier = found.refs if isinstance(found, Unresolved) else ()
-            message = cs.entity_not_found((*earlier, *missing.value))
-            return Ok(self._canonical(turn, "ENTITY_NOT_FOUND", message, "ENTITY_NOT_FOUND"))
-        if isinstance(found, Unresolved):
-            message = cs.entity_not_found(found.refs)
+        unresolved = (*(found.refs if isinstance(found, Unresolved) else ()), *missing.value)
+        if unresolved:
+            message = cs.entity_not_found(in_input_order(turn.query, unresolved))
             return Ok(self._canonical(turn, "ENTITY_NOT_FOUND", message, "ENTITY_NOT_FOUND"))
         if isinstance(found, Ambiguous):
             return Ok(self._clarify(turn, cs.ambiguous_reference(found.ref)))

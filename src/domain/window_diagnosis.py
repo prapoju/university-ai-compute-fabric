@@ -30,10 +30,18 @@ from src.dto import (
     PolicyWindowDTO,
 )
 
-_ACTIVE = ("pending", "running")  # a finished or cancelled job is not waiting for a window
+_LIVE = ("pending", "running")  # a finished or cancelled job is not governed by a window now
 
 _TYPED_GROUP = re.compile(r"\bgroup#(?P<ref>[^\s,;:?!()\[\]]+)", re.I)
-_NAMED_GROUP = re.compile(r"\bgroup[\s-]+(?P<ref>[a-z0-9][^\s,;:?!()\[\]]*)", re.I)
+# words that follow "group" in a schedule question but never are its id: "the group run" names
+# no group, so it is a clarification and never ENTITY_NOT_FOUND group#group-run (no invented token)
+_GROUP_STOP = (
+    r"(?:run|runs|start|starts|launch|launches|execute|job|jobs|members?|can't|cannot|can"
+    r"|won't|will|could|is|isn't|are|aren't|has|have|was|wasn't)"
+)
+_NAMED_GROUP = re.compile(
+    rf"\bgroup[\s-]+(?!{_GROUP_STOP}(?=[\s,;:?!.]|$))(?P<ref>[a-z0-9][^\s,;:?!()\[\]]*)", re.I
+)
 
 
 @dataclass(frozen=True)
@@ -81,15 +89,19 @@ def diagnose_schedule_window(
     clock: ClockReadDTO,
 ) -> ScheduleDiagnosis:
     """Why the group's constrained job cannot run at ``clock`` and when the window next opens."""
-    waiting = sorted(
+    constrained = sorted(
         (
             j
             for j in jobs
-            if j.group_id == group.id and j.status in _ACTIVE and j.scheduling_constraint
+            if j.group_id == group.id and j.status in _LIVE and j.scheduling_constraint
         ),
         key=lambda j: j.id,
     )
+    # contracts.md P1: only a pending job waits for its window; a running one is not blocked
+    waiting = [j for j in constrained if j.status == "pending"]
     if not waiting:
+        if constrained:
+            return _running(group, constrained[0], clock)
         return _no_constraint(group, clock)
 
     job = waiting[0]
@@ -165,6 +177,30 @@ def _no_constraint(group: GroupRecordDTO, clock: ClockReadDTO) -> ScheduleDiagno
         tuple(e.citation_id for e in evidence),
     )
     tokens = {group.id, bare_id(group.id), group.name, clock.read_id, clock.instant}
+    return ScheduleDiagnosis(
+        "schedule_no_constraint", evidence, (claim,), frozenset(t.casefold() for t in tokens)
+    )
+
+
+def _running(group: GroupRecordDTO, job: JobRecordDTO, clock: ClockReadDTO) -> ScheduleDiagnosis:
+    evidence = number_evidence(
+        [
+            ("group", group.id, clip(_group_snippet(group))),
+            ("job", job.id, clip(_job_snippet(job))),
+            clock_entry(clock),
+        ]
+    )
+    claim = ClaimDraft(
+        f"{group.name} ({group.id}) has the job {job.id} constrained to the "
+        f"{job.scheduling_constraint} window, and it is running at the clock read "
+        f"{clock.read_id}; no window restriction blocks it now.",
+        tuple(e.citation_id for e in evidence),
+    )
+    tokens = {
+        group.id, bare_id(group.id), group.name,
+        job.id, bare_id(job.id), job.course, str(job.scheduling_constraint),
+        clock.read_id, clock.instant,
+    }  # fmt: skip
     return ScheduleDiagnosis(
         "schedule_no_constraint", evidence, (claim,), frozenset(t.casefold() for t in tokens)
     )
