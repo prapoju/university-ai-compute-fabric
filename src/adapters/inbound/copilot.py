@@ -14,6 +14,7 @@ from pydantic import BaseModel, ConfigDict
 from src.adapters.inbound.errors import failure_response
 from src.adapters.inbound.sessions import UseCases, query_response
 from src.domain.result import is_failure
+from src.ports.inbound import SessionUseCases
 
 router = APIRouter(prefix="/api/v1", tags=["copilot"])
 
@@ -28,9 +29,27 @@ class CopilotQueryBody(BaseModel):
     query: str
 
 
-@router.post("/copilot/query", response_model=None)
-def copilot_query(body: CopilotQueryBody, use_cases: UseCases) -> JSONResponse:
+class CopilotChatBody(BaseModel):
+    """``{ "query": "..." }``, the same shape as ``/copilot/query`` (story 2.1, D1)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    query: str
+
+
+def _answer(use_cases: SessionUseCases, query: str) -> JSONResponse:
     created = use_cases.create_session(DEFAULT_OPERATOR_ROLE)
     if is_failure(created):
         return failure_response(created)
-    return query_response(use_cases.submit_query(created.value.session_id, body.query))
+    return query_response(use_cases.submit_query(created.value.session_id, query))
+
+
+@router.post("/copilot/query", response_model=None)
+def copilot_query(body: CopilotQueryBody, use_cases: UseCases) -> JSONResponse:
+    return _answer(use_cases, body.query)
+
+
+@router.post("/copilot/chat", response_model=None)
+def copilot_chat(body: CopilotChatBody, use_cases: UseCases) -> JSONResponse:
+    """Annex 12.4 inbound: a thin route over the same use cases, so the refusal is shared (D1)."""
+    return _answer(use_cases, body.query)

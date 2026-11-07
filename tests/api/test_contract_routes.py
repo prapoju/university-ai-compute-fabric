@@ -27,6 +27,7 @@ SERVED_IN_THIS_STORY = {
     ("DELETE", "/api/v1/sessions/{}"),
     # Impl-1 annex 12.1: the inbound entry point over the same use cases
     ("POST", "/api/v1/copilot/query"),
+    ("POST", "/api/v1/copilot/chat"),  # story 2.1
     # story 1.4
     ("GET", "/api/v1/answers/{}/evidence"),
     ("GET", "/api/v1/citations/{}"),
@@ -42,6 +43,7 @@ ALLOWED_MUTATING = {
     ("POST", "/api/v1/sessions"),
     ("POST", "/api/v1/sessions/{}/queries"),
     ("POST", "/api/v1/copilot/query"),  # annex 12.1: owned session state only, never the estate
+    ("POST", "/api/v1/copilot/chat"),  # annex 12.4: the same, plus the refusal (story 2.1)
     ("DELETE", "/api/v1/sessions/{}"),
     ("POST", "/api/v1/destructive/dry-runs"),
     ("POST", "/api/v1/destructive/proposals"),

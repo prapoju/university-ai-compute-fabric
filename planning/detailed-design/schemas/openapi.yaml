@@ -110,7 +110,7 @@ paths:
         "410": { $ref: '#/components/responses/Response410' }
         "500": { $ref: '#/components/responses/Response500' }
         "503": { $ref: '#/components/responses/Response503' }
-      x-error-codes: [VALIDATION_EMPTY_QUERY, VALIDATION_QUERY_TOO_LONG, VALIDATION_MALFORMED_BODY, SESSION_NOT_FOUND, SESSION_EXPIRED, ENTITY_NOT_FOUND, CANNOT_CONFIRM, CLARIFICATION_REQUIRED, INTENT_NOT_SUPPORTED, PROVIDER_UNAVAILABLE, LLM_UNAVAILABLE, LLM_PROSE_REJECTED, AUDIT_WRITE_FAILED]
+      x-error-codes: [VALIDATION_EMPTY_QUERY, VALIDATION_QUERY_TOO_LONG, VALIDATION_MALFORMED_BODY, SESSION_NOT_FOUND, SESSION_EXPIRED, ENTITY_NOT_FOUND, CANNOT_CONFIRM, CLARIFICATION_REQUIRED, ACTION_REFUSED, VALIDATION_BAD_ACTION, INTENT_NOT_SUPPORTED, PROVIDER_UNAVAILABLE, LLM_UNAVAILABLE, LLM_PROSE_REJECTED, AUDIT_WRITE_FAILED]
 
   /api/v1/copilot/query:
     post:
@@ -137,7 +137,36 @@ paths:
         "400": { $ref: '#/components/responses/Response400' }
         "500": { $ref: '#/components/responses/Response500' }
         "503": { $ref: '#/components/responses/Response503' }
-      x-error-codes: [VALIDATION_EMPTY_QUERY, VALIDATION_QUERY_TOO_LONG, VALIDATION_MALFORMED_BODY, ENTITY_NOT_FOUND, CANNOT_CONFIRM, CLARIFICATION_REQUIRED, INTENT_NOT_SUPPORTED, PROVIDER_UNAVAILABLE, CLOCK_UNAVAILABLE, LLM_UNAVAILABLE, LLM_PROSE_REJECTED, AUDIT_WRITE_FAILED]
+      x-error-codes: [VALIDATION_EMPTY_QUERY, VALIDATION_QUERY_TOO_LONG, VALIDATION_MALFORMED_BODY, ENTITY_NOT_FOUND, CANNOT_CONFIRM, CLARIFICATION_REQUIRED, ACTION_REFUSED, VALIDATION_BAD_ACTION, INTENT_NOT_SUPPORTED, PROVIDER_UNAVAILABLE, CLOCK_UNAVAILABLE, LLM_UNAVAILABLE, LLM_PROSE_REJECTED, AUDIT_WRITE_FAILED]
+
+  /api/v1/copilot/chat:
+    post:
+      operationId: copilot_chat
+      tags: [copilot]
+      summary: copilot_chat — POST /api/v1/copilot/chat (Impl-2 annex 12.4 inbound)
+      description: >
+        Annex 12.4 entry point. A thin route over the same use cases as `copilot_query`: it opens a
+        session for the operator and submits `query` in it. A destructive request is refused with the
+        canonical `Action refused.` (`ACTION_REFUSED`, 200); the dry-run summary and the gate token
+        are added by story 2.2.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CopilotChatRequest' }
+      responses:
+        "200":
+          description: AnswerEnvelope, or a canonical 200 ErrorBody (same as copilot_query).
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - { $ref: '#/components/schemas/AnswerEnvelope' }
+                  - { $ref: '#/components/schemas/ErrorBody' }
+        "400": { $ref: '#/components/responses/Response400' }
+        "500": { $ref: '#/components/responses/Response500' }
+        "503": { $ref: '#/components/responses/Response503' }
+      x-error-codes: [VALIDATION_EMPTY_QUERY, VALIDATION_QUERY_TOO_LONG, VALIDATION_MALFORMED_BODY, VALIDATION_BAD_ACTION, ENTITY_NOT_FOUND, CANNOT_CONFIRM, CLARIFICATION_REQUIRED, ACTION_REFUSED, INTENT_NOT_SUPPORTED, PROVIDER_UNAVAILABLE, CLOCK_UNAVAILABLE, LLM_UNAVAILABLE, LLM_PROSE_REJECTED, AUDIT_WRITE_FAILED]
 
   /api/v1/sessions/{sid}:
     get:
@@ -782,6 +811,11 @@ components:
       required: [query_text]
       properties: { query_text: { $ref: '#/components/schemas/QueryText' } }
     CopilotQueryRequest:
+      type: object
+      additionalProperties: false
+      required: [query]
+      properties: { query: { $ref: '#/components/schemas/QueryText' } }
+    CopilotChatRequest:
       type: object
       additionalProperties: false
       required: [query]
