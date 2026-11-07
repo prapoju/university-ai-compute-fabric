@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from src.domain import canonical_strings as cs
+from src.domain import safety
 from src.domain.intent import Clarify, Routed, classify, normalise_query
 from src.domain.safety import (
     INTENT_CODE,
@@ -60,6 +61,29 @@ def test_case_does_not_matter(query: str) -> None:
 @pytest.mark.parametrize("query", ["nuke group 2 jobs", "obliterate everything", "hello"])
 def test_a_word_outside_the_table_is_not_a_destructive_intent(query: str) -> None:
     assert parsed(query) is None
+
+
+# -- the two verb lists must not drift apart (review P-3) ----------------------------------------
+# ``intent._DESTRUCTIVE`` decides that a query is destructive and ``safety._VERB_FORMS`` decides
+# which verb it is. A verb in only one of them would be silently unrouted or unparsed.
+_TABLE = sorted(safety._FORM_TO_VERB)
+_FORMS_THAT_ASK = [w for w in _TABLE if not w.endswith("ed")]
+_PARTICIPLES = [w for w in _TABLE if w.endswith("ed")]
+
+
+@pytest.mark.parametrize("form", _FORMS_THAT_ASK)
+def test_every_base_third_person_and_ing_form_of_the_table_is_routed(form: str) -> None:
+    assert classify(f"{form} the jobs of group 2", []) == Routed(INTENT_CODE, RULE_ID)
+
+
+@pytest.mark.parametrize("form", _PARTICIPLES)
+def test_every_participle_of_the_table_is_routed_when_a_request_asks_for_it(form: str) -> None:
+    assert classify(f"have the jobs of group 2 {form}", []) == Routed(INTENT_CODE, RULE_ID)
+
+
+@pytest.mark.parametrize("form", _PARTICIPLES)
+def test_a_bare_participle_is_a_report_and_is_not_routed(form: str) -> None:
+    assert classify(f"the jobs of group 2 were {form}", []) == Clarify(cs.R_NO_INTENT)
 
 
 # -- targets: typed, numbered, node ids and a bare word after for/of ----------------------------
