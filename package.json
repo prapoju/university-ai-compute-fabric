@@ -6,7 +6,9 @@
     "doc": "docs",
     "test": "tests"
   },
-  "scripts": {},
+  "scripts": {
+    "test": "playwright test"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
