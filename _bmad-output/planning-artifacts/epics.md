@@ -342,7 +342,7 @@ So that a slip of the keyboard can never mutate the estate.
 **Files:** `service/core/dry_run.py`, `api/routes/destructive.py`.
 **Schema/DTO:** `DryRunSnapshotDTO`, `ProposalDTO`; SQL `proposals.selector`, `affected_items`.
 **ATDD path:** `test/atdd/module12_contracts.test.py::test_post_dry_run_*`, `::test_propose_destructive_action_qfail_empty_affected_set_disables_confirm`.
-**DoD:** 100% of pending CS201 jobs enumerated with per-item actionable status; selector + snapshot timestamp persisted and re-executable; empty set renders `0 affected items` with confirmation disabled (`DRY_RUN_EMPTY_SET`); unresolved target → `S_ENF` before dry-run.
+**DoD:** 100% of the target's affected jobs enumerated with per-item actionable status (Annex: the 3 running jobs of `group#CS-101`); selector + snapshot timestamp persisted and re-executable; empty set renders `0 affected items` with confirmation disabled (`DRY_RUN_EMPTY_SET`); unresolved target → `S_ENF` before dry-run.
 
 As Nadia,
 I want to see every item the action would touch before anything is proposed,
@@ -352,7 +352,7 @@ So that the full scope is visible before I decide.
 
 **Given** the Dry-Run Builder persists both the affected-item set (per item: id + actionable status) and the selector predicate (exact provider method + parameters) plus a snapshot timestamp, and issues a per-proposal opaque gate token
 **When** a destructive intent is refused and I request the dry-run via `POST /api/v1/destructive/dry-runs`
-**Then** the dry-run enumerates every pending CS201 job (100%) with per-item status, and the snapshot retains the selector so it can be re-executed at confirmation time — never re-derived from query text (FR-09, AD-6)
+**Then** the dry-run enumerates every affected job (100%) with per-item status (for `Terminate all active jobs for CS-101`, the three running jobs of `group#CS-101`; for `delete all pending jobs for group 2`, every pending job of `group#group-2`), and the snapshot retains the selector so it can be re-executed at confirmation time — never re-derived from query text (FR-09, AD-6)
 **And** an empty affected set renders `0 affected items` with confirmation disabled (`DRY_RUN_EMPTY_SET`); an unresolved target renders `Entity Not Found in State` before any dry-run (AD-4)
 
 ### Story 2.3: Procedural confirmation gate and snapshot re-validation
