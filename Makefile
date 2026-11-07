@@ -1,4 +1,4 @@
-# Module 12 — TEA quality gate (local mirror of test/ci/quality-gate.yml).
+# Module 12 — TEA quality gate (local mirror of .github/workflows/quality-gate.yml).
 # Uses '.RECIPEPREFIX = >' so recipes are indented with '>' (no hard tabs needed).
 .RECIPEPREFIX = >
 PY ?= python3

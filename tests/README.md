@@ -137,5 +137,6 @@ goal for prose and rendering.
   the fake prose adapter, `http_req_failed == 0`, `checks == 1.0`), exported to
   `docs/evidence/impl2/` (§6.3.5).
 - `tests/e2e/`: browser specs and page objects for the React console (story 1-7, §6.3.7).
-- CI: `test/ci/quality-gate.yml` does not yet match `make ci` (it still runs `red-phase` and has
-  no e2e or k6 step). Owned by `/bmad-testarch-ci` (TG-I2-5).
+- CI: `.github/workflows/quality-gate.yml` mirrors `make ci`: a banned-wait grep, ruff +
+  branch coverage, schema checks, k6 (every `tests/nfr/*.js`, summaries uploaded) and
+  Playwright with `--trace on --fail-on-flaky-tests` (TG-I2-5).
