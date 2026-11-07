@@ -207,6 +207,7 @@ class JobRecordDTO(_DTO):
     status: Literal["pending", "running", "succeeded", "cancelled", "failed"]
     scheduling_constraint: Optional[str] = None
     created_at: Instant
+    node: Optional[str] = None  # the node a running job occupies, null when it has none (story 2.2)
 
 
 class NodeRecordDTO(_DTO):

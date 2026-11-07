@@ -33,6 +33,8 @@ def fixture_records() -> list[tuple[str, str, dict]]:
 
 
 ALL_RECORDS = fixture_records()
+# a field the DTO defaults when the fixture record leaves it out: the API renders it, as null
+DTO_DEFAULTS = {"jobs": {"node": None}}  # story 2.2: a job with no node is listed with a null node
 
 
 @pytest.fixture(scope="module")
@@ -52,7 +54,8 @@ def test_the_sample_covers_every_record_of_every_fixture_file() -> None:
 def test_every_record_is_rendered_field_for_field(client, route, bare, record) -> None:
     response = client.get(f"{STATE}/{route}/{quote(bare, safe='')}")
     assert response.status_code == 200
-    assert response.json() == record  # the bare record (D7), 100% of the sample
+    # the bare record (D7), 100% of the sample, with the DTO defaults the fixture leaves out
+    assert response.json() == {**DTO_DEFAULTS.get(route, {}), **record}
 
 
 def test_an_absent_record_is_a_404_with_the_canonical_literal(client) -> None:

@@ -578,6 +578,7 @@ components:
         status: { type: string, enum: [pending, running, succeeded, cancelled, failed] }
         scheduling_constraint: { type: [string, "null"] }
         created_at: { $ref: '#/components/schemas/Instant' }
+        node: { type: [string, "null"] }
     NodeRecord:
       type: object
       additionalProperties: false

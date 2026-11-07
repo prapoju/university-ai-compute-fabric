@@ -64,8 +64,16 @@ def _read(backing: Backing, fn: Callable[[RecordStore[Any]], Result[Any]]) -> Re
     return backing if isinstance(backing, Failure) else fn(backing)
 
 
+def _same(actual: object, wanted: object) -> bool:
+    """Exact-type equality; a list ``wanted`` means "one of" (story 2.2 D4)."""
+    if isinstance(wanted, list):
+        return any(type(actual) is type(w) and actual == w for w in wanted)
+    # exact type match: Python's == would let True match 1 and 1.0 match 1
+    return type(actual) is type(wanted) and actual == wanted
+
+
 def _select(backing: Backing, selector: SelectorDTO) -> Result[list[Any]]:
-    """Equality filter over record fields; ordered by id, bounded by ``SELECT_CAP``."""
+    """Equality filter over record fields (a list value is "one of"); ordered by id, capped."""
 
     def run(store: RecordStore[Any]) -> Result[list[Any]]:
         if selector.method != SELECT_METHOD:
@@ -77,12 +85,7 @@ def _select(backing: Backing, selector: SelectorDTO) -> Result[list[Any]]:
         if unknown:
             return Failure("VALIDATION_MALFORMED_BODY", observed=(f"unknown fields: {unknown}",))
         wanted = selector.params
-        # exact type match: Python's == would let True match 1 and 1.0 match 1
-        matching = [
-            r
-            for r in records
-            if all(type(getattr(r, k)) is type(v) and getattr(r, k) == v for k, v in wanted.items())
-        ]
+        matching = [r for r in records if all(_same(getattr(r, k), v) for k, v in wanted.items())]
         return Ok(matching[:SELECT_CAP])
 
     return _read(backing, run)
@@ -198,7 +201,10 @@ class SimNodes(NodesPort):
         return _read(self._backing, lambda s: s.get(node_id))
 
     def select(self, selector: SelectorDTO) -> Result[list[NodeRecordDTO]]:
-        return _select(self._backing, selector)
+        params = dict(selector.params)
+        if "node_ids" in params:  # D55: the resolved target_refs of a node action
+            params["id"] = params.pop("node_ids")
+        return _select(self._backing, SelectorDTO(method=selector.method, params=params))
 
     def browse(self, q: str, page: int, page_size: int) -> Result[list[NodeRecordDTO]]:
         return _read(self._backing, lambda s: s.browse(q, page, page_size))

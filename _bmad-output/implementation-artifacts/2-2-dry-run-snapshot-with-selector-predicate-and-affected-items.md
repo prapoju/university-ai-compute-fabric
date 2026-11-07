@@ -4,7 +4,7 @@ baseline_commit: 01f74d5
 
 # Story 2.2: Dry-run snapshot with selector predicate and affected items
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Impl-2 Flow A (ATDD-first), Annex 12.4, second of four stories (2-1 .. 2-4). The red phase is
      recorded BEFORE any production code. This story builds the dry-run: the selector, the affected
@@ -47,15 +47,15 @@ Source: `planning/epics.md` Story 2.2 (amended, see D10), `test/test-design.md` 
 
 Flow A. Task 1 is the **red phase** and it ends at a hard stop: nothing in `src/`, `fixtures/`, `planning/detailed-design/` or `migrations/` changes until the red log is committed.
 
-- [ ] **Task 1: ATDD red phase** (AC: 1-17) -> `test(story-2.2): ATDD red phase, recorded before production code`
-  - [ ] 1.1 Run `/bmad-testarch-atdd` (Murat) with the prompt of guide D.2. Write `tests/atdd/test_story_2_2.py` against the real app (file DB under `tmp_path`, `TestClient(create_app(...), raise_server_exceptions=False)`), covering the "ATDD cases" below. No `skip`, no `xfail`.
-  - [ ] 1.2 Run `pytest tests/atdd/test_story_2_2.py -q --tb=short 2>&1 | tee docs/evidence/impl2/red-2-2.log`. Every failure must be an assertion on missing behaviour, never an import, fixture or syntax error. A case that already passes is kept unchanged and labelled `regression guard`.
-  - [ ] 1.3 Run `ruff check` on the new file **before** the official run (story 2.1: the log must match the committed file). Show the user the full log and **stop**. Commit only `tests/atdd/test_story_2_2.py`, the log and the ATDD checklist, after the user confirms.
-- [ ] **Task 2: Fixtures, the `node` field and the select vocabulary** (AC: 2, 4, 8, 15) -> `feat(story-2.2): group CS-101, the job node field and the select vocabulary`
-  - [ ] 2.1 `fixtures/estate/groups.json`: add `group#CS-101` (name `CS-101`, no members). `fixtures/estate/jobs.json`: add `job#job-8901`, `job#job-8902`, `job#job-8903` (`group_id` `group#CS-101`, `course` `CS101`, `status` `running`, `node` `node#ws-gpu-02`, `node#ws-gpu-05`, `node#ws-gpu-08`). Do not touch any existing record.
-  - [ ] 2.2 `JobRecordDTO` gains `node: Optional[str] = None`. Change **both** `src/dto.py` and `planning/detailed-design/schemas/dto.py` in the same commit (they must stay byte-identical), `contracts.md` section 0.3 (`JobRecord`) and the `JobRecord` schema of `openapi.yaml`.
-  - [ ] 2.3 The simulated `NodesPort.select` understands `node_ids` (D4) and a list value in any `select` parameter means "one of" (exact type per element); scalar parameters keep the exact-equality rule. Amend `contracts.md` OP-6 / D55 and the `jobs_port`/`nodes_port` vocabulary note accordingly.
-  - [ ] 2.4 `tests/api/test_state_api.py::test_every_record_is_rendered_field_for_field` compares each state record with the fixture JSON, and the API will render `node: null` for the six existing jobs that have no `node` key. Decide in the development step between spelling `"node": null` in the existing job records (no semantic change) and making the test apply the DTO defaults; either way say so in the log (plan T-06). Update the tests that pin the old record counts (`tests/unit/test_fixture_estate.py`, `tests/unit/test_story_1_1_estate_ports.py`, the `/state` totals) **deliberately**, and say so in the Debug Log and the decision log (plan T-06).
+- [x] **Task 1: ATDD red phase** (AC: 1-17) -> `test(story-2.2): ATDD red phase, recorded before production code`
+  - [x] 1.1 Run `/bmad-testarch-atdd` (Murat) with the prompt of guide D.2. Write `tests/atdd/test_story_2_2.py` against the real app (file DB under `tmp_path`, `TestClient(create_app(...), raise_server_exceptions=False)`), covering the "ATDD cases" below. No `skip`, no `xfail`.
+  - [x] 1.2 Run `pytest tests/atdd/test_story_2_2.py -q --tb=short 2>&1 | tee docs/evidence/impl2/red-2-2.log`. Every failure must be an assertion on missing behaviour, never an import, fixture or syntax error. A case that already passes is kept unchanged and labelled `regression guard`.
+  - [x] 1.3 Run `ruff check` on the new file **before** the official run (story 2.1: the log must match the committed file). Show the user the full log and **stop**. Commit only `tests/atdd/test_story_2_2.py`, the log and the ATDD checklist, after the user confirms.
+- [x] **Task 2: Fixtures, the `node` field and the select vocabulary** (AC: 2, 4, 8, 15) -> `feat(story-2.2): group CS-101, the job node field and the select vocabulary`
+  - [x] 2.1 `fixtures/estate/groups.json`: add `group#CS-101` (name `CS-101`, no members). `fixtures/estate/jobs.json`: add `job#job-8901`, `job#job-8902`, `job#job-8903` (`group_id` `group#CS-101`, `course` `CS101`, `status` `running`, `node` `node#ws-gpu-02`, `node#ws-gpu-05`, `node#ws-gpu-08`). Do not touch any existing record.
+  - [x] 2.2 `JobRecordDTO` gains `node: Optional[str] = None`. Change **both** `src/dto.py` and `planning/detailed-design/schemas/dto.py` in the same commit (they must stay byte-identical), `contracts.md` section 0.3 (`JobRecord`) and the `JobRecord` schema of `openapi.yaml`.
+  - [x] 2.3 The simulated `NodesPort.select` understands `node_ids` (D4) and a list value in any `select` parameter means "one of" (exact type per element); scalar parameters keep the exact-equality rule. Amend `contracts.md` OP-6 / D55 and the `jobs_port`/`nodes_port` vocabulary note accordingly.
+  - [x] 2.4 `tests/api/test_state_api.py::test_every_record_is_rendered_field_for_field` compares each state record with the fixture JSON, and the API will render `node: null` for the six existing jobs that have no `node` key. Decide in the development step between spelling `"node": null` in the existing job records (no semantic change) and making the test apply the DTO defaults; either way say so in the log (plan T-06). Update the tests that pin the old record counts (`tests/unit/test_fixture_estate.py`, `tests/unit/test_story_1_1_estate_ports.py`, the `/state` totals) **deliberately**, and say so in the Debug Log and the decision log (plan T-06).
 - [ ] **Task 3: Pure dry-run rules** (AC: 3, 4, 5, 6, 8, 12) -> `feat(story-2.2): dry-run selector, items and summary rules`
   - [ ] 3.1 `src/domain/dry_run.py` (new, pure): `build_selector(action, target)` (D2, D3), `enumerate_items(action, records)` with the actionable rules of D5, `impact_summary(action, records)` (exact wording below) and `token_expiry(snapshot, ttl_seconds)` over the existing instant helpers. No I/O, no clock, no adapter import.
   - [ ] 3.2 Unit tests for each rule, including: group, job and node targets, fleet scopes, the three statuses, a terminal job, a `fault` node, an empty set, a job without a node, the pluralisation and the node list order.
