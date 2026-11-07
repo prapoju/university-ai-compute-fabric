@@ -450,6 +450,7 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 | I2-16 | Code review + test audit of story 1.5 | **Correction (code defect)**, **Correction (test)** | Redaction missed quoted, JSON, Basic and hyphenated forms; the ATDD redaction case could not fail; five more test gaps closed after 26 mutants (7 survived, 3 real); one AI finding withdrawn as a false positive | Juan |
 | I2-17 | Story 4.2 · Flow B build, review and test audit | Decision, **Correction (test)** | Safe failure already worked: the story became an API fault matrix (25 cases, no production change); a liveness assertion that could not fail was replaced; two latent findings deferred | Juan |
 | I2-18 | Story 2.1 · create story (Flow A) | Decision | `cs201` is not an entity so it answers Entity Not Found and the AC example becomes `group 2`; fleet-wide scope is refused by its verb; `/copilot/chat` is a thin route; plan D-P1 applied | Pending |
+| I2-19 | Story 2.1 · red phase, green phase and mutation check (Flow A) | Decision, **Correction (test)** | The first genuine ATDD red log (51 failed, 4 guards) was committed before any code; three Impl-1 tests that encoded the pre-2.1 state were made stricter; 12 mutants killed | Juan |
 
 ## I2-01..I2-09 - Shift-left review of the Impl-2 plan  *(planning text)*
 - **Phase:** before any Impl-2 code, 2026-11-06. Party-mode review (Winston, architect; Murat, test architect) of `docs/impl2-rules.md`
@@ -935,3 +936,40 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 - **Outcome:** story 2.1 is `ready-for-dev` and epic 2 is `in-progress` in both `sprint-status.yaml` copies. No test or production code yet.
   The next step is the ATDD red phase: write the tests, run them, save `docs/evidence/impl2/red-2-1.log`, show it to the user and wait for
   confirmation before the red commit.
+
+## I2-19 - Story 2.1: the first real red phase, and three Impl-1 tests that had to move  *(decision, and corrections of tests)*
+- **Date / phase:** 2026-11-07, `bmad-testarch-atdd` then `bmad-dev-story` for story 2.1 (Flow A), baseline `77ff977`. Full text in
+  `_bmad-output/implementation-artifacts/2-1-destructive-intent-classification-and-refusal.md`.
+- **Prompt (intent):**
+  1. The guide's red-phase prompt D.2: write `tests/atdd/test_story_2_1.py` against the real app, run it, save `docs/evidence/impl2/red-2-1.log`,
+     check that every failure is missing behaviour, show the output and wait.
+  2. "si, confirmo" (the red log), which the AI read as the confirmation to commit the red phase and then develop the story. The same reply
+     also covered a question about pushing, which was **not** answered, so nothing was pushed.
+- **AI output, red phase:** 55 cases, 51 failed and 4 passed (the 4 are labelled regression guards). Every failure was an assertion on missing
+  behaviour (`CLARIFICATION_REQUIRED` instead of `ACTION_REFUSED`, 404 on `POST /copilot/chat`, 200 instead of 400, ...). 0 import, fixture
+  or syntax errors. Committed as `fe2df33`, with no production code before it. `git diff fe2df33 -- tests/atdd/test_story_2_1.py` is empty after
+  the green phase.
+- **AI output, green phase:** `domain.safety` (verb table, targets, fleet scope, compound rule), the routing in `intent.py`, a refusal handler
+  with read-only ports, `EntityResolver.resolve_target` and `POST /copilot/chat` in the contract. `pytest` 1596 passed, branch coverage of `src`
+  97.21%.
+- **Mutation:** 12 mutants of the story's guards, each killed; the ATDD file alone kills 10 and the unit tests the other 2.
+- **Review (Juan):** confirmed the red log. The decisions D1-D8 of the story (I2-18) still have `Reviewer: Pending`.
+- **Correction (test), three Impl-1 test cases changed.** They encoded the state before this story and failed once the refusal existed:
+  - `tests/unit/test_intent.py::test_a_destructive_only_query_is_never_routed_to_a_diagnosis` (2 cases) asserted only `isinstance(decision, Clarify)`,
+    with the comment "refusal/dry-run is story 2.1; until then: no route". It now asserts the exact `Routed("propose_destructive_action", ...)`.
+  - `tests/api/test_copilot_query.py::test_a_destructive_request_is_refused_not_executed` accepted `CLARIFICATION_REQUIRED` **or** `ACTION_REFUSED`
+    and named `CS201`. It now names `group 2` and asserts exactly `ACTION_REFUSED` and the literal. Both edits are stricter, none weakens an assertion.
+- **AI slips:**
+  - **A formatter run that damaged two files.** `ruff format src` reformatted `src/dto.py` (which must stay a verbatim copy of the contract) and
+    `session_store.py`, and the verbatim-copy test failed. Both were restored with `git checkout` before any commit. The 1.4 notes had already
+    warned about running the formatter over `dto.py`.
+  - **A first red file that `ruff` rejected.** Four lines were over 100 characters, so the red run had to be repeated after shortening them, to keep
+    the log and the committed file identical. No assertion changed.
+  - **Tasks 2 and 3 in one commit.** The story asked for one commit per task; routing to a handler that did not exist yet would have broken an Impl-1
+    test between them.
+  - **The status skipped `in-progress`.** `sprint-status.yaml` went from `ready-for-dev` to `review` without an intermediate write.
+- **Open points for the user:**
+  - The full suite was red by design between `fe2df33` and `ad81aad` (the ATDD file existed before the code). Pushing only the red commit would
+    show a red CI, so the push should include the green commits.
+  - Story 2-2 must still decide how "every pending CS201 job" is selected, now that `cs201` does not resolve (I2-18).
+- **Outcome:** story 2.1 is `review` in the story file and in both `sprint-status.yaml` copies; the ATDD file passes unedited.
