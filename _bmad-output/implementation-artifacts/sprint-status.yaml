@@ -79,8 +79,8 @@ development_status:
   1-8-inspector-audit-and-safety-console-surfaces: backlog
   epic-1-retrospective: optional
 
-  epic-2: backlog
-  2-1-destructive-intent-classification-and-refusal: backlog
+  epic-2: in-progress
+  2-1-destructive-intent-classification-and-refusal: ready-for-dev
   2-2-dry-run-snapshot-with-selector-predicate-and-affected-items: backlog
   2-3-procedural-confirmation-gate-and-snapshot-re-validation: backlog
   2-4-propose-only-handoff-simulated-executor-and-executor-failure-safety: backlog
