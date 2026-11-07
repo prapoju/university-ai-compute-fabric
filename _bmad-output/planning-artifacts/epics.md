@@ -328,7 +328,7 @@ So that a slip of the keyboard can never mutate the estate.
 **Acceptance Criteria:**
 
 **Given** the safety guardrail classifies destructive/mutating intents (`delete`, `cancel`, `drain`, `cordon`) from the registered taxonomy
-**When** I submit `delete all pending jobs for cs201`
+**When** I submit `delete all pending jobs for group 2`
 **Then** the Copilot classifies the intent as destructive, refuses direct execution with the literal `Action refused.` (`ACTION_REFUSED`), and copilot-originated writes to simulated state = 0 (FR-09, NFR-8)
 **And** a compound query containing any destructive verb routes to clarification, never decomposition; the refusal turn is recorded in session context like any other turn (FR-01, AD-4)
 **And** the target resolves via `resolve_entities` before the refusal completes; an unresolved target returns `Entity Not Found in State` (AD-4)
