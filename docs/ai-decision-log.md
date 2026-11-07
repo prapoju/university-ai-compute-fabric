@@ -449,6 +449,7 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 | I2-15 | Story 1.5 · create story | Decision | Turn audit atomic with the `Answer`; session-less reads not audited; tool metadata in `result_summary`; bare state record; `browse` on windows/events; browse `total` by paging (D1-D9) | Julio |
 | I2-16 | Code review + test audit of story 1.5 | **Correction (code defect)**, **Correction (test)** | Redaction missed quoted, JSON, Basic and hyphenated forms; the ATDD redaction case could not fail; five more test gaps closed after 26 mutants (7 survived, 3 real); one AI finding withdrawn as a false positive | Juan |
 | I2-17 | Story 4.2 · Flow B build, review and test audit | Decision, **Correction (test)** | Safe failure already worked: the story became an API fault matrix (25 cases, no production change); a liveness assertion that could not fail was replaced; two latent findings deferred | Juan |
+| I2-18 | Story 2.1 · create story (Flow A) | Decision | `cs201` is not an entity so it answers Entity Not Found and the AC example becomes `group 2`; fleet-wide scope is refused by its verb; `/copilot/chat` is a thin route; plan D-P1 applied | Pending |
 
 ## I2-01..I2-09 - Shift-left review of the Impl-2 plan  *(planning text)*
 - **Phase:** before any Impl-2 code, 2026-11-06. Party-mode review (Winston, architect; Murat, test architect) of `docs/impl2-rules.md`
@@ -898,3 +899,39 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
   `ruff check .` clean, `test/ci/schema_check.py` PASS, both `sprint-status.yaml` copies identical. No production code changed.
   Logs: `docs/evidence/impl2/flow-b-4-2-coverage.log` and `flow-b-4-2-review-coverage.log`. Story 4.2 is `done` in the story file
   and in both `sprint-status.yaml` copies.
+
+## I2-18 - Story 2.1: a target that cannot resolve, and what the task statement really asks  *(decision, proposed by the AI)*
+- **Date / phase:** 2026-11-07, `bmad-create-story` for story 2.1 (Flow A) from baseline `77ff977`, before any test or code. Full text in
+  `_bmad-output/implementation-artifacts/2-1-destructive-intent-classification-and-refusal.md`.
+- **Prompt (intent):**
+  1. "si, arranca con E-03" (guide stage E-03: the first Flow A story).
+  2. After the AI asked a blocking question about `cs201`: "Esperate un momento ... Revisa si estas cumpliendo con lo que se pidio en el PDF".
+  3. "Tu continua con lo pendiente apegandote a la rubrica de la tarea."
+  4. Standing instructions: apply the recommended option of D-P1 to D-P7 (except D-P6) and log it; one commit per change; no `Co-Authored-By`.
+- **What the AI found:** the Story 2.1 acceptance criteria, the test design (6.3.1) and the plan (T-03) use `delete all pending jobs for cs201` and
+  expect `Action refused.`, but the same story requires the target to resolve before the refusal (AD-7). The fixtures hold no `cs201` entity
+  (`course` is a field of a job, review F-2). The `cordon entire lab` case has the same shape. The AI stopped and asked; the user asked it to
+  check the task PDF first.
+- **What the task PDF says (pages 30-31):** only the path `POST /api/v1/copilot/chat` and the scenario "Terminate all active jobs for CS-101"
+  (refuse, dry-run summary, a 60 s single-use token, state unchanged). No request or response schema. `Delete all pending jobs` and
+  `Cordon entire lab` appear only as examples of requests to intercept. `cs201` is not in the PDF; it comes from the project's own PRD (UJ-4).
+- **Decisions applied by the AI, following the rubric (Reviewer pending, the user may override before the red phase is committed):**
+  - **D1:** `/copilot/chat` takes `{ "query": "..." }` and answers what `/copilot/query` answers (no schema in the PDF; precedent AD-26).
+  - **D2:** `cs201` answers `Entity Not Found in State` (AD-7). The first scenario of Story 2.1 in both `epics.md` copies now says `group 2`
+    (commit `32c192c`). `test/test-design.md` 6.3.1 and the plan still say `cs201` and were not edited. Story 2-2 must still decide how
+    "every pending CS201 job" is selected, because no group owns those jobs.
+  - **D3:** fleet-wide scope phrases (`entire lab`, `all nodes`, no target at all) are refused by their verb without resolving an entity, as the
+    PDF's examples ask.
+  - **D4-D5, D7-D8:** verb synonyms, the compound-query rule, a wrong-kind target as a 400, and no `toolcall.propose_destructive_action` event
+    before a proposal exists. See the story.
+  - **D6 (plan D-P1, applied as the user's standing instruction):** 2-1 creates `/copilot/chat` with the refusal; the dry-run summary and the
+    token move to 2-2. The test design rows that need them move to 2-2 and 2-3. The PDF scenario is complete only when 2-2 lands, so the red
+    phase of 2-1 must not be presented as coverage of that scenario.
+- **AI slips:**
+  - The AI first asked two multiple-choice questions before reading the PDF, and recommended creating a `group#CS201` fixture. After reading
+    the PDF it changed the recommendation, because `cs201` does not come from the task statement and a fixture adds work to 2-2.
+  - Before this check the AI had read only pages 30-34 of the PDF (the Annex). The deliverables, the checklist and the rubric (pages 1-10) were
+    read only after the user asked.
+- **Outcome:** story 2.1 is `ready-for-dev` and epic 2 is `in-progress` in both `sprint-status.yaml` copies. No test or production code yet.
+  The next step is the ATDD red phase: write the tests, run them, save `docs/evidence/impl2/red-2-1.log`, show it to the user and wait for
+  confirmation before the red commit.
