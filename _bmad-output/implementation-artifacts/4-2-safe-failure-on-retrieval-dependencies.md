@@ -4,7 +4,7 @@ baseline_commit: d468b55
 
 # Story 4.2: Safe failure on retrieval dependencies
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Impl-2 foundations story, Flow B (test-along): code and its tests ship in the same commit.
      Audit on 2026-11-07 (see "What already holds"): every behaviour this story asks for already works
@@ -35,11 +35,11 @@ Source: `planning/epics.md` Story 4.2 (three ACs), refined below into checkable 
 
 Flow B: each task's code and its tests are one commit. Do not commit code without its tests. A production change is allowed only when a matrix case is red against it (record that in the Debug Log); otherwise the story changes only `tests/`.
 
-- [ ] **Task 1: Fault-injection helper and the API fault matrix for the two turns** (AC: 1, 2, 4, 5) -> `test(story-4.2): API fault matrix for the retrieval ports`
-  - [ ] 1.1 `tests/support/faults.py` (new). A small `PortFault` switch with `down()` and `recover()` and a `mode` of `"failure"` (returns `Failure("PROVIDER_UNAVAILABLE", observed=("simulated outage",))`) or `"raises"` (raises `RuntimeError`). `install(monkeypatch, cls, method, fault)` replaces `cls.method` on the **Sim adapter class** with a wrapper that consults the switch and otherwise calls the original. See "Fault injection technique" for why the patch must happen before `create_app`. Export nothing from `tests/support/__init__.py` (import it as `from support.faults import ...`, like `support.clock` in `tests/unit/test_fake_clock.py`).
-  - [ ] 1.2 `tests/api/test_safe_failure.py` (new, marker `api`). Build the app with `create_app(Settings.from_env({"M12_DB_PATH": str(tmp_path / "m12.db")}))` and `TestClient(app, raise_server_exceptions=False)`. One parametrised test over the 8 read points x `("failure", "raises")` (16 cases) asserting AC 1, 2 and 4, then lifting the fault and asserting AC 5. Query per row: S1 for the four S1 ports, `Why was student Alex denied access to model deepseek-coder under policy#catalog.4.2?` for `policy.get`, S2 for the three S2 ports. The exact queries come from `docs/impl2-rules.md` and the existing API tests.
-  - [ ] 1.3 The "nothing persisted" check reads `app.state.container.writer` (`with writer.read() as db`), as `tests/api/test_audit_api.py::retained` does. The "context unchanged" check uses `GET /sessions/{sid}`. The "LLM not called" check reads `container.port(LlmProsePort).call_count`.
-  - [ ] 1.4 The recovery assertions compare the 200 body with a baseline taken from a clean second app (same fixtures), not with hard-coded text: same `diagnosis_class`, `[c.text for c in claims]`, citation ids except `clock#...`, plus `claim_id == clm-%016x` for 1..n and the audit page ids starting at `aud-…01`.
+- [x] **Task 1: Fault-injection helper and the API fault matrix for the two turns** (AC: 1, 2, 4, 5) -> `test(story-4.2): API fault matrix for the retrieval ports`
+  - [x] 1.1 `tests/support/faults.py` (new). A small `PortFault` switch with `down()` and `recover()` and a `mode` of `"failure"` (returns `Failure("PROVIDER_UNAVAILABLE", observed=("simulated outage",))`) or `"raises"` (raises `RuntimeError`). `install(monkeypatch, cls, method, fault)` replaces `cls.method` on the **Sim adapter class** with a wrapper that consults the switch and otherwise calls the original. See "Fault injection technique" for why the patch must happen before `create_app`. Export nothing from `tests/support/__init__.py` (import it as `from support.faults import ...`, like `support.clock` in `tests/unit/test_fake_clock.py`).
+  - [x] 1.2 `tests/api/test_safe_failure.py` (new, marker `api`). Build the app with `create_app(Settings.from_env({"M12_DB_PATH": str(tmp_path / "m12.db")}))` and `TestClient(app, raise_server_exceptions=False)`. One parametrised test over the 8 read points x `("failure", "raises")` (16 cases) asserting AC 1, 2 and 4, then lifting the fault and asserting AC 5. Query per row: S1 for the four S1 ports, `Why was student Alex denied access to model deepseek-coder under policy#catalog.4.2?` for `policy.get`, S2 for the three S2 ports. The exact queries come from `docs/impl2-rules.md` and the existing API tests.
+  - [x] 1.3 The "nothing persisted" check reads `app.state.container.writer` (`with writer.read() as db`), as `tests/api/test_audit_api.py::retained` does. The "context unchanged" check uses `GET /sessions/{sid}`. The "LLM not called" check reads `container.port(LlmProsePort).call_count`.
+  - [x] 1.4 The recovery assertions compare the 200 body with a baseline taken from a clean second app (same fixtures), not with hard-coded text: same `diagnosis_class`, `[c.text for c in claims]`, citation ids except `clock#...`, plus `claim_id == clm-%016x` for 1..n and the audit page ids starting at `aud-…01`.
 - [ ] **Task 2: Clock failures, `/copilot/query` and the session-less routes** (AC: 3, 4, 6, 7) -> `test(story-4.2): clock, copilot/query and read-route failures`
   - [ ] 2.1 Clock, S1 and S2, `fail()` and a raising `SimClock.now` (patched before `create_app`): 503 with `CLOCK_UNAVAILABLE` / `PROVIDER_UNAVAILABLE`, `cs.S_PUA`, 0 rows, `turns == []`. `POST /sessions` with the clock down stays 503. The existing `test_a_failed_clock_is_a_503_that_never_fabricates_a_window` (S2, `tests/api/test_window_diagnosis_api.py`) stays as it is.
   - [ ] 2.2 `POST /copilot/query` (body field is `query`, not `query_text`): policy down gives 503 `PROVIDER_UNAVAILABLE`; clock down gives 503 `CLOCK_UNAVAILABLE` and `sessions` has 0 rows; after `recover()` it gives 200. With the policy down it leaves one empty session (observed 2026-11-07, see D5). Assert 0 `answers`, 0 `tool_calls`, 0 `audit_records` and do not assert the session count there.
@@ -159,14 +159,22 @@ Claude Sonnet 5.5 (`claude-sonnet-5-5`), Claude Code, `bmad-create-story`.
 ### Debug Log References
 
 - Baseline at `d468b55`: `pytest` 1393 passed, branch coverage of `src` 97.07%.
+- Task 1: the first run of the matrix failed 16/16 on my own setup error (`tmp_path / "clean"` did not exist, so SQLite could not open the file); fixed in the test with `mkdir`. No production code was involved. After that, 16 passed at once, as the story predicted (the behaviour already holds), so the matrix was checked against mutants before committing: events failure read as no events, policy failure read as no clauses, jobs failure read as no jobs, windows failure read as no windows, an ignored policy-existence check, and the global handler answering 500. Each one turns exactly the case of its read point red (the 500 mutant turns the 8 `raises` cases red); `git status` of `src` was clean after each restore.
 - Audit probes (2026-11-07, real app, file DB): 14 single-port cases and 5 clock and `/copilot/query` and `/state` cases, results in "What already holds". The first fault probe patched after `create_app` and had no effect, which is why the helper must patch before the app is built.
 
 ### Completion Notes List
 
+- **Task 1:** `tests/support/faults.py` (`PortFault`, `install`, `SimulatedOutage`) and `tests/api/test_safe_failure.py`: 8 read points x `failure`/`raises` = 16 cases through the real app on a file DB. Each case asserts AC 1, 2, 4 and 5 (the 503 with `cs.S_PUA`, `retryable`, no leaked reason, nothing fabricated in the body, 0 LLM calls, `/healthz` still 200, 0 rows in `answers`/`tool_calls`/`audit_records`, empty context, then a clean recovery equal to a healthy baseline with claim and audit ids starting at 1). No production change was needed.
 - Story context created 2026-11-07, scoped against `src/` and `tests/` at `d468b55`. Ultimate context engine analysis completed - comprehensive developer guide created.
 
 ### File List
 
+Task 1:
+- `tests/support/faults.py` (new)
+- `tests/api/test_safe_failure.py` (new)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`, `implementation-artifacts/sprint-status.yaml` (modified, `4-2` -> `in-progress`)
+- `_bmad-output/implementation-artifacts/4-2-safe-failure-on-retrieval-dependencies.md` (modified)
 ### Change Log
 
 - 2026-11-07: Story created (`bmad-create-story`). Status -> ready-for-dev.
+- 2026-11-07: Task 1 done (fault helper and the 16-case API fault matrix). Status -> in-progress.

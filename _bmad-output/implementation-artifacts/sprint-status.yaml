@@ -95,6 +95,6 @@ development_status:
 
   epic-4: in-progress
   4-1-anti-fabrication-guardrail-and-content-data-hygiene-mandatory-edge-case: done
-  4-2-safe-failure-on-retrieval-dependencies: ready-for-dev
+  4-2-safe-failure-on-retrieval-dependencies: in-progress
   4-3-safe-failure-on-the-prose-runtime-and-malformed-input: backlog
   epic-4-retrospective: optional
