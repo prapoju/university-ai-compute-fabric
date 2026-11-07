@@ -448,6 +448,7 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 | I2-14 | Code review + test audit of story 1.4 | **Correction (code defect)**, **Correction (test)** | An uncited claim passed the binding guard and the evidence route returned an undeclared 503; six story-1.4 tests strengthened so the four surviving mutants (M2-M5) now fail a story test | Julio |
 | I2-15 | Story 1.5 · create story | Decision | Turn audit atomic with the `Answer`; session-less reads not audited; tool metadata in `result_summary`; bare state record; `browse` on windows/events; browse `total` by paging (D1-D9) | Julio |
 | I2-16 | Code review + test audit of story 1.5 | **Correction (code defect)**, **Correction (test)** | Redaction missed quoted, JSON, Basic and hyphenated forms; the ATDD redaction case could not fail; five more test gaps closed after 26 mutants (7 survived, 3 real); one AI finding withdrawn as a false positive | Juan |
+| I2-17 | Story 4.2 · Flow B build, review and test audit | Decision, **Correction (test)** | Safe failure already worked: the story became an API fault matrix (25 cases, no production change); a liveness assertion that could not fail was replaced; two latent findings deferred | Juan |
 
 ## I2-01..I2-09 - Shift-left review of the Impl-2 plan  *(planning text)*
 - **Phase:** before any Impl-2 code, 2026-11-06. Party-mode review (Winston, architect; Murat, test architect) of `docs/impl2-rules.md`
@@ -839,3 +840,61 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 - **Outcome:** gate after the fixes: full `pytest` 1393 passed (1379 before), branch coverage of `src` 97.07%, `ruff check .` clean,
   `test/ci/schema_check.py` PASS, both `sprint-status.yaml` copies identical. Log: `docs/evidence/impl2/flow-b-1-5-review-coverage.log`.
   Story 1.5 is `done` in the story file and in both `sprint-status.yaml` copies.
+
+## I2-17 - Story 4.2: safe failure already worked, so the story became the proof  *(decision, and a correction of an AI-written test)*
+- **Date / phase:** 2026-11-07, after I2-16, on branch `impl-2` from baseline `d468b55`. `bmad-create-story`, `bmad-dev-story`,
+  `bmad-code-review`, then a test-trap audit with mutation. Full text in
+  `_bmad-output/implementation-artifacts/4-2-safe-failure-on-retrieval-dependencies.md`.
+- **Prompt (intent):**
+  1. "arranca con E-02" (guide stage E-02: create the story, develop it, review it).
+  2. "si, arranca con dev-story" after the AI laid out decisions D1-D6 and asked for confirmation.
+  3. "si, arranca con el code review", then "si, aplica P-1 y P-2 y sigue con D.4", then "si, aplica T-1 y T-2 y haz el cierre D.5".
+  4. Standing instruction: one commit per change, no `Co-Authored-By` line.
+- **What the AI found before writing the story:** it ran the real app with one retrieval port down at a time, typed or raised
+  (14 cases), the clock, `POST /copilot/query` and the read routes. Every case already answered 503 with the canonical literal,
+  `retryable`, no leaked reason, nothing stored (0 rows in `answers`, `tool_calls`, `audit_records`) and a clean retry. What was
+  missing was the proof: no test failed one port at a time through the real composition root, and none made a port raise.
+- **Decided by the user (Juan), D1-D6 as proposed by the AI:**
+  - **D1:** a proof story: an API fault matrix, with production code changing only if a case is red. None was.
+  - **D2:** faults are injected by patching the Sim adapter class **before** `create_app`, behind a switch (`tests/support/faults.py`).
+    No production hook was added.
+  - **D3:** "times out" means the port returns a typed failure; the wall-time budget is story 1-6.
+  - **D4:** the console banner (UX-DR7) belongs to 1-7 (T-13) and goes in the walkthrough.
+  - **D5:** `POST /copilot/query` opens its session before the turn, so a failed turn can leave one empty session. Not changed.
+  - **D6:** the `answer_id` a failed turn burns is not asserted; claim ids and audit ids are.
+- **AI output, build:** 25 API cases in `tests/api/test_safe_failure.py`: 8 read points x typed or raised (16), the clock typed or
+  raising for S1 and S2 (4), session creation without a clock (2), `/copilot/query` (2) and the read routes (1). Each checks the
+  503, no prose call, nothing persisted, and a recovery equal to a healthy app.
+- **AI output, code review:** all nine acceptance criteria hold; 2 patch, 2 defer, 6 dismissed. Deferred, in `deferred-work.md`:
+  `failure_response` hides `observed` on a 5xx but renders `failure.message` as is (confirmed with a probe; no adapter sets one
+  today), and `/readyz` stays 200 while the clock raises.
+- **AI output, test audit:** 16 mutants of the production guards (a failure read as empty events, clauses, jobs or windows, an
+  ignored policy check, the global handler answering 500, a mis-coded clock failure, create-session and the turn and
+  `/copilot/query` ignoring a failure, an early claim id or audit id, prose before the reads, a leaked `observed`, a 503 that is
+  not retryable): 15 killed, each by its own case. The survivor, "`submit_query` does not return a pipeline `Failure`", is killed
+  by 5 existing tests and only differs for an error code other than `PROVIDER_UNAVAILABLE`.
+- **Review (Juan):**
+  - **Approved:** D1-D6; P-1 and P-2; T-1 and T-2; recording the two deferred items.
+  - **Rejected:** nothing.
+- **Correction (test):**
+  - **T-1, an assertion that could not fail.** `client.get("/healthz") == 200` as the "app did not crash" check: no plausible mutant of
+    the code under test touches `/healthz`. It now opens and reads another session during the outage; the mutant "the global handler
+    closes the container after an unexpected error" turns it red there. Commit `e5841ee`.
+  - **P-1, hard-to-read test code.** Four conditional-expression statements became `clock_down` / `clock_up`. Commit `0f9a98a`.
+  - **T-2:** an assertion that holds by construction (`ErrorBody` is `extra="forbid"`) was kept as a pin of AC 1 and now says so.
+    No assertion changed. Commit `5f44603`.
+- **AI slips:**
+  - **A wrong claim in the story, caught before committing it:** AC 7 said `GET /answers/{aid}/evidence` fails when a provider is
+    down. A probe showed it answers 200, because it reads the rows stored with the answer. AC 7 and Task 2.3 were corrected.
+  - **My first fault injection did nothing.** The `audited()` wrapper binds the adapter method at build time, so a patch installed
+    after `create_app` has no effect; that is why the helper must patch before building the app, and the story says so.
+  - **The first run of the matrix failed 16 of 16 on a setup error of mine** (a temp directory that did not exist), not on the
+    code. Other small slips: the wrong body field for `/copilot/query` (`query_text` instead of `query`), two long lines that
+    `ruff` flagged, a wrong line number in a finding (`errors.py:52`, fixed to `:56`), and my mutation harness, which lives
+    outside the repo, broke twice on newline escapes in a string. None changed a result.
+  - **Two replies had to be taken as the checkpoint:** "arranca con el code review" was read as the confirmation of the review
+    scope, so the checkpoint of step 1 was not paused. The commits are reversible.
+- **Outcome:** gate after the fixes: full `pytest` 1418 passed (1393 before, 25 new), branch coverage of `src` 97.12%,
+  `ruff check .` clean, `test/ci/schema_check.py` PASS, both `sprint-status.yaml` copies identical. No production code changed.
+  Logs: `docs/evidence/impl2/flow-b-4-2-coverage.log` and `flow-b-4-2-review-coverage.log`. Story 4.2 is `done` in the story file
+  and in both `sprint-status.yaml` copies.
