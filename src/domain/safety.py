@@ -48,7 +48,7 @@ _DIAGNOSTIC = re.compile(
     r"\b(?:show|list|tell|explain|diagnose|check|display|find|why|what|how|when|which)\b"
 )
 
-_ID = r"[^\s,;:?!()\[\]]+"
+_ID = r"[^\s,;:?!()\[\]']+"  # no quote: "group#group-2's jobs" names group-2
 _TYPED = re.compile(rf"\b(?P<kind>group|job|node)#(?P<id>{_ID})")
 _NUMBERED = re.compile(r"\b(?P<kind>group|job)[ -]?(?P<n>\d+)\b")
 _NODE_ID = re.compile(r"\bws-gpu-\d+\b")

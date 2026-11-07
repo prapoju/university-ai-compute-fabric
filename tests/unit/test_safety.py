@@ -71,6 +71,8 @@ def test_a_word_outside_the_table_is_not_a_destructive_intent(query: str) -> Non
         ("delete all pending jobs for group#group-2", Target("group", "group#group-2")),
         ("cancel job 8823", Target("job", "job-8823")),
         ("delete job#job-8824", Target("job", "job#job-8824")),
+        ("delete group#group-2's jobs", Target("group", "group#group-2")),
+        ("drain node#ws-gpu-11's workloads", Target("node", "node#ws-gpu-11")),
         ("drain ws-gpu-11", Target("node", "ws-gpu-11")),
         ("cordon node#ws-gpu-11", Target("node", "node#ws-gpu-11")),
         ("delete all pending jobs for cs201", Target("group", "cs201")),
