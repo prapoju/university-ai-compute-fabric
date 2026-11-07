@@ -103,6 +103,8 @@ def assert_safe_failure(response, code: str) -> None:
     assert body["retryable"] is True
     # a 5xx never shows the adapter's reason
     assert body["explanation"]["observed_values"] == []
+    # pins AC 1: ``ErrorBody`` is ``extra="forbid"``, so this holds by construction and fails
+    # only if a 503 stops being an ``ErrorBody`` (for example a partial answer body)
     assert not NOT_IN_A_FAILURE & set(body)
     assert "SimulatedOutage" not in response.text and "Traceback" not in response.text
 
