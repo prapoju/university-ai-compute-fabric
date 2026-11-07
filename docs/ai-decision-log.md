@@ -451,6 +451,7 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 | I2-17 | Story 4.2 · Flow B build, review and test audit | Decision, **Correction (test)** | Safe failure already worked: the story became an API fault matrix (25 cases, no production change); a liveness assertion that could not fail was replaced; two latent findings deferred | Juan |
 | I2-18 | Story 2.1 · create story (Flow A) | Decision | `cs201` is not an entity so it answers Entity Not Found and the AC example becomes `group 2`; fleet-wide scope is refused by its verb; `/copilot/chat` is a thin route; plan D-P1 applied | Pending |
 | I2-19 | Story 2.1 · red phase, green phase and mutation check (Flow A) | Decision, **Correction (test)** | The first genuine ATDD red log (51 failed, 4 guards) was committed before any code; three Impl-1 tests that encoded the pre-2.1 state were made stricter; 12 mutants killed | Juan |
+| I2-20 | Code review + test audit of story 2.1 | **Correction (code defect)**, **Correction (test)** | A destructive request aimed at an unnamed referent was widened to the whole fleet (2-2 would have enumerated every job); one assertion could not fail; two verb lists could drift; 18 mutants killed | Juan |
 
 ## I2-01..I2-09 - Shift-left review of the Impl-2 plan  *(planning text)*
 - **Phase:** before any Impl-2 code, 2026-11-06. Party-mode review (Winston, architect; Murat, test architect) of `docs/impl2-rules.md`
@@ -973,3 +974,43 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
     show a red CI, so the push should include the green commits.
   - Story 2-2 must still decide how "every pending CS201 job" is selected, now that `cs201` does not resolve (I2-18).
 - **Outcome:** story 2.1 is `review` in the story file and in both `sprint-status.yaml` copies; the ATDD file passes unedited.
+
+## I2-20 - Code review and test audit of story 2.1: "everything" was the default for what the classifier could not name  *(AI code and AI-written tests corrected)*
+- **Date / phase:** 2026-11-07, after I2-19, on baseline `77ff977`. Code review with `bmad-code-review`, then the test-trap audit D.4.
+- **Prompt (intent):**
+  1. "si, arranca con el code review de la 2-1" (the guide's D.3 prompt: report findings, apply nothing until approved).
+  2. "si, aplica la opcion a y los parches P-1, P-2 y P-3".
+  3. Standing instructions: one commit per change, no `Co-Authored-By`, never edit a committed ATDD file without a decision.
+- **AI output, code review:** all eleven acceptance criteria hold (also with full-width letters, no-break spaces and tabs). 1 decision, 3 patches,
+  2 deferred, 5 dismissed. The decision came from probing the classifier with sentences the story did not list.
+- **What the AI found (D-1, medium):** a destructive verb aimed at something the classifier cannot name (`delete alex's jobs`, `kill jobs 8823`,
+  `remove user alex`, `delete them`, `cordon the rack in room 4`) was read as a fleet-wide scope and refused without resolving anything. Nothing
+  executes in 2-1, but story 2-2 builds its dry-run selector from that value, so `delete alex's jobs` would have enumerated every job of the
+  fleet, a larger blast radius than the operator asked for (AD-4). The fleet scope was a default and not a recognised case; it is now allowed only
+  when the text holds generic words only, and anything else is clarified with "the query must name a group, a job or a node".
+- **Review (Juan):** chose option (a) for D-1 and approved P-1, P-2 and P-3. Deferred, in `deferred-work.md`: the compound clarification reason
+  that names a diagnosis where there is none (four committed ATDD cases compare with that constant), the wording of `VALIDATION_BAD_ACTION`, and
+  what 2-2 must decide about the `cs201` selector and the fleet scopes.
+- **Correction (code defect):**
+  - **D-1:** `safety.parse_destructive` returns `Unnamed` instead of `Fleet(any)` when a word outside the generic list remains. Commit `99f6cdc`.
+    The 55 cases of the red phase still pass without edits. Two of my own unit cases (`have his jobs deleted`, `those nodes should be drained`) moved
+    to the new, stricter expectation, and an API file was added beside the committed ATDD to cover D-1 end to end.
+  - **P-1:** a typed id kept a trailing possessive (`group#group-2's`); fixed in `4c1bcca`.
+- **Correction (test):**
+  - **P-2, an assertion that could not fail.** My unit test asserted `"on " in message`, which is a substring of "Unknown action". It now checks the
+    exact described action; a mutant that drops the verb from the message turns 4 cases red. Commit `f815d22`.
+  - **P-3, two lists that could drift.** `intent._DESTRUCTIVE` and `safety._VERB_FORMS` carry the same verbs. New tests require every form to route;
+    dropping `wip` from the first list or `wiped` from the participle list turns cases red. Commit `99717f1`.
+- **Test audit:** 18 mutants of the story's guards, all killed by the full set; the ATDD file alone kills 14. The 4 it does not kill are explained in
+  the story (an unreachable branch, a provider outage, and two behaviours added after the red commit). The ATDD assertions on the estate, the
+  `proposals` table and the prose call hold by construction until 2-2, and the story says so instead of editing the committed file.
+- **AI slips:**
+  - **The same formatter slip twice.** I ran `ruff format src` again and it reformatted `src/dto.py` and `session_store.py`; I restored both with
+    `git checkout` before committing. I had logged this exact slip in I2-19 and still repeated it.
+  - **A mutation script that crashed before it restored the file.** A relative interpreter path failed and left `intent.py` mutated; I restored it
+    with `git checkout` at once and reran with an absolute path and a `finally` block. Nothing reached a commit.
+  - **A leftover junk loop** in one command (a no-op shell `for`) that did nothing; it is only noise in the transcript.
+- **Outcome:** gate after the fixes: full `pytest` 1666 passed (1596 before), branch coverage of `src` 97.24%, `ruff check .` clean,
+  `test/ci/schema_check.py` PASS, both `sprint-status.yaml` copies identical, the red-phase file and log byte-identical to `fe2df33`.
+  Logs: `docs/evidence/impl2/flow-a-2-1-coverage.log` and `flow-a-2-1-review-coverage.log`. Story 2.1 is `done` in the story file and in both
+  `sprint-status.yaml` copies.
