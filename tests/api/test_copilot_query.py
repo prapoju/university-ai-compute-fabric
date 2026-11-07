@@ -75,6 +75,9 @@ def test_a_bad_payload_is_a_structured_400(payload: dict, code: str) -> None:
 
 def test_a_destructive_request_is_refused_not_executed() -> None:
     with client() as http:
-        response = http.post(PATH, json={"query": "Delete all pending jobs for CS201"})
+        response = http.post(PATH, json={"query": "Delete all pending jobs for group 2"})
     assert response.status_code == 200
-    assert response.json()["code"] in {"CLARIFICATION_REQUIRED", "ACTION_REFUSED"}
+    # story 2.1: exactly the refusal literal (the Impl-1 test also accepted a clarification, and
+    # named CS201, which is a course value and not an entity: it answers Entity Not Found)
+    assert response.json()["code"] == "ACTION_REFUSED"
+    assert response.json()["message"] == "Action refused."

@@ -15,6 +15,9 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from src.domain import canonical_strings as cs
+from src.domain.safety import INTENT_CODE as DESTRUCTIVE_INTENT
+from src.domain.safety import RULE_ID as DESTRUCTIVE_RULE_ID
+from src.domain.safety import Compound, parse_destructive
 
 
 @dataclass(frozen=True)
@@ -94,9 +97,7 @@ _DESTRUCTIVE = _rx(
 # it was drained") or a perfect passive ("why have the jobs been cancelled"): the text between
 # the marker and the participle never crosses into one. "got" is past ("it got cancelled"), and
 # "get" with no object is a passive ("did it get cancelled"); neither is a request.
-_PARTICIPLE = (
-    r"(?:deleted|cancel(?:l)?ed|drained|cordoned|removed|killed|purged|wiped|terminated)"
-)
+_PARTICIPLE = r"(?:deleted|cancel(?:l)?ed|drained|cordoned|removed|killed|purged|wiped|terminated)"
 _REPORTED = (
     r"\b(?:why|how|whether|been)\b"
     # "which"/"who"/"what" are also relative pronouns ("the jobs which are pending"), so like
@@ -136,6 +137,11 @@ def _normalise(query: str) -> str:
     return " ".join(text.translate(_APOSTROPHES).split())
 
 
+def normalise_query(query: str) -> str:
+    """The text every rule runs on (also what ``safety.parse_destructive`` expects)."""
+    return _normalise(query)
+
+
 def classify(
     query: str,
     prior_intents: Sequence[str],
@@ -163,5 +169,14 @@ def classify(
             if code in registered:
                 return Routed(code, FOLLOW_UP_RULE_ID)
         return Clarify(cs.R_FOLLOWUP_NO_CONTEXT)
+
+    if destructive:
+        # a destructive request that no diagnostic intent claims is refused by its own handler
+        # (story 2.1); one that also asks for something else is never split (FR-01, AD-4)
+        request = parse_destructive(text)
+        if isinstance(request, Compound):
+            return Clarify(request.reason)
+        if request is not None:
+            return Routed(DESTRUCTIVE_INTENT, DESTRUCTIVE_RULE_ID)
 
     return Clarify(cs.R_NO_INTENT)

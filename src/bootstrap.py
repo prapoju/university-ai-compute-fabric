@@ -30,6 +30,8 @@ from src.application.access_denial_handler import INTENT as ACCESS_DENIAL_INTENT
 from src.application.access_denial_handler import AccessDenialHandler
 from src.application.audit_service import AuditService
 from src.application.audit_writer import AuditWriter
+from src.application.destructive_handler import INTENT as DESTRUCTIVE_INTENT
+from src.application.destructive_handler import DestructiveRefusalHandler
 from src.application.entity_resolver import EntityResolver
 from src.application.evidence_assembler import EvidenceAssembler
 from src.application.evidence_service import EvidenceService
@@ -198,6 +200,15 @@ def build_container(settings: Settings) -> Container:
             windows=windows,
             prose=prose,
             idgen=idgen,
+        ),
+    )
+    # a destructive request is refused after its target resolves; read-only ports only (AD-1, AD-4)
+    pipeline.register(
+        DESTRUCTIVE_INTENT,
+        DestructiveRefusalHandler(
+            resolver=EntityResolver(
+                users=users, catalog=catalog, groups=groups, nodes=nodes, jobs=jobs
+            )
         ),
     )
     # state inspection needs no database: a failed estate is a typed failure on every read

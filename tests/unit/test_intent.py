@@ -81,9 +81,12 @@ def test_a_compound_query_with_a_destructive_verb_routes_to_clarification(query:
 
 
 @pytest.mark.parametrize("query", ["delete all pending jobs for CS201", "drain node ws-gpu-11"])
-def test_a_destructive_only_query_is_never_routed_to_a_diagnosis(query: str) -> None:
+def test_a_destructive_only_query_routes_to_the_destructive_intent_never_to_a_diagnosis(
+    query: str,
+) -> None:
+    # story 2.1 supersedes the Impl-1 expectation "no route": the refusal handler owns it now
     decision = classify(query, prior_intents=[])
-    assert isinstance(decision, Clarify)  # refusal/dry-run is story 2.1; until then: no route
+    assert decision == Routed("propose_destructive_action", "RULE-INTENT-DESTRUCTIVE")
 
 
 def test_past_tense_reports_are_not_destructive_verbs() -> None:
