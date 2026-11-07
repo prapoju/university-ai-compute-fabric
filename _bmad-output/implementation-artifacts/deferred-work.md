@@ -54,3 +54,9 @@
 
 - `failure_response` hides `observed` on a 5xx but renders `failure.message` as is: a `Failure` that carries its own `message` would show it in the 503 body. No adapter sets one today. Fix by rendering the catalog literal on every 5xx, but some 5xx templates take parameters (`AUDIT_WRITE_FAILED`), so decide how those render first. Touches `src/adapters/inbound/errors.py`, which story 4.2's plan does not authorize.
 - `/readyz` answers 200 while the clock raises (503 for a typed `fail()`): the `clock` readiness check reads the `available` flag so probing consumes no clock read id. A real clock adapter needs a probe that reads nothing it must record.
+
+## Deferred from: code review of story-2-1 (2026-11-07)
+
+- The clarification reason of a compound destructive query reads "the query mixes a diagnosis with a destructive action" even when there is no diagnosis (`drain ws-gpu-11 and ws-gpu-12`, `cancel jobs for group 2 and group 4`). A second reason ("the query asks for more than one action or target") would be more accurate, but four cases of `tests/atdd/test_story_2_1.py` compare with the current constant, so it needs a decision on editing a committed ATDD file.
+- `VALIDATION_BAD_ACTION` reuses the catalog template for an unknown verb ("Unknown action {value}; expected one of ...") when the verb is known but aimed at the wrong kind of target. The wording is fixed by contracts section 4.
+- Story 2-2 must decide how "every pending CS201 job" is selected: `cs201` is a course value that answers `Entity Not Found` (log I2-18), and no group owns those jobs (they sit in `group-2`, `group-4` and `group-7`). The `Fleet` target of story 2.1 (`cordon entire lab`, `Delete all pending jobs`) is refused without a selector, so 2-2's dry-run must also define the selector for each fleet scope (`any`, `nodes`, `jobs`).
