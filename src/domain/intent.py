@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from src.domain import canonical_strings as cs
 from src.domain.safety import INTENT_CODE as DESTRUCTIVE_INTENT
 from src.domain.safety import RULE_ID as DESTRUCTIVE_RULE_ID
-from src.domain.safety import Compound, parse_destructive
+from src.domain.safety import Compound, Unnamed, parse_destructive
 
 
 @dataclass(frozen=True)
@@ -174,7 +174,7 @@ def classify(
         # a destructive request that no diagnostic intent claims is refused by its own handler
         # (story 2.1); one that also asks for something else is never split (FR-01, AD-4)
         request = parse_destructive(text)
-        if isinstance(request, Compound):
+        if isinstance(request, Compound | Unnamed):
             return Clarify(request.reason)
         if request is not None:
             return Routed(DESTRUCTIVE_INTENT, DESTRUCTIVE_RULE_ID)

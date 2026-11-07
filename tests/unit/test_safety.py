@@ -13,6 +13,7 @@ from src.domain.safety import (
     DestructiveRequest,
     Fleet,
     Target,
+    Unnamed,
     accepts,
     parse_destructive,
 )
@@ -163,12 +164,48 @@ def test_a_conjunction_alone_or_a_repeated_verb_is_not_compound(query: str) -> N
         "drain ws-gpu-11",
         "cordon entire lab",
         "Delete all pending jobs",
-        "have his jobs deleted",
-        "those nodes should be drained",
     ],
 )
 def test_a_destructive_request_routes_to_its_own_intent(query: str) -> None:
     assert classify(query, []) == Routed(INTENT_CODE, RULE_ID)
+
+
+# -- a referent the classifier cannot name is clarified, never widened to the fleet (review D-1)
+@pytest.mark.parametrize(
+    "query",
+    [
+        "delete alex's jobs",
+        "kill jobs 8823",
+        "remove user alex",
+        "delete model deepseek-coder",
+        "cordon the rack in room 4",
+        "wipe the database",
+        "delete them",
+        "cancel it",
+        "have his jobs deleted",
+        "those nodes should be drained",
+    ],
+)
+def test_a_destructive_verb_aimed_at_something_unnamed_is_clarified_not_widened(
+    query: str,
+) -> None:
+    assert parsed(query) == Unnamed()
+    assert classify(query, []) == Clarify(cs.R_MISSING_TARGET)
+
+
+@pytest.mark.parametrize(
+    "query",
+    ["drain", "Delete all pending jobs", "cordon entire lab", "please delete everything",
+     "delete all pending jobs for the lab"],
+)  # fmt: skip
+def test_only_generic_words_make_a_fleet_wide_scope(query: str) -> None:
+    request = parsed(query)
+    assert isinstance(request, DestructiveRequest) and isinstance(request.target, Fleet)
+
+
+def test_a_named_target_is_never_judged_by_the_words_around_it() -> None:
+    request = parsed("cancel the training job of group 2 now")
+    assert request == DestructiveRequest("cancel_jobs", Target("group", "group-2"))
 
 
 def test_a_compound_destructive_request_is_clarified() -> None:

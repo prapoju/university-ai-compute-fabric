@@ -17,7 +17,7 @@ from src.domain import canonical_strings as cs
 from src.domain.error_catalog import fail
 from src.domain.intent import normalise_query
 from src.domain.result import Ok, Result, is_failure
-from src.domain.safety import INTENT_CODE, Compound, Fleet, accepts, parse_destructive
+from src.domain.safety import INTENT_CODE, Compound, Fleet, Unnamed, accepts, parse_destructive
 
 INTENT = INTENT_CODE
 
@@ -30,7 +30,7 @@ class DestructiveRefusalHandler:
         request = parse_destructive(normalise_query(turn.query))
         if request is None:  # routed here by the classifier, so a verb is there; stay safe anyway
             return Ok(clarification_turn(turn, cs.R_NO_INTENT))
-        if isinstance(request, Compound):
+        if isinstance(request, Compound | Unnamed):
             return Ok(clarification_turn(turn, request.reason))
 
         target = request.target

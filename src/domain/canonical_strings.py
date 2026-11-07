@@ -26,6 +26,7 @@ R_FOLLOWUP_NO_CONTEXT = "there is no earlier topic in this session to follow up 
 R_MULTIPLE_INTENTS = "more than one intent matches this query; ask one question at a time"
 R_MISSING_REFERENCES = "the query must name both a user and a model"
 R_MISSING_GROUP = "the query must name a group"
+R_MISSING_TARGET = "the query must name a group, a job or a node"
 R_AMBIGUOUS_REFERENCE = (
     "the reference {ref} matches both a user and a model; name which one you mean"
 )

@@ -195,6 +195,22 @@ def test_a_compound_query_that_reaches_the_handler_is_clarified(handler) -> None
     assert clarified.canonical.message == cs.clarification(cs.R_COMPOUND_DESTRUCTIVE)
 
 
+def test_an_unnamed_target_that_reaches_the_handler_is_clarified_not_refused(handler) -> None:
+    unnamed = TurnInput(
+        session_id="sess-0000000000000001",
+        answer_id="ans-0000000000000004",
+        query="delete alex's jobs",
+        now=ClockReadDTO(read_id="clk-0000000000000004", instant=NOW, source="clock"),
+        decision=Routed(INTENT, "RULE-INTENT-DESTRUCTIVE"),
+        context=SessionContextDTO(resolved_entities=[], prior_intents=[], active_answer_ids=[]),
+    )
+    clarified = out(handler(unnamed))
+    assert clarified.canonical is not None
+    assert clarified.canonical.code == "CLARIFICATION_REQUIRED"
+    assert clarified.canonical.message == cs.clarification(cs.R_MISSING_TARGET)
+    assert clarified.resolved_entities == ()
+
+
 def test_a_query_with_no_verb_that_reaches_the_handler_is_clarified(handler) -> None:
     stray = TurnInput(
         session_id="sess-0000000000000001",
