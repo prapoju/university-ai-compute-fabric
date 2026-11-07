@@ -121,12 +121,20 @@ def test_a_provider_outage_is_never_reported_as_not_found(providers) -> None:
 
 # -- the verb has to fit the target (contracts P3) ----------------------------------------------
 @pytest.mark.parametrize(
-    "query", ["cancel ws-gpu-11", "terminate ws-gpu-11", "drain group 2", "cordon job 8823"]
+    ("query", "described"),
+    [
+        ("cancel ws-gpu-11", "cancel_jobs on node#ws-gpu-11"),
+        ("terminate ws-gpu-11", "cancel_jobs on node#ws-gpu-11"),  # terminate is cancel_jobs
+        ("drain group 2", "drain_node on group#group-2"),
+        ("cordon job 8823", "cordon_node on job#job-8823"),
+    ],
 )
-def test_a_verb_on_the_wrong_kind_of_target_is_a_bad_action(handler, query: str) -> None:
+def test_a_verb_on_the_wrong_kind_of_target_is_a_bad_action(
+    handler, query: str, described: str
+) -> None:
     result = run(handler, query)
     assert isinstance(result, Failure) and result.code == "VALIDATION_BAD_ACTION"
-    assert result.message is not None and "on " in result.message
+    assert result.message is not None and f"Unknown action {described};" in result.message
 
 
 @pytest.mark.parametrize("query", ["drain all jobs", "cancel every node"])
