@@ -147,6 +147,8 @@ def test_secrets_in_the_query_never_reach_the_audit_tables(tmp_path: Path) -> No
     for secret in SECRETS:
         assert stored.count(secret) == 0 and page.count(secret) == 0, secret
     assert query not in stored  # the query text itself is never stored in an audit row
+    # a redacted copy of the query would slip past the check above, so look for its plain part too
+    assert S1 not in stored and S1 not in page
 
 
 def test_a_secret_that_reaches_a_port_parameter_is_redacted_before_it_is_stored(
@@ -181,13 +183,18 @@ def test_with_cap_5_two_s1_turns_keep_exactly_the_5_newest_rows(tmp_path: Path) 
     with TestClient(app_on(tmp_path, audit_retention_cap="5")) as client:
         sid = new_session(client)
         ask(client, sid)
+        # an S1 turn writes exactly 5 rows, so nothing has rotated yet: these are the rows to go
+        first_turn = raw_rows(tmp_path / "m12.db", "audit_records")
         ask(client, sid)
         body = audit_page(client, sid)
     kept = raw_rows(tmp_path / "m12.db", "audit_records")
-    assert len(kept) == 5 and body["total"] == 5
+    assert len(first_turn) == 5 and len(kept) == 5 and body["total"] == 5
     order = sorted((row[4], row[0]) for row in kept)  # (timestamp, audit_id)
     assert [audit_id for _, audit_id in order] == [f"aud-{n:016x}" for n in range(6, 11)]
-    removed = [(body["entries"][0]["timestamp"], f"aud-{n:016x}") for n in range(1, 6)]
+    removed = sorted((row[4], row[0]) for row in first_turn)  # their real instants
+    assert [audit_id for _, audit_id in removed] == [f"aud-{n:016x}" for n in range(1, 6)]
+    # the sim clock does not advance between the two turns, so the audit_id breaks the tie here;
+    # ordering by instant is covered in tests/integration/test_audit_store.py
     assert max(removed) < min(order)  # every remaining row is newer than every removed one
     assert [e["result_summary"]["tool_name"] for e in body["entries"]] == S1_TOOL_CALLS
     calls = {row[0] for row in raw_rows(tmp_path / "m12.db", "tool_calls")}
