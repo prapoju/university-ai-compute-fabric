@@ -4,7 +4,7 @@ baseline_commit: 77ff977
 
 # Story 2.1: Destructive-intent classification and refusal
 
-Status: review
+Status: done
 
 <!-- Impl-2 Flow A (ATDD-first), Annex 12.4, first of four stories (2-1 .. 2-4). The red phase is
      recorded BEFORE any production code (docs/impl2-rules.md, task statement section 3). This story
@@ -224,6 +224,7 @@ Task 5 (`e2fbc51` and the closing commit):
 - 2026-11-07: Story created (`bmad-create-story`). Status -> ready-for-dev.
 - 2026-11-07: Red phase recorded and committed (`fe2df33`): 51 failed, 4 regression guards passed.
 - 2026-11-07: Tasks 2 to 5 done (classifier, refusal handler, `/copilot/chat`, mutation check and evidence). The status went from `ready-for-dev` straight to `review`; `in-progress` was never written to `sprint-status.yaml`. Status -> review.
+- 2026-11-07: Code review and test-trap audit done (D-1 option a, P-1, P-2, P-3 applied, 2 deferred, 18 mutants killed). pytest 1666 passed, branch coverage 97.24%. Status -> done.
 
 ### Review Findings
 
