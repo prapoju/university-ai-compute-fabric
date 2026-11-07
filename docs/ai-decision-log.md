@@ -417,3 +417,18 @@ Open assumptions to confirm: see the end of this file.
 6. A query to a reset session is 410 and persists `status = expired` (contracts.md P2 read literally); a later GET shows `expired`. Confirmed by the user in the story 1.2 review (AD-18).
 7. Clarification turns are stored as `intent = "clarification"`, `canonical = "CLARIFICATION"`; the wire body is the 200 `ErrorBody` (D58).
 8. The simulated clock does not advance by itself (`M12_CLOCK_START`), so the 30-minute idle expiry is only exercised by tests that advance it.
+
+---
+
+# Impl-2: hardening, testing flows and Annex 12.4–12.6
+
+Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions as Impl-1 above, with two changes:
+
+- **IDs:** `I2-NN`, so they don't clash with the Impl-1 `AD-n` entries or the Annex invariant AD-30.
+- **Category `Correction (test)`:** a person rejected or changed a test the AI generated, for example a `sleep()`,
+  an over-mocked test or a vacuous assertion. Impl-2 needs at least 2 of these, among at least 8 entries.
+
+## Impl-2 summary
+
+| ID | Phase | Category | Short title | Reviewer |
+|---|---|---|---|---|
