@@ -4,7 +4,7 @@ baseline_commit: 77ff977
 
 # Story 2.1: Destructive-intent classification and refusal
 
-Status: ready-for-dev
+Status: review
 
 <!-- Impl-2 Flow A (ATDD-first), Annex 12.4, first of four stories (2-1 .. 2-4). The red phase is
      recorded BEFORE any production code (docs/impl2-rules.md, task statement section 3). This story
@@ -38,25 +38,25 @@ Source: `planning/epics.md` Story 2.1 (amended, see D2), `test/test-design.md` s
 
 Flow A. Task 1 is the **red phase** and it ends at a hard stop: nothing in `src/` changes until the red log is committed.
 
-- [ ] **Task 1: ATDD red phase** (AC: 1-11) -> `test(story-2.1): ATDD red phase, recorded before production code`
-  - [ ] 1.1 Run `/bmad-testarch-atdd` (Murat) with the prompt of guide D.2. Write `tests/atdd/test_story_2_1.py` against the real app (file DB under `tmp_path`, `TestClient(create_app(...), raise_server_exceptions=False)`), covering every AC through the cases listed in "ATDD cases".
-  - [ ] 1.2 Run `pytest tests/atdd/test_story_2_1.py -q --tb=short 2>&1 | tee docs/evidence/impl2/red-2-1.log`. Every failure must come from **missing behaviour** (an assertion on a status, code or body), never from an import error, a fixture problem or a syntax error. A case that already passes because Impl-1 behaviour exists stays unchanged and is labelled `regression guard` in its docstring.
-  - [ ] 1.3 Show the user the full log and **stop**. Do not commit and do not touch `src/` until the user confirms. Then commit `tests/atdd/test_story_2_1.py` and `docs/evidence/impl2/red-2-1.log` only.
-- [ ] **Task 2: Pure classifier and routing** (AC: 2, 5, 6, 9) -> `feat(story-2.1): destructive classifier and routing`
-  - [ ] 2.1 `src/domain/safety.py` (new, pure): the verb table of AC 2, `parse_destructive(text) -> DestructiveRequest | Compound | None`, the target extraction (typed refs, node ids, bare word after `for`/`of`, the closed fleet-scope phrases) and the compound rule of D5. No I/O, no clock, no adapter import.
-  - [ ] 2.2 `src/domain/intent.py`: a destructive query that matches no diagnostic intent and is not compound routes to `Routed("propose_destructive_action", "RULE-INTENT-DESTRUCTIVE")` instead of falling through to `R_NO_INTENT`. The existing compound branches (`matched and destructive`, follow-up with a destructive verb) stay as they are.
-  - [ ] 2.3 Unit tests in `tests/unit/` for the verb table, case folding, the fleet-scope list, the compound rule, past-tense reports not being requests, and the regression queries of AC 11.
-- [ ] **Task 3: Refusal handler and resolver** (AC: 1, 3, 4, 7, 8) -> `feat(story-2.1): refusal handler resolves the target before it refuses`
-  - [ ] 3.1 `src/application/entity_resolver.py`: `resolve_node` and `resolve_job`, shaped like `resolve_group` (exact, case-folded, a miss is `Unresolved`, a provider failure is a typed failure). Wire the `nodes` and `jobs` ports into the resolver in `bootstrap.py`.
-  - [ ] 3.2 `src/application/destructive_handler.py` (new): extract, resolve, check the `(verb, entity type)` pair (AC 4), then return `canonical_turn(turn, INTENT, "ACTION_REFUSED", cs.S_ARF, entities=(target key,))`. An unresolved target returns `canonical_turn(... "ENTITY_NOT_FOUND" ...)` like the other handlers. It reads through the audited ports only and writes nothing.
-  - [ ] 3.3 Register it in `bootstrap.py` with `pipeline.register("propose_destructive_action", handler)`.
-- [ ] **Task 4: `/copilot/chat` and the contract** (AC: 10) -> `feat(story-2.1): POST /copilot/chat as a thin route`
-  - [ ] 4.1 `src/adapters/inbound/copilot.py`: `POST /copilot/chat`, the same body model (`query`, extra forbidden) and the same use cases as `/copilot/query`. No domain logic in the route.
-  - [ ] 4.2 `planning/detailed-design/schemas/openapi.yaml`: the path, a `CopilotChatRequest` schema and `x-error-codes` including `ACTION_REFUSED` and `VALIDATION_BAD_ACTION`. Add `ACTION_REFUSED` and `VALIDATION_BAD_ACTION` to the `x-error-codes` of `/copilot/query` and `/sessions/{sid}/queries` too, since both can now answer them.
-  - [ ] 4.3 `tests/api/test_contract_routes.py`: add `("POST", "/api/v1/copilot/chat")` to `SERVED_IN_THIS_STORY` and to `ALLOWED_MUTATING`, in the same commit as the route.
-- [ ] **Task 5: Gate and evidence** (AC: 11) -> `test(story-2.1): green phase evidence`
-  - [ ] 5.1 The tests of Task 1 pass **without having been edited** (`git diff <red commit> -- tests/atdd/test_story_2_1.py` is empty). If one must change, stop and ask.
-  - [ ] 5.2 Mutation check on the guards (see Testing standards), then full `pytest`, branch coverage (`make cov` equivalent), `ruff check .`, `schema_check`, `diff` of both `sprint-status.yaml` copies. Save the coverage run to `docs/evidence/impl2/flow-a-2-1-coverage.log`.
+- [x] **Task 1: ATDD red phase** (AC: 1-11) -> `test(story-2.1): ATDD red phase, recorded before production code`
+  - [x] 1.1 Run `/bmad-testarch-atdd` (Murat) with the prompt of guide D.2. Write `tests/atdd/test_story_2_1.py` against the real app (file DB under `tmp_path`, `TestClient(create_app(...), raise_server_exceptions=False)`), covering every AC through the cases listed in "ATDD cases".
+  - [x] 1.2 Run `pytest tests/atdd/test_story_2_1.py -q --tb=short 2>&1 | tee docs/evidence/impl2/red-2-1.log`. Every failure must come from **missing behaviour** (an assertion on a status, code or body), never from an import error, a fixture problem or a syntax error. A case that already passes because Impl-1 behaviour exists stays unchanged and is labelled `regression guard` in its docstring.
+  - [x] 1.3 Show the user the full log and **stop**. Do not commit and do not touch `src/` until the user confirms. Then commit `tests/atdd/test_story_2_1.py` and `docs/evidence/impl2/red-2-1.log` only.
+- [x] **Task 2: Pure classifier and routing** (AC: 2, 5, 6, 9) -> `feat(story-2.1): destructive classifier and routing`
+  - [x] 2.1 `src/domain/safety.py` (new, pure): the verb table of AC 2, `parse_destructive(text) -> DestructiveRequest | Compound | None`, the target extraction (typed refs, node ids, bare word after `for`/`of`, the closed fleet-scope phrases) and the compound rule of D5. No I/O, no clock, no adapter import.
+  - [x] 2.2 `src/domain/intent.py`: a destructive query that matches no diagnostic intent and is not compound routes to `Routed("propose_destructive_action", "RULE-INTENT-DESTRUCTIVE")` instead of falling through to `R_NO_INTENT`. The existing compound branches (`matched and destructive`, follow-up with a destructive verb) stay as they are.
+  - [x] 2.3 Unit tests in `tests/unit/` for the verb table, case folding, the fleet-scope list, the compound rule, past-tense reports not being requests, and the regression queries of AC 11.
+- [x] **Task 3: Refusal handler and resolver** (AC: 1, 3, 4, 7, 8) -> `feat(story-2.1): refusal handler resolves the target before it refuses`
+  - [x] 3.1 `src/application/entity_resolver.py`: `resolve_node` and `resolve_job`, shaped like `resolve_group` (exact, case-folded, a miss is `Unresolved`, a provider failure is a typed failure). Wire the `nodes` and `jobs` ports into the resolver in `bootstrap.py`.
+  - [x] 3.2 `src/application/destructive_handler.py` (new): extract, resolve, check the `(verb, entity type)` pair (AC 4), then return `canonical_turn(turn, INTENT, "ACTION_REFUSED", cs.S_ARF, entities=(target key,))`. An unresolved target returns `canonical_turn(... "ENTITY_NOT_FOUND" ...)` like the other handlers. It reads through the audited ports only and writes nothing.
+  - [x] 3.3 Register it in `bootstrap.py` with `pipeline.register("propose_destructive_action", handler)`.
+- [x] **Task 4: `/copilot/chat` and the contract** (AC: 10) -> `feat(story-2.1): POST /copilot/chat as a thin route`
+  - [x] 4.1 `src/adapters/inbound/copilot.py`: `POST /copilot/chat`, the same body model (`query`, extra forbidden) and the same use cases as `/copilot/query`. No domain logic in the route.
+  - [x] 4.2 `planning/detailed-design/schemas/openapi.yaml`: the path, a `CopilotChatRequest` schema and `x-error-codes` including `ACTION_REFUSED` and `VALIDATION_BAD_ACTION`. Add `ACTION_REFUSED` and `VALIDATION_BAD_ACTION` to the `x-error-codes` of `/copilot/query` and `/sessions/{sid}/queries` too, since both can now answer them.
+  - [x] 4.3 `tests/api/test_contract_routes.py`: add `("POST", "/api/v1/copilot/chat")` to `SERVED_IN_THIS_STORY` and to `ALLOWED_MUTATING`, in the same commit as the route.
+- [x] **Task 5: Gate and evidence** (AC: 11) -> `test(story-2.1): green phase evidence`
+  - [x] 5.1 The tests of Task 1 pass **without having been edited** (`git diff <red commit> -- tests/atdd/test_story_2_1.py` is empty). If one must change, stop and ask.
+  - [x] 5.2 Mutation check on the guards (see Testing standards), then full `pytest`, branch coverage (`make cov` equivalent), `ruff check .`, `schema_check`, `diff` of both `sprint-status.yaml` copies. Save the coverage run to `docs/evidence/impl2/flow-a-2-1-coverage.log`.
 
 ## Dev Notes
 
@@ -178,14 +178,49 @@ Claude Sonnet 5.5 (`claude-sonnet-5-5`), Claude Code, `bmad-create-story`.
 ### Debug Log References
 
 - Baseline at `77ff977`: `pytest` 1418 passed, branch coverage of `src` 97.12%.
+- Red phase (Task 1, commit `fe2df33`): `tests/atdd/test_story_2_1.py`, 55 cases, **51 failed and 4 passed** (the 4 are labelled regression guards). Every failure was an assertion on missing behaviour: `CLARIFICATION_REQUIRED` instead of `ACTION_REFUSED` (30), instead of `ENTITY_NOT_FOUND` (6), 200 instead of 400 (5), a no-intent clarification instead of the compound one (4), 404 for `POST /copilot/chat` (4 cases), the turn intent `clarification` (1) and the concurrent refusals answered as clarifications (1). 0 import, fixture or syntax errors. The first red run was repeated once after `ruff` asked for shorter lines (no assertion changed), so the log matches the committed file.
+- Green phase: Tasks 2 and 3 were committed together (`96de5c7`) instead of one commit each, because routing a destructive query to a handler that did not exist yet would have broken the Impl-1 test `test_a_destructive_request_is_refused_not_executed` in between. Task 4 followed (`ad81aad`), then the evidence (`e2fbc51`). The ATDD file is unchanged since the red commit (`git diff fe2df33 -- tests/atdd/test_story_2_1.py docs/evidence/impl2/red-2-1.log` is empty).
+- Three Impl-1 test cases had to change because they encoded the state before this story. `tests/unit/test_intent.py::test_a_destructive_only_query_is_never_routed_to_a_diagnosis` carried the comment `refusal/dry-run is story 2.1; until then: no route`; it now asserts the exact `Routed("propose_destructive_action", "RULE-INTENT-DESTRUCTIVE")` (stricter). `tests/api/test_copilot_query.py::test_a_destructive_request_is_refused_not_executed` accepted `CLARIFICATION_REQUIRED` or `ACTION_REFUSED` and named `CS201`; it now names `group 2` and asserts exactly `ACTION_REFUSED` with the literal (stricter). Both are justified in the decision log.
+- Slip: `ruff format src` (the whole directory) reformatted `src/dto.py` and `src/adapters/outbound/db/session_store.py`, and `test_dto_module_is_a_verbatim_copy_of_the_contract` failed. Both files were restored with `git checkout` before any commit, so nothing reached the history.
+- Mutation check (Task 5.2), 12 mutants applied one at a time, each restored with `git checkout` and `git status` of `src` and `tests` clean afterwards: `terminate` removed from the verb table, no destructive route in `classify`, no target resolution in the handler, compound queries not detected, a token appended to the refusal, no verb-type check, a fleet scope that is always `nodes`, a bare word after `for` ignored, a fuzzy resolver, `/copilot/chat` removed, an unknown verb routed as destructive, and a provider outage read as "not found". All 12 are killed by the ATDD plus the unit tests; the ATDD file alone kills 10. The two it does not kill are covered by unit tests: the unknown-verb mutant is unreachable through the API (the classifier filters first), and the outage mutant needs a failing port.
 - Audit probes (2026-11-07, real app, file DB): `delete all pending jobs for cs201` answers `CLARIFICATION_REQUIRED` today; `/copilot/chat` answers 404; the fixtures hold no `cs201` entity.
 
 ### Completion Notes List
 
 - Story context created 2026-11-07, scoped against `src/` and `tests/` at `77ff977`. Ultimate context engine analysis completed - comprehensive developer guide created.
+- **Task 1 (red):** `tests/atdd/test_story_2_1.py` (55 cases), `docs/evidence/impl2/red-2-1.log` and the ATDD checklist, committed in `fe2df33` after the user confirmed the log, with no production code before it.
+- **Tasks 2 and 3:** `src/domain/safety.py` (verb table, targets, fleet scope, compound rule), `src/domain/intent.py` (a destructive query no diagnosis claims routes to `propose_destructive_action`), `EntityResolver.resolve_target` and `DestructiveRefusalHandler`, registered in `bootstrap.py` with read-only ports. 123 unit cases.
+- **Task 4:** `POST /api/v1/copilot/chat` over the same use cases as `/copilot/query`, in `openapi.yaml` (route, `CopilotChatRequest`, and `ACTION_REFUSED` / `VALIDATION_BAD_ACTION` in the error codes of the routes that can now answer them), `SERVED_IN_THIS_STORY` and `ALLOWED_MUTATING`.
+- **Task 5:** the ATDD file passes without having been edited (55 passed); `pytest` 1596 passed, branch coverage of `src` 97.21% (floor 90%), `ruff check .` clean, `schema_check` PASS, `src/dto.py` identical to the contract, both `sprint-status.yaml` and both `epics.md` copies identical. Log: `docs/evidence/impl2/flow-a-2-1-coverage.log`.
+- The refusal is complete; the dry-run summary and the gate token are story 2-2 (plan D-P1), so this story does not yet complete the Annex scenario "Terminate all active jobs for CS-101".
 
 ### File List
 
+Task 1 (red, `fe2df33`):
+- `tests/atdd/test_story_2_1.py` (new)
+- `docs/evidence/impl2/red-2-1.log` (new)
+- `_bmad-output/test-artifacts/atdd-checklist-2-1-destructive-intent-classification-and-refusal.md` (new)
+
+Tasks 2 and 3 (`96de5c7`):
+- `src/domain/safety.py` (new)
+- `src/domain/intent.py` (modified)
+- `src/application/destructive_handler.py` (new)
+- `src/application/entity_resolver.py` (modified)
+- `src/bootstrap.py` (modified)
+- `tests/unit/test_safety.py`, `tests/unit/test_destructive_handler.py` (new)
+- `tests/unit/test_intent.py`, `tests/api/test_copilot_query.py` (modified, two Impl-1 cases made stricter)
+
+Task 4 (`ad81aad`):
+- `src/adapters/inbound/copilot.py` (modified)
+- `planning/detailed-design/schemas/openapi.yaml` (modified)
+- `tests/api/test_contract_routes.py` (modified)
+
+Task 5 (`e2fbc51` and the closing commit):
+- `docs/evidence/impl2/flow-a-2-1-coverage.log` (new)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`, `implementation-artifacts/sprint-status.yaml` (modified, `2-1` -> `review`)
+- `_bmad-output/implementation-artifacts/2-1-destructive-intent-classification-and-refusal.md` (modified)
 ### Change Log
 
 - 2026-11-07: Story created (`bmad-create-story`). Status -> ready-for-dev.
+- 2026-11-07: Red phase recorded and committed (`fe2df33`): 51 failed, 4 regression guards passed.
+- 2026-11-07: Tasks 2 to 5 done (classifier, refusal handler, `/copilot/chat`, mutation check and evidence). The status went from `ready-for-dev` straight to `review`; `in-progress` was never written to `sprint-status.yaml`. Status -> review.
