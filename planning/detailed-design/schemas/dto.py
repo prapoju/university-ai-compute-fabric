@@ -538,7 +538,8 @@ class GetCitationRequest(_DTO):
 
 
 class GetCitationResponse(_DTO):
-    source_record: RecordDTO
+    # a clock citation resolves to the clock read it cites (story 1.4 D4): it is no estate record
+    source_record: Union[RecordDTO, ClockReadDTO]
     snippet: Snippet
 
 

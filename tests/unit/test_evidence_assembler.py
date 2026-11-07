@@ -61,6 +61,9 @@ class _RecordingEvents(EventStorePort):
         self.calls.append((entity_ref, type, window))
         return self._real.query(entity_ref, type, window)
 
+    def get(self, event_id):
+        return self._real.get(event_id)
+
 
 def test_a_policy_outage_aborts_before_any_event_is_read(providers) -> None:
     """AD-12: no diagnosis from partial evidence, so the events are never fetched either."""

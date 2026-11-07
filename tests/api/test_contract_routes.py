@@ -27,6 +27,9 @@ SERVED_IN_THIS_STORY = {
     ("DELETE", "/api/v1/sessions/{}"),
     # Impl-1 annex 12.1: the inbound entry point over the same use cases
     ("POST", "/api/v1/copilot/query"),
+    # story 1.4
+    ("GET", "/api/v1/answers/{}/evidence"),
+    ("GET", "/api/v1/citations/{}"),
 }
 
 # AD-13: the only state-mutating routes the contract may declare. Sessions are Module-12-owned

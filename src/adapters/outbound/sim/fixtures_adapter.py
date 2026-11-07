@@ -230,6 +230,9 @@ class SimEventStore(EventStorePort):
     def __init__(self, backing: Backing) -> None:
         self._backing = backing
 
+    def get(self, event_id: str) -> Result[OperationalEventDTO | None]:
+        return _read(self._backing, lambda s: s.get(event_id))
+
     def query(
         self, entity_ref: str, type: str, window: EventWindow
     ) -> Result[list[OperationalEventDTO]]:

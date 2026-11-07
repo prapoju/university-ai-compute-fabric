@@ -13,7 +13,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 from src.domain.result import Result
-from src.dto import AnswerDTO, SessionContextDTO, SessionDTO
+from src.dto import AnswerDTO, EvidenceDTO, SessionContextDTO, SessionDTO
 
 
 @dataclass(frozen=True)
@@ -36,6 +36,21 @@ class SessionStorePort(ABC):
     @abstractmethod
     def list_turns(self, session_id: str) -> Result[list[AnswerDTO]]:
         """The session's answers (its turns) in creation order."""
+
+    @abstractmethod
+    def answer_evidence(self, answer_id: str) -> Result[list[EvidenceDTO] | None]:
+        """The stored ``EvidenceSet`` of an answer, ascending by ``position``.
+
+        ``Ok(None)`` when no answer has that id (an answer with no evidence is ``Ok([])``).
+        """
+
+    @abstractmethod
+    def cited_snippet(self, citation_id: str) -> Result[str | None]:
+        """The snippet stored for ``citation_id`` by the most recent answer that cites it.
+
+        Exact id match (stored ids are canonical); ties on time are broken by ``answer_id``, so
+        the choice is deterministic. ``Ok(None)`` when no stored answer cites it.
+        """
 
     @abstractmethod
     def append_turn(

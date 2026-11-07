@@ -181,6 +181,26 @@ class SqliteSessionStore(SessionStorePort):
             for claim_id, text in claims
         ]
 
+    def answer_evidence(self, answer_id: str) -> Result[list[EvidenceDTO] | None]:
+        def work() -> list[EvidenceDTO] | None:
+            row = self._connection.execute(
+                "SELECT 1 FROM answers WHERE answer_id = ?", (answer_id,)
+            ).fetchone()
+            return None if row is None else self._evidence_of(answer_id)
+
+        return self._run(work)
+
+    def cited_snippet(self, citation_id: str) -> Result[str | None]:
+        def work() -> str | None:
+            row = self._connection.execute(
+                "SELECT snippet FROM evidence WHERE citation_id = ?"
+                " ORDER BY created_at DESC, answer_id DESC LIMIT 1",
+                (citation_id,),
+            ).fetchone()
+            return None if row is None else row[0]
+
+        return self._run(work)
+
     def append_turn(
         self, session_id: str, answer: AnswerDTO, context: SessionContextDTO, now: str
     ) -> Result[None]:

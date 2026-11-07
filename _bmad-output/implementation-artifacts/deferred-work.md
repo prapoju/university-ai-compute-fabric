@@ -31,3 +31,7 @@
 
 - A typed reference of another type is named "not found in state" even when it exists (`why was alex denied policy#catalog.4.2`, follow-up `what about policy#catalog.4.2`): the story-1.3 resolver rule `_key` "typed as something else: unresolved, named as typed". A literal `S_ENF` about an entity that exists is false; decide a wrong-type wording (clarify) with the resolver owner.
 - A real `policy#` named in the query is only checked for existence, not tied to the diagnosis: "denied under policy#X" when another clause denied is not corrected. Out of story 4.1 scope (D2).
+
+## Deferred from: code review of story-1-4 (2026-11-07)
+
+- `clock#` read ids restart at `clk-0000000000000001` in every process and `highest_counters` does not seed them. With a file-backed `db_path`, after a restart `GET /api/v1/citations/clock#...` can resolve to another run's clock read and snippet (the "most recent" ordering by `created_at` is also meaningless across restarts, because the sim clock restarts at `M12_CLOCK_START`). Extends the story-1.3 item on id counters: seed the clock counter (or namespace read ids per run) when multi-process or persistent operation is in scope.

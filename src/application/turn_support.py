@@ -3,7 +3,8 @@
 The LLM writes connective prose once per answer; the domain guard rejects any fact in it and the
 turn retries once before failing with ``LLM_PROSE_REJECTED`` (AD-2, AD-8). Canonical outcomes
 (clarification, ``ENTITY_NOT_FOUND``, ``CANNOT_CONFIRM``) are stored as turns and never consult the
-LLM.
+LLM. An answer that cites an id outside its own evidence set never renders: it downgrades to
+``CANNOT_CONFIRM`` before any prose is written or claim id minted (story 1.4, FR-13).
 """
 
 from __future__ import annotations
@@ -12,6 +13,7 @@ from collections.abc import Collection, Sequence
 
 from src.application.pipeline import CLARIFICATION_INTENT, TurnInput, TurnOutput
 from src.domain import canonical_strings as cs
+from src.domain.citations import is_bound
 from src.domain.diagnosis import ClaimDraft
 from src.domain.prose_guard import scan_prose
 from src.domain.result import Failure, Ok, Result, is_failure
@@ -61,6 +63,44 @@ def mint_claims(idgen: IdGenPort, drafts: Sequence[ClaimDraft]) -> Result[list[C
             )
         )
     return Ok(claims)
+
+
+def bind_or_downgrade(
+    turn: TurnInput,
+    intent: str,
+    drafts: Sequence[ClaimDraft],
+    evidence: Sequence[EvidenceDTO],
+    entities: tuple[str, ...] = (),
+) -> TurnOutput | None:
+    """``None`` when every claim is bound to the evidence; otherwise the ``S_CNC`` turn.
+
+    A claim that cites nothing is unbound too: it downgrades here instead of failing later in
+    ``mint_claims`` on ``ClaimDTO``'s ``min_length=1``.
+
+    The downgrade keeps the gathered evidence for audit, stores no claim and names what was
+    checked: the evidence citation ids in ``position`` order (D2). A duplicated id is kept once
+    (its first entry, positions renumbered), so the stored set still satisfies the ``evidence``
+    primary key. It runs before the prose call, so an unbound answer spends no LLM call and no
+    claim id.
+    """
+    if is_bound(drafts, evidence):
+        return None
+    kept: dict[str, EvidenceDTO] = {}
+    for entry in sorted(evidence, key=lambda e: e.position):
+        kept.setdefault(entry.citation_id, entry)
+    renumbered = [
+        entry.model_copy(update={"position": position})
+        for position, entry in enumerate(kept.values())
+    ]
+    return canonical_turn(
+        turn,
+        intent,
+        "CANNOT_CONFIRM",
+        cs.cannot_confirm(list(kept)),
+        stored="CANNOT_CONFIRM",
+        kept_evidence=renumbered,
+        entities=entities,
+    )
 
 
 def canonical_turn(

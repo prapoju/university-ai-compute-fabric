@@ -1,9 +1,10 @@
 """The access-denial diagnoser (story 1.3, S1): the first end-to-end intent handler.
 
 Order of a turn: extract the references -> resolve them exactly (AD-7) -> read the policy and
-events -> diagnose in the pure domain (AD-2) -> mint claim ids (OP-13) -> ask the LLM for prose
-once, guarded, with one retry (AD-8). Unresolved references and unconfirmable denials are
-canonical outcomes that never reach the LLM; any provider failure aborts the turn (AD-12).
+events -> diagnose in the pure domain (AD-2) -> check every claim is bound to the evidence ->
+ask the LLM for prose once, guarded, with one retry (AD-8) -> mint claim ids (OP-13). Unresolved
+references, unconfirmable denials and unbound claims are canonical outcomes that never reach the
+LLM; any provider failure aborts the turn (AD-12).
 """
 
 from __future__ import annotations
@@ -20,6 +21,7 @@ from src.application.pipeline import TurnInput, TurnOutput
 from src.application.turn_support import (
     PROSE_ATTEMPTS,
     PROSE_INSTRUCTION,
+    bind_or_downgrade,
     canonical_turn,
     clarification_turn,
     mint_claims,
@@ -109,6 +111,9 @@ class AccessDenialHandler:
     def _diagnose(
         self, turn: TurnInput, diagnosis: AccessDenialDiagnosis, entities: tuple[str, ...]
     ) -> Result[TurnOutput]:
+        downgraded = bind_or_downgrade(turn, INTENT, diagnosis.claims, diagnosis.evidence, entities)
+        if downgraded is not None:
+            return Ok(downgraded)  # an unbound claim never renders (FR-13): no LLM, no claim id
         prose = self._write_prose(diagnosis)
         if is_failure(prose):
             return prose

@@ -429,18 +429,18 @@ Shared preamble for every inbound read route unless overridden:
 ### Operation: `get_answer_evidence(answer_id) -> EvidenceSet` — `GET /api/v1/answers/{aid}/evidence`
 
 - **Layer:** Inbound Port
-- **Precondition (P):** P2: `answer_id` exists -> violation: `ENTITY_NOT_FOUND` (HTTP 404).
+- **Precondition (P):** P2: `answer_id` exists -> violation: `ENTITY_NOT_FOUND` (HTTP 404). The answer store is readable -> violation: `PROVIDER_UNAVAILABLE` (HTTP 503, story 1.4).
 - **Postcondition (Q):** Q1: HTTP 200 + ordered `EvidenceSet` (`position` ascending); Q3: audit `toolcall.evidence.get`.
 - **Invariant (I):** L1: returned entries are a subset of the stored answer `EvidenceSet`, unchanged. Bound to: AD-14.
 - **Concurrency / idempotency:** idempotent read.
 - **Time:** none.
 - **Latency budget (NFR):** p95 < 50 ms.
 
-### Operation: `get_citation(citation_id) -> {source_record: Record, snippet: Snippet} | CanonicalCode` — `GET /api/v1/citations/{cid}`
+### Operation: `get_citation(citation_id) -> {source_record: Record | ClockRead, snippet: Snippet} | CanonicalCode` — `GET /api/v1/citations/{cid}`
 
 - **Layer:** Inbound Port
 - **Precondition (P):** P2: `citation_id` resolves to an existing source -> violation: `ENTITY_NOT_FOUND` (HTTP 404 with body `S_ENF`).
-- **Postcondition (Q):** Q1: HTTP 200 + the source record and the stored snippet; the source record must be a member of the answer's `EvidenceSet` (AD-8); Q3: audit `toolcall.citation.get`.
+- **Postcondition (Q):** Q1: HTTP 200 + the source record and the stored snippet; the source record must be a member of the answer's `EvidenceSet` (AD-8). The snippet is the one stored by the most recent answer that cites `citation_id` (story 1.4 D5). A `clock#{read_id}` citation resolves to the `ClockRead` rebuilt from its stored entry, because a clock read cannot be re-read (story 1.4 D4); `source_record` is therefore `Record | ClockRead`. A malformed `citation_id` is `ENTITY_NOT_FOUND`, never a 400 (story 1.4 D6). Q3: audit `toolcall.citation.get`.
 - **Invariant (I):** L1: a citation whose source is absent from the `EvidenceSet` never renders; the answer downgrades to `S_CNC` at answer level. Bound to: AD-8.
 - **Concurrency / idempotency:** idempotent read.
 - **Time:** none.
@@ -583,7 +583,7 @@ These are the only read paths to operational state and policy (AD-1, AD-13). **S
 - **I:** `window_id` unique. Bound to: AD-2, AD-14.
 
 ### OP-9 `event_store_port`
-- **Operations:** `query(entity_ref: EntityKey, type: EventType, window: {start: Instant, end: Instant}) -> OperationalEvent[]`.
+- **Operations:** `query(entity_ref: EntityKey, type: EventType, window: {start: Instant, end: Instant}) -> OperationalEvent[]`; `get(event_id) -> OperationalEvent|null` (query-only, added by Impl-2 story 1.4 D3 so `get_citation` can resolve an `event#...` citation, as every other entity port has).
 - **Distinct P:** `type in {access_denied, job_cancelled, node_cordoned}` -> violation: `VALIDATION_MALFORMED_BODY` (400); `start < end` (half-open) -> violation: `VALIDATION_MALFORMED_BODY` (400).
 - **Distinct Q:** returns every event with `timestamp` in `[start, end)` and matching `entity_ref`/`type`, ordered by `timestamp` ascending then `event_id` ascending; `recorded_reason` read directly (D25).
 - **I:** event matching is half-open `[start, end)` (D40). Bound to: AD-2.

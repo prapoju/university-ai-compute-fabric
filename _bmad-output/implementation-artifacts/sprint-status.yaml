@@ -11,7 +11,7 @@
 # epics_source is now 4 epics / 19 stories (Sprint Change Proposal 2026-11-06).
 # ===============================================================================================
 # generated: 2026-10-16 21:34
-# last_updated: 2026-11-07 01:54
+# last_updated: 2026-11-07
 # project: plan-2-university-ai-fabric
 # project_key: NOKEY
 # tracking_system: file-system
@@ -61,7 +61,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-10-16 21:34
-last_updated: 2026-11-07 01:54
+last_updated: 2026-11-07
 project: plan-2-university-ai-fabric
 project_key: NOKEY
 tracking_system: file-system
@@ -72,7 +72,7 @@ development_status:
   1-1-seed-the-fixture-estate-and-stand-up-the-read-only-adapter-ring: done
   1-2-console-shell-session-store-and-conversational-intake: done
   1-3-entity-resolution-and-access-denial-diagnosis-end-to-end-walking-skeleton-happy-path: done
-  1-4-structured-claims-citation-cards-and-evidence-level-determinism: backlog
+  1-4-structured-claims-citation-cards-and-evidence-level-determinism: done
   1-5-tool-call-audit-log-and-state-inspection-viewer: backlog
   1-6-concurrent-multi-tool-diagnostics-under-a-k6-latency-budget: backlog
   1-7-react-diagnostic-console-with-cited-state-cards-and-runbook-copy: backlog

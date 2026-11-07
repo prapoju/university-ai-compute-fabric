@@ -220,7 +220,8 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/AnswerEvidenceResponse' }
         "404": { $ref: '#/components/responses/Response404' }
-      x-error-codes: [ENTITY_NOT_FOUND]
+        "503": { $ref: '#/components/responses/Response503' }
+      x-error-codes: [ENTITY_NOT_FOUND, PROVIDER_UNAVAILABLE]
 
   /api/v1/citations/{cid}:
     get:
@@ -602,6 +603,14 @@ components:
         - { $ref: '#/components/schemas/OperationalEvent' }
 
     # ---- answer composition (§0.4) ----
+    ClockRead:
+      type: object
+      additionalProperties: false
+      required: [read_id, instant, source]
+      properties:
+        read_id: { type: string }
+        instant: { $ref: '#/components/schemas/Instant' }
+        source: { type: string, enum: [clock] }
     Evidence:
       type: object
       additionalProperties: false
@@ -806,7 +815,11 @@ components:
       additionalProperties: false
       required: [source_record, snippet]
       properties:
-        source_record: { $ref: '#/components/schemas/Record' }
+        # story 1.4 D4: a clock# citation resolves to the clock read it cites, not an estate record
+        source_record:
+          oneOf:
+            - { $ref: '#/components/schemas/Record' }
+            - { $ref: '#/components/schemas/ClockRead' }
         snippet: { $ref: '#/components/schemas/Snippet' }
     GetRunbookResponse:
       type: object

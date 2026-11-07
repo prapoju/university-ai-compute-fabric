@@ -1,10 +1,10 @@
 """The schedule/window diagnoser (story 3.1, Annex 12.2): why a group's job cannot run now.
 
 Order of a turn: extract the group -> resolve it exactly (AD-7) -> read the group's jobs and the
-policy windows -> diagnose in the pure domain (AD-2) -> guarded prose, once (AD-8) -> mint claim
-ids. An unknown group is a canonical outcome that never reaches the LLM; a missing or past
-window is stated as such (contracts.md Q1, D55); any provider failure aborts the turn (AD-12) -
-a window is never fabricated.
+policy windows -> diagnose in the pure domain (AD-2) -> bind the claims to the evidence ->
+guarded prose, once (AD-8) -> mint claim ids. An unknown group and an unbound claim are canonical
+outcomes that never reach the LLM; a missing or past window is stated as such (contracts.md Q1,
+D55); any provider failure aborts the turn (AD-12) - a window is never fabricated.
 """
 
 from __future__ import annotations
@@ -12,6 +12,7 @@ from __future__ import annotations
 from src.application.entity_resolver import EntityResolver, ResolvedGroup, Unresolved
 from src.application.pipeline import TurnInput, TurnOutput
 from src.application.turn_support import (
+    bind_or_downgrade,
     canonical_turn,
     clarification_turn,
     mint_claims,
@@ -73,6 +74,9 @@ class WindowDiagnosisHandler:
             return windows
 
         outcome = diagnose_schedule_window(group, jobs.value, windows.value, turn.now)
+        downgraded = bind_or_downgrade(turn, INTENT, outcome.claims, outcome.evidence, (group.id,))
+        if downgraded is not None:
+            return Ok(downgraded)  # an unbound claim never renders (FR-13): no LLM, no claim id
         prose = write_prose(self._prose, outcome.evidence, outcome.fact_tokens)
         if is_failure(prose):
             return prose

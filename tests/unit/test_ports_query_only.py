@@ -28,7 +28,7 @@ CONTRACT_METHODS: dict[str, set[str]] = {
     "NodesPort": {"get", "select", "browse"},
     "ReservationsPort": {"get", "browse"},
     "WindowsPort": {"get", "list"},
-    "EventStorePort": {"query"},
+    "EventStorePort": {"query", "get"},  # get: story 1.4 D3 (contracts.md OP-9)
     "ClockPort": {"now"},
     "PolicyContentPort": {"get"},
     "RunbookRegistryPort": {"get"},
@@ -43,6 +43,7 @@ OWNED_PORT_METHODS: dict[str, set[str]] = {
     "LlmProsePort": {"compose"},
     "SessionStorePort": {
         "create", "get", "list_turns", "append_turn", "mark_expired", "reset", "highest_counters",
+        "answer_evidence", "cited_snippet",  # story 1.4: the evidence and citation reads
     },
 }  # fmt: skip
 ALL_PORTS = {*CONTRACT_METHODS, *OWNED_PORT_METHODS}

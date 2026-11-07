@@ -19,6 +19,13 @@ class EventWindow:
 
 class EventStorePort(ABC):
     @abstractmethod
+    def get(self, event_id: str) -> Result[OperationalEventDTO | None]:
+        """Record for an event key such as ``event#evt-4711``; a miss is ``Ok(None)``.
+
+        Story 1.4 D3: ``get_citation`` resolves an event citation to its source record.
+        """
+
+    @abstractmethod
     def query(
         self, entity_ref: str, type: str, window: EventWindow
     ) -> Result[list[OperationalEventDTO]]:

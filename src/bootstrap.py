@@ -29,14 +29,18 @@ from src.application.access_denial_handler import INTENT as ACCESS_DENIAL_INTENT
 from src.application.access_denial_handler import AccessDenialHandler
 from src.application.entity_resolver import EntityResolver
 from src.application.evidence_assembler import EvidenceAssembler
+from src.application.evidence_service import EvidenceService
 from src.application.pipeline import AnswerPipeline
 from src.application.session_service import SessionService
-from src.application.unavailable import UnavailableSessionUseCases
+from src.application.unavailable import (
+    UnavailableEvidenceUseCases,
+    UnavailableSessionUseCases,
+)
 from src.application.window_diagnosis_handler import INTENT as WINDOW_INTENT
 from src.application.window_diagnosis_handler import WindowDiagnosisHandler
 from src.config import Settings
 from src.domain.result import is_failure
-from src.ports.inbound import SessionUseCases
+from src.ports.inbound import EvidenceUseCases, SessionUseCases
 from src.ports.outbound import IdGenPort, LlmProsePort, SessionStorePort
 
 logger = logging.getLogger(__name__)
@@ -169,11 +173,25 @@ def build_container(settings: Settings) -> Container:
         ),
     )
     use_cases: SessionUseCases
+    evidence: EvidenceUseCases
     if store is None or session_problem is not None:
         use_cases = UnavailableSessionUseCases(session_problem or "session store unavailable")
+        evidence = UnavailableEvidenceUseCases(session_problem or "session store unavailable")
     else:
         use_cases = SessionService(
             store=store, clock=providers.clock, idgen=idgen, pipeline=pipeline
+        )
+        evidence = EvidenceService(
+            store=store,
+            users=providers.users,
+            catalog=providers.catalog,
+            policy=providers.policy,
+            groups=providers.groups,
+            jobs=providers.jobs,
+            nodes=providers.nodes,
+            reservations=providers.reservations,
+            windows=providers.windows,
+            event_store=providers.event_store,
         )
 
     def sessions() -> str | None:
@@ -201,6 +219,7 @@ def build_container(settings: Settings) -> Container:
     container.register_port(LlmProsePort, prose)
     container.register_port(AnswerPipeline, pipeline)
     container.register_port(SessionUseCases, use_cases)
+    container.register_port(EvidenceUseCases, evidence)
     return container
 
 

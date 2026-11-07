@@ -165,6 +165,26 @@ def _clock_entry(clock: ClockReadDTO) -> tuple[str, str, str]:
     return "clock", f"clock#{clock.read_id}", f"clock read {clock.read_id} at {clock.instant}"
 
 
+_CLOCK_SNIPPET = re.compile(r"clock read (?P<read_id>\S+) at (?P<instant>\S+)")
+
+
+def clock_read_from_entry(citation_id: str, snippet: str) -> ClockReadDTO | None:
+    """The clock read a ``_clock_entry`` evidence entry was built from (story 1.4, D4).
+
+    A clock read cannot be re-read from ``clock_port``, so ``get_citation`` rebuilds it from the
+    stored entry. ``None`` when the snippet is not exactly that format, names another read, or
+    carries an instant that is not an ``Instant``.
+    """
+    match = _CLOCK_SNIPPET.fullmatch(snippet)
+    if match is None or citation_id != f"clock#{match['read_id']}":
+        return None
+    try:
+        parse_instant(match["instant"])
+        return ClockReadDTO(read_id=match["read_id"], instant=match["instant"], source="clock")
+    except ValueError:  # pydantic's ValidationError is a ValueError
+        return None
+
+
 def _number(entries: Iterable[tuple[str, str, str]]) -> tuple[EvidenceDTO, ...]:
     """Assign ``position`` 0..n-1 at assembly time (AD-14); ids are unique by construction."""
     return tuple(

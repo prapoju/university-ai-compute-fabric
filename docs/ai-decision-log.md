@@ -444,6 +444,8 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 | I2-10 | Code review of story 3.1 | **Correction (code defect)** | Only a pending job is diagnosed; a word after "group" is never turned into a group reference | Julio |
 | I2-11 | Code review of story 4.1 | **Correction (code defect)**, **Correction (test)** | Name words guarded whatever their case; missing policies stop both diagnoses, named once in input order; four weak story-4.1 tests fixed | Julio |
 | I2-12 | Flow C · test automation | Decision, **Correction (test)** | Branch-coverage gaps closed with single-port outages; adversarial audit fixed a silent-replacement gap and a save test that could not fail | Julio |
+| I2-13 | Story 1.4 · Flow B build | Decision | `EventStorePort.get` and the rebuilt `ClockRead` make event and clock citations resolvable (D3-D6); the `S_CNC` downgrade keeps each evidence id once | Julio |
+| I2-14 | Code review + test audit of story 1.4 | **Correction (code defect)**, **Correction (test)** | An uncited claim passed the binding guard and the evidence route returned an undeclared 503; six story-1.4 tests strengthened so the four surviving mutants (M2-M5) now fail a story test | Julio |
 
 ## I2-01..I2-09 - Shift-left review of the Impl-2 plan  *(planning text)*
 - **Phase:** before any Impl-2 code, 2026-11-06. Party-mode review (Winston, architect; Murat, test architect) of `docs/impl2-rules.md`
@@ -621,3 +623,122 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
   - `session_service.py:77, 122, 174` (id and list_turns failure propagation).
   - `access_denial_handler.py:101` (check reachability first).
   - `dependency_check.main()` and the defensive branches, skipped as number-chasing.
+
+## I2-13 - Story 1.4: an event and a clock read become resolvable citations  *(contract amendment, accepted by the user)*
+- **Date / phase:** 2026-11-07, Flow B (test-along), `bmad-dev-story` on story 1.4 from baseline `415689d`.
+- **Decided by the user:** accept the story's decisions D3-D6 as written.
+  - **D3:** `EventStorePort` gains a query-only `get(event_id)`, so `GET /api/v1/citations/event%23evt-4711` returns its source
+    record. contracts.md OP-9 "Operations" amended. The port audit (`test_ports_query_only.py`) still holds: no mutating name, no
+    write path (AD-1, AD-13).
+  - **D4:** a `clock#{read_id}` citation resolves to the `ClockRead` rebuilt from its stored entry by
+    `diagnosis.clock_read_from_entry`, the inverse of `_clock_entry`, whose format is unchanged. `GetCitationResponse.source_record`
+    is `Record | ClockRead` in `src/dto.py` and its contract copy, and `oneOf [Record, ClockRead]` in openapi.yaml, which gains a
+    `ClockRead` schema. contracts.md `get_citation` Q1 amended. This closes test-design T-11 / P0-G9.
+  - **D5 / D6:** the snippet is the one stored by the most recent citing answer (ties broken by `answer_id`), and a malformed `cid`
+    is 404 `S_ENF`, never an undeclared 400.
+- **AI refinement (confirmed by the user, 2026-11-07):** the story says the `S_CNC` downgrade keeps the gathered evidence as is. With a duplicated
+  `citation_id` that set breaks the `evidence` primary key, so the downgraded turn would fail to store as a retryable 503 and AC 2
+  would not hold end to end. The downgrade keeps each id once (first entry, positions renumbered), and the handler test stores the
+  downgraded turn to prove it. The real diagnosers never emit a duplicate; this only affects the defensive path.
+- **Deferred:** the audit events `toolcall.evidence.get` / `toolcall.citation.get` (story 1.5) and the visual citation cards (1.7).
+- **Outcome:** 1089 passing, branch coverage of `src` 96.84% (gate 90%), `ruff check` clean. Log:
+  `docs/evidence/impl2/flow-b-1-4-coverage.log` (tool output, not edited).
+
+## I2-14 - Code review and test audit of story 1.4: an uncited claim passed the guard, and four mutants survived  *(AI code and AI-written tests corrected)*
+- **Date / phase:** 2026-11-07, after I2-13, on the same uncommitted working tree (baseline `415689d`). Code review with
+  `bmad-code-review`, then an adversarial audit of the story's tests.
+- **Prompt (intent):**
+  1. "/bmad-code-review. Follow docs/impl2-rules.md. Review story 1-4. Apply the fixes I approve and update both sprint-status.yaml
+     copies."
+  2. "go" (the three review layers run as parallel subagents), then "1" (apply every patch).
+  3. Adversarially audit the tests added for the story against the four traps (Ice Cream Cone, Flaky Sleeper, Mocking Mirage, Blindly
+     Green). For each new test, name the bug that makes it fail. Break the main guard, show the failures, restore it and confirm with
+     `git diff`. List the problems, wait for a decision and "never weaken an assertion to get green".
+  4. "all. D5 stays 'most recent by created_at'. For #3 use the pinned expected value. After the fixes, rerun the surviving mutants
+     M2, M3, M4 and M5 and show me that each now fails a story test, then run the full suite."
+- **AI output, code review:**
+  - **Scope:** the uncommitted diff of the story, about 1,740 lines (24 modified files, 11 new), review mode "full" against the story
+    file. Blind Hunter, Edge Case Hunter and Acceptance Auditor ran in parallel and all three completed.
+  - **Raw findings:** Blind Hunter 18, Edge Case Hunter 3, Acceptance Auditor 6. After merging duplicates and reading the code:
+    6 patch, 1 defer, 18 dismissed. Three Blind Hunter claims were checked and were wrong (`clock_entry` already exists as an alias at
+    `diagnosis.py:298`, `evidence.created_at` exists in the migration, the event store's lookup only covers events).
+  - **Defer:** `clock#` read ids restart at `clk-0000000000000001` in every process and `highest_counters` does not seed them, so with a
+    file-backed database a citation can resolve to another run's clock read. Added to `deferred-work.md`; it extends a story-1.3 item.
+- **AI output, test audit:**
+  - **Traps:** no Ice Cream Cone (50 unit, 13 API, 6 ATDD tests), no Flaky Sleeper (no sleeps, frozen simulated clock), no Mocking
+    Mirage (`bend` replaces only the diagnoser that feeds the guard). Six Blindly Green problems were listed.
+  - **Main guard mutant:** `if is_bound(drafts, evidence):` replaced by `if True:` at `turn_support.py:86`, so the guard never
+    downgrades. 6 failed, 63 passed (all 6 cases of `test_an_unbound_answer_downgrades_to_cannot_confirm_without_llm_or_claim_ids`).
+    Restored from a scratchpad copy; the SHA-256 matched and `git diff` was byte-identical to the diff captured before the mutation.
+  - **Extra mutants:**
+    - M6, `is_bound` ignores uncited claims: killed by the story tests (3 fail).
+    - M2, `cited_snippet` ordered by `answer_id DESC` only: survived the full suite (1094 passed).
+    - M3, tie-break dropped (`created_at DESC` only): survived the full suite.
+    - M4, the `node` and `reservation` dispatch rows swapped: survived the full suite.
+    - M5, evidence ordered by `hash()`: survived the story tests; killed only by story-1.3 tests (`test_access_denial_api.py`,
+      `test_access_denial_handler.py`), which cover S1 only.
+  - **AI slips:**
+    - The first guard-mutant run and the first extra-mutant run executed no tests. zsh does not word-split an unquoted `$T`, the same
+      slip as I2-12. Both were reported and rerun (explicit paths, then a bash script). Every file was still restored.
+    - The review summary reported 19 dismissed findings. The correct count is 18 (25 unique findings, 6 patch, 1 defer).
+    - Two findings dismissed in the code review as minor test style (the ATDD `in record.values()` check and `bend` dropping keyword
+      arguments) were raised again by the test audit and fixed there (#5, #6).
+    - A docstring edit in the review patches went over the 100-character line limit; `ruff` caught it and it was rewrapped.
+- **Review (Julio):**
+  - **Approved:** running the review layers as subagents; all 6 review patches ("apply every patch"); all 6 audit fixes ("all").
+  - **Decided:** D5 stays "most recent by `created_at`". The audit had noted that after a restart the simulated clock goes backward
+    while answer ids keep rising (the deferred item), so the D5 test pins the contract as written. For #3, the pinned expected value,
+    not a subprocess with a different `PYTHONHASHSEED`.
+  - **Rejected:** nothing.
+- **Correction (code defect), the six review patches:**
+  1. **A claim with no citations passed the binding guard** (all three layers). `unbound_citations` reports ids, and a claim that cites
+     nothing has none, so the turn called the LLM and then `mint_claims` failed on `ClaimDTO`'s `min_length=1`: an untyped 500, not
+     `S_CNC`. The diagnosers never emit one today. Fix: a pure `citations.is_bound` used by `bind_or_downgrade`, with unit tests and an
+     `uncited` case for S1 and S2 in the handler tests.
+  2. **`GET /api/v1/answers/{aid}/evidence` returned 503 `PROVIDER_UNAVAILABLE`** (store failure, broken-database fallback of Task 2.4),
+     but openapi.yaml declared only 200/404 and contracts.md listed no 503. Both now declare it.
+  3. **The contracts.md `get_citation` heading said `source_record: Record`**, while its Q1 said `Record | ClockRead`. Aligned.
+  4. **`test_both_routes_are_read_only` asserted no status**, so two identical 404 or 503 bodies passed. It now asserts four 200s.
+  5. **A `cid` with an encoded `/` missed the route** and got FastAPI's `{"detail": "Not Found"}` instead of the `S_ENF` body (D6). The
+     route uses `{cid:path}`; a `user#a/b` case was added. The route audit still passes.
+  6. **The story's Task 1.2 and D2 text still said `kept_evidence=evidence`.** It now notes the I2-13 refinement.
+- **Correction (test), the six audit fixes:** the tests were written by the AI in the story-1.4 `bmad-dev-story` session (I2-13).
+  Julio approved the fixes and the AI applied them. Only test files changed.
+  1. **`test_every_citation_type_but_clock_has_exactly_one_source_port`** (`tests/unit/test_evidence_service.py:168`) checked the
+     dispatch table's keys, not which port each key uses; S1 and S2 never cite a node or a reservation.
+     - **Survived it:** M4 (node and reservation swapped), across the full suite.
+     - **Fix:** `test_each_type_resolves_through_its_own_port`, 9 cases with a real fixture id each, asserting that `get_citation`
+       returns exactly what that type's own port returns, plus a test that the cases cover every type with a source port.
+     - **Now fails:** M4 fails `test_each_type_resolves_through_its_own_port[node#ws-gpu-01]` and `[reservation#res-001]`.
+  2. **`test_the_snippet_is_the_one_of_the_most_recent_answer_that_cites_it`** (`:155`): the newer answer also had the higher id.
+     - **Survived it:** M2 (`ORDER BY answer_id DESC` only).
+     - **Fix:** answer 2 is stored at T0 and answer 1 at T1; answer 1's snippet is expected.
+     - **Now fails:** M2 fails this test.
+  3. **`test_a_tie_on_time_is_broken_by_the_highest_answer_id`** (`:162`): answer 2 was stored first, so scan order alone gave the
+     expected answer.
+     - **Survived it:** M3 (tie-break dropped).
+     - **Fix:** answer 1 is stored first, then answer 2, at the same time.
+     - **Now fails:** M3 fails this test.
+  4. **`test_three_runs_on_fresh_apps_with_a_frozen_clock_are_identical`** (`tests/atdd/test_story_1_4.py:110`): the three runs share
+     one process and one hash seed, so ordering that leans on set or hash iteration repeats in all three.
+     - **Survived it:** M5 (evidence ordered by `hash()`), within the story tests.
+     - **Fix:** the S1 and S2 evidence order and claim citations are also asserted against a pinned expected value, which matches the
+       story-1.3 and story-3.1 order tests (`test_window_diagnosis.py:81`).
+     - **Now fails:** M5 fails `[S1]` and `[S2]`.
+  5. **`test_the_reads_change_nothing`** (`test_evidence_service.py:225`) never checked that the reads succeeded, so "nothing changed"
+     also held if all six reads failed. No mutant was written for it. Fix: `is_ok` on each read.
+  6. **`test_every_evidence_citation_resolves_through_the_citation_route`** (`test_story_1_4.py:89`) accepted the id in any field of
+     the record (a reservation holds `node_id: node#ws-gpu-05`). No mutant was written for it. Fix: the record's own identity field
+     (`id`, `clause_id`, `window_id` or `event_id`) must equal the id.
+  - **Also:** `bend` (`tests/unit/test_citation_binding_handlers.py:60`) now forwards keyword arguments. This was noise, not a false
+    pass: a keyword call would have failed with `TypeError`. No mutant was written for it.
+- **Outcome:**
+  - After the review patches: 1094 passing, branch coverage of `src` 96.84%, `ruff` clean, schema check passes. Log:
+    `docs/evidence/impl2/flow-b-1-4-review-coverage.log`.
+  - After the audit fixes: 1104 passing (10 new cases), 96.84%, `ruff` clean, schema check passes. Log:
+    `docs/evidence/impl2/flow-b-1-4-test-audit-coverage.log`. The original `flow-b-1-4-coverage.log` was not edited.
+  - The audit changed no production code: `git diff --stat HEAD -- src` was 13 files, +172/−19, before and after. Every mutated file
+    was restored to its pre-mutation SHA-256.
+  - Story 1.4 is `done` in the story file and in both `sprint-status.yaml` copies, which are identical. Nothing committed.
+- **Not addressed:** the deferred clock-id item above, and 16 findings that stay dismissed (the 18 dismissed in the review, minus the
+  two the audit fixed). They are recorded only in this session's review summary.
