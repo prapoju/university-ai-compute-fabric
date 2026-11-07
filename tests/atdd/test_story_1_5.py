@@ -149,6 +149,33 @@ def test_secrets_in_the_query_never_reach_the_audit_tables(tmp_path: Path) -> No
     assert query not in stored  # the query text itself is never stored in an audit row
 
 
+def test_a_secret_that_reaches_a_port_parameter_is_redacted_before_it_is_stored(
+    tmp_path: Path,
+) -> None:
+    # In the entity slot the secret is resolved as an id, so it really is a ``users_port.get``
+    # parameter. The test above never gets a secret that far, so it cannot catch a redaction bug.
+    query = "Why was student api_key=abc123 denied access to model deepseek-coder?"
+    with TestClient(app_on(tmp_path)) as client:
+        sid = new_session(client)
+        ask(client, sid, query)
+        page = json.dumps(audit_page(client, sid))
+    connection = sqlite3.connect(tmp_path / "m12.db")
+    try:
+        params = connection.execute(
+            "SELECT params_summary FROM tool_calls WHERE tool_name = 'toolcall.users_port.get'"
+        ).fetchall()
+    finally:
+        connection.close()
+    assert [json.loads(p) for (p,) in params] == [{"id": "user#api_key=[REDACTED]"}]  # AC 4 marker
+    stored = " ".join(
+        str(value)
+        for table in ("tool_calls", "audit_records")
+        for row in raw_rows(tmp_path / "m12.db", table)
+        for value in row
+    )
+    assert stored.count("abc123") == 0 and page.count("abc123") == 0
+
+
 # -- AC 5: retention cap -----------------------------------------------------------------------
 def test_with_cap_5_two_s1_turns_keep_exactly_the_5_newest_rows(tmp_path: Path) -> None:
     with TestClient(app_on(tmp_path, audit_retention_cap="5")) as client:
