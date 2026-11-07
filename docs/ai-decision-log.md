@@ -452,7 +452,7 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 | I2-18 | Story 2.1 · create story (Flow A) | Decision | `cs201` is not an entity so it answers Entity Not Found and the AC example becomes `group 2`; fleet-wide scope is refused by its verb; `/copilot/chat` is a thin route; plan D-P1 applied | Pending |
 | I2-19 | Story 2.1 · red phase, green phase and mutation check (Flow A) | Decision, **Correction (test)** | The first genuine ATDD red log (51 failed, 4 guards) was committed before any code; three Impl-1 tests that encoded the pre-2.1 state were made stricter; 12 mutants killed | Juan |
 | I2-20 | Code review + test audit of story 2.1 | **Correction (code defect)**, **Correction (test)** | A destructive request aimed at an unnamed referent was widened to the whole fleet (2-2 would have enumerated every job); one assertion could not fail; two verb lists could drift; 18 mutants killed | Juan |
-| I2-21 | Story 2.2 · create story (Flow A) | Decision | The chat reply gets its own schema; the persisted selector names the port operation and the select vocabulary grows (`node_ids`, list = one of); the status filter comes from the action; `cs201` is no longer enumerated | Pending |
+| I2-21 | Story 2.2 · create story (Flow A) | Decision | The chat reply gets its own schema; the persisted selector names the port operation and the select vocabulary grows (`node_ids`, list = one of); the status filter comes from the action; `cs201` is no longer enumerated | Juan (D1, D4), Pending (the rest) |
 
 ## I2-01..I2-09 - Shift-left review of the Impl-2 plan  *(planning text)*
 - **Phase:** before any Impl-2 code, 2026-11-06. Party-mode review (Winston, architect; Murat, test architect) of `docs/impl2-rules.md`
