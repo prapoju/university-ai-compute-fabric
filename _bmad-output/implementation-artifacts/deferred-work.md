@@ -42,3 +42,10 @@
 - Session-less reads (`get_state_record`, `browse_state`, `get_answer_evidence`, `get_citation`) write no audit rows (story 1.5 D2): auditing them needs a nullable `tool_calls.session_id` (a migration) and a clock read per request.
 - Story 1-6 must reserve `ToolCallRecorder` slots in argument order before a parallel fan-out; the recorder appends in completion order (story 1.5 D4, review D-2.1/2.3).
 - Per-diagnoser audit events (`toolcall.diagnose_schedule_window`, `toolcall.assemble_evidence`, ...) named in contracts.md are still not emitted: story 1.5 audits the `toolcall.answer_query` head and every provider-port read (D3), which covers the reads those events would describe. The story-3-1 item above stays open for the named events.
+
+## Deferred from: code review of story-1-5 (2026-11-07)
+
+- A secret pasted where an entity goes (`why was student sk-live-777 denied ...`) is stored as `user#sk-live-777` in `tool_calls.params_summary`. AC 4 covers `key=value` and `bearer` forms only, and the `answers` table stores the whole query anyway (`query`, `prose`): accepted as a documented limitation (decision D-1, option a). Revisit with the retention decision (OQ-13).
+- `PAGINATION_INVALID` reads "page_size 20 exceeds cap 100" when `page` is the offender, because the catalog message only takes `v=page_size`. Changing the wording is a contracts section 4 amendment.
+- `SqliteWriter._rollback` ignores a failed `ROLLBACK`, which would leave the connection in a transaction and fail every later `BEGIN IMMEDIATE`. Needs a real I/O error; add a self-heal (`ROLLBACK` before `BEGIN IMMEDIATE` when `in_transaction`) if it is ever observed.
+- `audited` computes the bound params and `_dump` for every port call even when no turn is active, and `/state` browse pages the port up to 100 times for `total`. Measure under the story 1-6 k6 budget before optimizing (check the recorder is active first).

@@ -385,3 +385,21 @@ Task 6 (ATDD, contract docs, evidence):
 - 2026-11-07: Implemented (Flow B, Tasks 1-6): single `SqliteWriter`, append-only audit store with write-time redaction and
   retention, every turn and reset audited atomically with its write, `GET /sessions/{sid}/audit`, `GET /state/{type}/{id}` and
   `GET /state/{type}`, ATDD, contract amendments. 1379 tests pass, branch coverage 97.06%, ruff clean. Status -> review.
+
+### Review Findings
+
+Code review of `a3f9161..c632482` (2026-11-07): Blind Hunter, Edge Case Hunter and Acceptance Auditor run in sequence by the reviewer (no subagents). All nine acceptance criteria hold. 3 patches applied, 1 decision resolved as a documented limitation, 3 deferred, 1 withdrawn, 7 dismissed.
+
+- [x] [Review][Patch] P-1 (medium): the ATDD redaction case never gets a secret into a port parameter, so it survives the mutant "string redaction off". New case puts the secret in the entity slot (`users_port.get`) and fails against that mutant [tests/atdd/test_story_1_5.py] — fixed in `6ef9bbe`
+- [x] [Review][Patch] P-3 (low): `redact` left quoted values, serialized JSON, `Authorization: Basic ...`, hyphenated key names (`x-api-key`) and values inside sets unredacted. Each form now has a test that fails against the old code [src/domain/redaction.py] — fixed in `5af1272`
+- [x] [Review][Patch] P-4 (low): two ATDD assertions could not fail (removed rows built from the first remaining row's timestamp; `query not in stored` passes for a redacted copy). Now reads the real first-turn rows and also checks the plain part of the query. Mutants "rotation deletes the newest rows" and "head stores the query" are killed [tests/atdd/test_story_1_5.py] — fixed in `df4ac41`
+- [x] [Review][Decision] D-1 (low): a secret pasted where an entity goes (`why was student sk-live-777 denied ...`) is stored in `tool_calls.params_summary` as `user#sk-live-777`. AC 4 only covers `key=value` and `bearer` forms, and the `answers` table already stores the whole query (`query`, `prose`), so hardening only the audit would be cosmetic. Resolved by the user: accept and document the limitation (option a); see deferred work.
+- [x] [Review][Defer] `PAGINATION_INVALID` says "page_size 20 exceeds cap 100" even when `page` is the offender (`?page=99999999999999999999`); the message is fixed by the catalog (contracts section 4) [src/domain/error_catalog.py] — deferred, contract-owned wording
+- [x] [Review][Defer] `SqliteWriter._rollback` swallows a failed `ROLLBACK`; the connection then stays in a transaction and every later `BEGIN IMMEDIATE` fails (permanent 503). Needs a real I/O error [src/adapters/outbound/db/sqlite_writer.py:83] — deferred, theoretical
+- [x] [Review][Defer] `audited` builds `signature.bind` and `_dump` params on every port call even with no active turn, and `/state` browse makes up to 100 calls for `total` [src/application/tool_audit.py:118] — deferred, measure under the story 1-6 k6 budget
+
+Withdrawn: P-2 (WAL not set on file databases) was a false positive. Migration `001` runs `PRAGMA journal_mode = WAL`, and `test_open_pins_the_pragmas_and_autocommit_mode` asserts it; the probe opened the writer without applying the migrations.
+
+Dismissed (7): ids burned when a write fails (D1); cap below 5 rotates rows of the same turn (AC 5); rotation log line before the outer COMMIT; `run_script` inside an open transaction (migrations only, at startup); rotation by sim time after a restart (already deferred by this story); recorder order under `gather` (D4 is in deferred work and in the `ToolCallRecorder` docstring); non-numeric `page` answers `VALIDATION_MALFORMED_BODY`.
+
+Process note (H-09): the story asked for one commit per task and shipped as one commit (`c632482`).
