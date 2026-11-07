@@ -164,7 +164,9 @@ def test_a_port_outage_aborts_the_turn_and_recovery_is_clean(
         fault.down()
         assert_safe_failure(ask(client, sid, query), "PROVIDER_UNAVAILABLE")
         assert prose.call_count == prose_calls  # aborted before prose
-        assert client.get("/healthz").status_code == 200  # the app did not crash
+        # the app did not crash: another session can still be opened and read during the outage
+        other = open_session(client)
+        assert client.get(f"{SESSIONS}/{other}").status_code == 200
         assert_nothing_persisted(client, sid)
 
         fault.recover()
