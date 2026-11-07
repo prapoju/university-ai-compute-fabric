@@ -79,6 +79,21 @@ def audit_ids(client: TestClient, sid: str) -> list[str]:
     return [entry["audit_id"] for entry in page["entries"]]
 
 
+def clock_down(clock: SimClock, raising: PortFault, mode: str) -> None:
+    """``typed``: the clock returns ``CLOCK_UNAVAILABLE``; otherwise ``now`` raises."""
+    if mode == "typed":
+        clock.fail()
+    else:
+        raising.down()
+
+
+def clock_up(clock: SimClock, raising: PortFault, mode: str) -> None:
+    if mode == "typed":
+        clock.recover()
+    else:
+        raising.recover()
+
+
 def assert_safe_failure(response, code: str) -> None:
     """The safe-failure 503: canonical literal, retryable, no leaked reason, nothing fabricated."""
     body = response.json()
@@ -175,12 +190,12 @@ def test_a_clock_outage_aborts_the_turn_and_recovery_is_clean(
         prose_calls = prose.call_count
 
         clock = client.app.state.container.port(ClockPort)
-        clock.fail() if mode == "typed" else raising.down()
+        clock_down(clock, raising, mode)
         assert_safe_failure(ask(client, sid, query), code)
         assert prose.call_count == prose_calls
         assert_nothing_persisted(client, sid)
 
-        clock.recover() if mode == "typed" else raising.recover()
+        clock_up(clock, raising, mode)
         assert_clean_recovery(client, sid, query, baseline)
 
 
@@ -195,7 +210,7 @@ def test_opening_a_session_with_the_clock_down_is_the_safe_failure(
         install(monkeypatch, SimClock, "now", raising)
     with app_on(tmp_path) as client:
         clock = client.app.state.container.port(ClockPort)
-        clock.fail() if mode == "typed" else raising.down()
+        clock_down(clock, raising, mode)
         response = client.post(SESSIONS, json={"operator_role": "role-operations"})
         assert_safe_failure(response, code)
         assert row_counts(client, ("sessions",)) == {"sessions": 0}
