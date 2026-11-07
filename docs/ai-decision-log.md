@@ -447,6 +447,7 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 | I2-13 | Story 1.4 · Flow B build | Decision | `EventStorePort.get` and the rebuilt `ClockRead` make event and clock citations resolvable (D3-D6); the `S_CNC` downgrade keeps each evidence id once | Julio |
 | I2-14 | Code review + test audit of story 1.4 | **Correction (code defect)**, **Correction (test)** | An uncited claim passed the binding guard and the evidence route returned an undeclared 503; six story-1.4 tests strengthened so the four surviving mutants (M2-M5) now fail a story test | Julio |
 | I2-15 | Story 1.5 · create story | Decision | Turn audit atomic with the `Answer`; session-less reads not audited; tool metadata in `result_summary`; bare state record; `browse` on windows/events; browse `total` by paging (D1-D9) | Julio |
+| I2-16 | Code review + test audit of story 1.5 | **Correction (code defect)**, **Correction (test)** | Redaction missed quoted, JSON, Basic and hyphenated forms; the ATDD redaction case could not fail; five more test gaps closed after 26 mutants (7 survived, 3 real); one AI finding withdrawn as a false positive | Juan |
 
 ## I2-01..I2-09 - Shift-left review of the Impl-2 plan  *(planning text)*
 - **Phase:** before any Impl-2 code, 2026-11-06. Party-mode review (Winston, architect; Murat, test architect) of `docs/impl2-rules.md`
@@ -787,3 +788,54 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
   - Contract amendments applied: openapi.yaml (audit 503, `AUDIT_WRITE_FAILED` on `/copilot/query` and `DELETE /sessions/{sid}`),
     contracts.md (D1, D2 x4, D6, D7, D8, D9, audit page depth, I20), and `audit_events` -> `audit_records` in both `epics.md`.
   - Story 1.5 is `review` in the story file and in both `sprint-status.yaml` copies. Nothing committed.
+
+## I2-16 - Code review and test audit of story 1.5: redaction gaps, a redaction test that could not fail, and three surviving mutants  *(AI code and AI-written tests corrected)*
+- **Date / phase:** 2026-11-07, after I2-15, on branch `impl-2` at `c632482` (the story was committed whole, not per task). Code review with
+  `bmad-code-review`, then an adversarial audit of the story's tests with mutation.
+- **Prompt (intent):**
+  1. "/bmad-code-review. Follow docs/impl2-rules.md. Review story 1-5 ... Do not apply any fix until I approve each one. After the fixes,
+     update both sprint-status.yaml copies and add a Review Findings section to the story file."
+  2. "1" (confirms the review scope), then "1" again after the findings; read as D-1 option (a) and "apply every patch".
+  3. "Continua si" and "si" (run the test-trap audit D.4, then add three tests for the real survivors).
+  4. Standing instruction: one commit per change, no `Co-Authored-By` line.
+- **AI output, code review:**
+  - **Scope:** `a3f9161..c632482`, 61 files, about 5,600 diff lines, review mode "full" against the story file. The three layers (Blind Hunter,
+    Edge Case Hunter, Acceptance Auditor) were run in sequence by the reviewer; no subagents were launched. All nine acceptance criteria hold.
+  - **Result:** 4 patch, 1 decision, 3 defer, 7 dismissed. One patch was later withdrawn (see AI slips).
+  - **Defer (in `deferred-work.md`):** `PAGINATION_INVALID` wording names `page_size` when `page` is the offender (catalog message, contracts
+    section 4); `SqliteWriter._rollback` ignores a failed `ROLLBACK`; the `audited` wrapper builds params on every call outside a turn.
+- **AI output, test audit:**
+  - **Traps:** no Ice Cream Cone, no Flaky Sleeper (0 sleeps; `Barrier` and `Event`), no Mocking Mirage (real SQLite schema, stores and app).
+  - **Mutation:** 26 mutants on the guards of the story (writer lock, rollback-only, `tx.abort()`, rotation gate, tool-call deletion, id order,
+    redaction, pagination, state ids, recorder). 19 killed at first, 7 survived: 4 equivalent (the migration already sets `foreign_keys`, the
+    driver default is already `busy_timeout = 5000`, `_total` is already bounded to 10,000, the index `ix_audit_session_ts` already orders by
+    `audit_id`) and 3 real. All 3 are now killed by their own new test.
+- **Review (Juan):**
+  - **Approved:** the review scope; all patches; D-1 as a documented limitation (a secret pasted where an entity goes is stored in
+    `tool_calls.params_summary`; the `answers` table already stores the whole query); the three new tests.
+  - **Rejected:** nothing.
+- **Correction (code defect):**
+  - **P-3, `redact` left five forms unredacted:** quoted values (`api_key="abc"`), serialized JSON, `Authorization: Basic ...`, hyphenated key
+    names (`x-api-key`) and values held in sets. Fixed in `redaction.py`; 10 tests that fail against the old code. Commit `5af1272`.
+- **Correction (test):**
+  - **P-1, the ATDD redaction case could not fail.** It survives the mutant "string redaction off" (the author had noted it), because the
+    secrets appended to the S1 query never reach a port parameter. New case puts the secret in the entity slot (`users_port.get`) and fails
+    against that mutant; the old case still passes under it. Commit `6ef9bbe`.
+  - **P-4, two ATDD assertions could not fail.** The retention case built the removed rows from the first remaining row's timestamp, and
+    `query not in stored` passes for a redacted copy of the query. Both now read real data. Mutants "rotation deletes the newest rows" and
+    "the head stores the query" are killed. Commit `df4ac41`.
+  - **S-1, S-2, S-3 (surviving mutants):** `has_more` at the exact last row (`<=` instead of `<`), the session's `operator_role` on every audit
+    row (every test used `role-operations`), and `tx.abort()` when a store returns a failure after it already wrote (only the audit-failure
+    twin was covered). Three new tests, each kills its own mutant. Commit `5bd6224`.
+- **AI slips:**
+  - **A false positive, P-2 ("WAL is not set on file databases"), was reported and then withdrawn.** The probe opened `SqliteWriter` without
+    applying the migrations, and the grep was cut by `head`. Migration `001` runs `PRAGMA journal_mode = WAL` and a test asserts it.
+  - **An assertion the AI added failed without any mutant.** A comparison "by instant" in the retention test claimed the two turns have
+    different instants; the simulated clock does not advance between turns. It was removed with a comment, not forced; the instant ordering
+    is covered by `test_rotation_orders_by_timestamp_then_audit_id_across_sessions`.
+  - **Two replies of "1" were ambiguous** (the first question offered letters). The AI stated its reading before acting, and the commits are
+    reversible.
+  - **`make` is not installed on this machine**, so the gate ran as the equivalent commands from the Makefile with the project `.venv`.
+- **Outcome:** gate after the fixes: full `pytest` 1393 passed (1379 before), branch coverage of `src` 97.07%, `ruff check .` clean,
+  `test/ci/schema_check.py` PASS, both `sprint-status.yaml` copies identical. Log: `docs/evidence/impl2/flow-b-1-5-review-coverage.log`.
+  Story 1.5 is `done` in the story file and in both `sprint-status.yaml` copies.
