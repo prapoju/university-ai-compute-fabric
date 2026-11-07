@@ -49,3 +49,8 @@
 - `PAGINATION_INVALID` reads "page_size 20 exceeds cap 100" when `page` is the offender, because the catalog message only takes `v=page_size`. Changing the wording is a contracts section 4 amendment.
 - `SqliteWriter._rollback` ignores a failed `ROLLBACK`, which would leave the connection in a transaction and fail every later `BEGIN IMMEDIATE`. Needs a real I/O error; add a self-heal (`ROLLBACK` before `BEGIN IMMEDIATE` when `in_transaction`) if it is ever observed.
 - `audited` computes the bound params and `_dump` for every port call even when no turn is active, and `/state` browse pages the port up to 100 times for `total`. Measure under the story 1-6 k6 budget before optimizing (check the recorder is active first).
+
+## Deferred from: code review of story-4-2 (2026-11-07)
+
+- `failure_response` hides `observed` on a 5xx but renders `failure.message` as is: a `Failure` that carries its own `message` would show it in the 503 body. No adapter sets one today. Fix by rendering the catalog literal on every 5xx, but some 5xx templates take parameters (`AUDIT_WRITE_FAILED`), so decide how those render first. Touches `src/adapters/inbound/errors.py`, which story 4.2's plan does not authorize.
+- `/readyz` answers 200 while the clock raises (503 for a typed `fail()`): the `clock` readiness check reads the `available` flag so probing consumes no clock read id. A real clock adapter needs a probe that reads nothing it must record.

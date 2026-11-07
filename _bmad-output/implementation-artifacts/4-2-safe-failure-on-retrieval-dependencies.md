@@ -196,3 +196,23 @@ Task 3:
 - 2026-11-07: Task 1 done (fault helper and the 16-case API fault matrix). Status -> in-progress.
 - 2026-11-07: Task 2 done (clock, `/copilot/query` and read-route failures; 9 more cases).
 - 2026-11-07: Task 3 done (mutation check, coverage evidence). All ACs satisfied, no production change. Status -> review.
+
+### Review Findings
+
+Code review of `d468b55..HEAD` (2026-11-07): Blind Hunter, Edge Case Hunter and Acceptance Auditor run in sequence by the reviewer (no subagents), over 6 files and about 670 diff lines, 0 of them in `src/` (the story changes tests, evidence and its own file). All nine acceptance criteria hold. No high or medium finding. 2 patches applied, 2 deferred, 6 dismissed.
+
+- [x] [Review][Patch] P-1 (low): four statements used a conditional expression as a statement to pick the typed clock failure or a raising clock; now `clock_down` and `clock_up` helpers with `if/else`. The four clock mutants are still killed by the same cases [tests/api/test_safe_failure.py] — fixed in `0f9a98a`
+- [x] [Review][Patch] P-2 (low): the Completion Notes named "the Task 3 commit" without its hash; now `4c447ab` [this file] — fixed in `ceebd80`
+- [x] [Review][Defer] `failure_response` hides `observed` on a 5xx but renders `failure.message` as is, so a `Failure("PROVIDER_UNAVAILABLE", message="connect failed: password=xyz")` shows that text in the 503 body (confirmed). No adapter sets `message` today (only the catalog `fail()` does). Forcing the catalog literal on every 5xx is not unambiguous (some 5xx templates take parameters, such as `AUDIT_WRITE_FAILED`), and `src/adapters/inbound/errors.py` is not a file this story's plan authorizes [src/adapters/inbound/errors.py:56] — deferred, latent
+- [x] [Review][Defer] `/readyz` answers 200 while the clock raises (it answers 503 for a typed `fail()`): the readiness check reads the `available` flag, on purpose, so probing consumes no clock read id. A real clock adapter would need a probe of its own [src/bootstrap.py:162] — deferred, not an AC of this story
+
+Dismissed (6): the matrix test's `point` parameter is only used for the test ids; the f-string SQL in `row_counts` takes test constants; the `claims` and `evidence` tables are not counted because they are children of `answers` under an active foreign key; typed (not raised) provider failures on the read routes are covered by `test_evidence_service.py` and `test_state_service.py`; a port that fails only on a second call within a turn is unreachable (each port is read once per turn, as the S1 audit order shows); the surviving mutant "`submit_query` does not return a pipeline `Failure`" is documented in the Debug Log and killed by 5 existing tests.
+
+#### Test-trap audit (D.4, 2026-11-07)
+
+No Ice Cream Cone (25 API tests over behaviour that unit tests already cover, about 0.1 s each), no Flaky Sleeper (0 sleeps), no Mocking Mirage (the only double is `monkeypatch.setattr` on a Sim adapter, an outbound port; every assertion reads the HTTP response, the database or the LLM). 16 mutants of the production guards: 15 killed, each by its own case. The 5 added in this audit: a claim id consumed at the start of the turn (12 cases red), an audit id consumed at the start (20), the prose called before the reads (10), a 5xx that leaks `observed` (13) and a 503 that is not retryable (13). The survivor is the pipeline-`Failure` mutant above.
+
+- [x] [Review][Patch] T-1 (low): `client.get("/healthz") == 200` could not fail, because no plausible mutant of the code under test touches `/healthz`. Replaced by opening and reading another session on the same app during the outage. The mutant "the global handler tears the container down after an unexpected error" turns it red at that line [tests/api/test_safe_failure.py] — fixed in `e5841ee`
+- [x] [Review][Patch] T-2 (low): `not NOT_IN_A_FAILURE & set(body)` holds by construction (`ErrorBody` is `extra="forbid"`) and fails only if a 503 stops being an `ErrorBody`. Kept as a pin of AC 1, with a comment that says so; no assertion changed [tests/api/test_safe_failure.py] — fixed in `5f44603`
+
+Final gate: `pytest` 1418 passed, branch coverage of `src` 97.12%, `ruff check .` clean, `schema_check` PASS. Log: `docs/evidence/impl2/flow-b-4-2-review-coverage.log`. Status -> done.
