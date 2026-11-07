@@ -452,6 +452,7 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 | I2-18 | Story 2.1 · create story (Flow A) | Decision | `cs201` is not an entity so it answers Entity Not Found and the AC example becomes `group 2`; fleet-wide scope is refused by its verb; `/copilot/chat` is a thin route; plan D-P1 applied | Pending |
 | I2-19 | Story 2.1 · red phase, green phase and mutation check (Flow A) | Decision, **Correction (test)** | The first genuine ATDD red log (51 failed, 4 guards) was committed before any code; three Impl-1 tests that encoded the pre-2.1 state were made stricter; 12 mutants killed | Juan |
 | I2-20 | Code review + test audit of story 2.1 | **Correction (code defect)**, **Correction (test)** | A destructive request aimed at an unnamed referent was widened to the whole fleet (2-2 would have enumerated every job); one assertion could not fail; two verb lists could drift; 18 mutants killed | Juan |
+| I2-21 | Story 2.2 · create story (Flow A) | Decision | The chat reply gets its own schema; the persisted selector names the port operation and the select vocabulary grows (`node_ids`, list = one of); the status filter comes from the action; `cs201` is no longer enumerated | Pending |
 
 ## I2-01..I2-09 - Shift-left review of the Impl-2 plan  *(planning text)*
 - **Phase:** before any Impl-2 code, 2026-11-06. Party-mode review (Winston, architect; Murat, test architect) of `docs/impl2-rules.md`
@@ -1014,3 +1015,35 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
   `test/ci/schema_check.py` PASS, both `sprint-status.yaml` copies identical, the red-phase file and log byte-identical to `fe2df33`.
   Logs: `docs/evidence/impl2/flow-a-2-1-coverage.log` and `flow-a-2-1-review-coverage.log`. Story 2.1 is `done` in the story file and in both
   `sprint-status.yaml` copies.
+
+## I2-21 - Story 2.2: what the task statement does not define, and what the contract already forces  *(decision, proposed by the AI)*
+- **Date / phase:** 2026-11-07, `bmad-create-story` for story 2.2 (Flow A) from baseline `01f74d5`, before any test or code. Full text in
+  `_bmad-output/implementation-artifacts/2-2-dry-run-snapshot-with-selector-predicate-and-affected-items.md`.
+- **Prompt (intent):** "si, haz el push y arranca con la 2-2". The push was authorised and done (`c632482..fd87eb4`, 37 commits); the CI of
+  that tip passed (run `42420632700`).
+- **What the AI found in the sources:**
+  - The task statement (PDF pages 30-31) fixes only the path `POST /api/v1/copilot/chat` and the scenario: one reply with the refusal, the
+    summary `3 active jobs will be terminated across nodes ...`, a 60 s single-use token, and the cluster unchanged. It defines no schema.
+  - `POST /api/v1/destructive/dry-runs` and its DTOs (`PostDryRunRequest`, `ProposalDTO`, `DryRunSnapshotDTO`, `AffectedItemDTO`) already exist in
+    the contract, but the route is not served; there is no DTO for the chat reply.
+  - The `proposals` table allowlists the persisted selector method to `jobs_port.select` / `nodes_port.select`, while the simulated providers accept
+    only `filter`, and `NodesPort.select` rejects `node_ids` (the contract's D55 vocabulary) as an unknown field.
+  - Test design 6.3.2 and the epics still promised "every pending CS201 job"; since story 2.1 `cs201` answers `Entity Not Found`.
+- **Decisions applied by the AI (Reviewer pending; D1 and D4 change the contract and wait for the user before the red phase):**
+  - **D1:** the chat reply for a refused destructive request is a new `ChatRefusalResponse` `{refusal, impact_summary, proposal, token_expires_at,
+    confirmation_enabled}`; `ErrorBody` is not widened. **D2:** the persisted selector is `{method: "jobs_port.select" | "nodes_port.select", params}`,
+    re-executed as `SelectorDTO("filter", params)`. **D3:** the status filter comes from the action (`cancel_jobs` -> running, `delete_jobs` ->
+    pending), which refines the contract's blanket `running`. **D4:** the select vocabulary is `group_id`, `status`, `id`, `node_ids`, and a list value
+    means "one of". **D5-D6:** actionable rules (a `fault` node and a terminal job are not actionable) and an empty set still creates the row with
+    confirmation disabled. **D7:** the real app issues tokens with `secrets.token_hex(16)` (IR-06) and the lifetime is `gate_token_ttl_seconds`
+    (default 60). **D8:** chat is two individually atomic steps, so a failed dry-run leaves the refusal turn recorded. **D9-D12:** ids and counters, the
+    explicit `target_refs` of the HTTP route, and the audit order.
+  - **D10 (the plan's D-P1 applied):** both `epics.md` copies now use `Terminate all active jobs for CS-101` and `delete all pending jobs for group 2`
+    in Story 2.2 (commit `01f74d5`). `test/test-design.md` 6.3.2 still has a `cs201` row and was not edited.
+- **AI slips:**
+  - The first draft of the story carried a Windows-style assumption that `Entity Not Found` names the reference as typed; the probe showed it names
+    the case-folded text (`group#cs-101`), so AC 2 was corrected before the commit.
+  - The plan called this story size M. With the DTO, the vocabulary, the proposal store, the token source, a use case, a route and the chat
+    composition it is closer to L; it stays one story because the Annex scenario needs all of it in one reply.
+- **Outcome:** story 2.2 is `ready-for-dev` in both `sprint-status.yaml` copies. No test or production code yet. The next step is the ATDD red phase,
+  after the user confirms D1 and D4.
