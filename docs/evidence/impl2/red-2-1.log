@@ -1,0 +1,559 @@
+FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF....F                  [100%]
+================================== FAILURES ===================================
+___ test_a_destructive_request_is_refused_on_every_inbound_route[sessions] ____
+tests\atdd\test_story_2_1.py:115: in test_a_destructive_request_is_refused_on_every_inbound_route
+    assert_refused(client, response, before)
+tests\atdd\test_story_2_1.py:92: in assert_refused
+    assert body["code"] == "ACTION_REFUSED"
+E   AssertionError: assert 'CLARIFICATION_REQUIRED' == 'ACTION_REFUSED'
+E     
+E     - ACTION_REFUSED
+E     + CLARIFICATION_REQUIRED
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_a_destructive_request_is_refused_on_every_inbound_route[copilot_query] _
+tests\atdd\test_story_2_1.py:115: in test_a_destructive_request_is_refused_on_every_inbound_route
+    assert_refused(client, response, before)
+tests\atdd\test_story_2_1.py:92: in assert_refused
+    assert body["code"] == "ACTION_REFUSED"
+E   AssertionError: assert 'CLARIFICATION_REQUIRED' == 'ACTION_REFUSED'
+E     
+E     - ACTION_REFUSED
+E     + CLARIFICATION_REQUIRED
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_a_destructive_request_is_refused_on_every_inbound_route[copilot_chat] __
+tests\atdd\test_story_2_1.py:115: in test_a_destructive_request_is_refused_on_every_inbound_route
+    assert_refused(client, response, before)
+tests\atdd\test_story_2_1.py:91: in assert_refused
+    assert response.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_every_destructive_verb_is_refused_whatever_its_case[delete all pending jobs for group 2] _
+tests\atdd\test_story_2_1.py:141: in test_every_destructive_verb_is_refused_whatever_its_case
+    assert_refused(client, ask(client, open_session(client), query), before)
+tests\atdd\test_story_2_1.py:92: in assert_refused
+    assert body["code"] == "ACTION_REFUSED"
+E   AssertionError: assert 'CLARIFICATION_REQUIRED' == 'ACTION_REFUSED'
+E     
+E     - ACTION_REFUSED
+E     + CLARIFICATION_REQUIRED
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_every_destructive_verb_is_refused_whatever_its_case[DELETE all pending jobs for group 2] _
+tests\atdd\test_story_2_1.py:141: in test_every_destructive_verb_is_refused_whatever_its_case
+    assert_refused(client, ask(client, open_session(client), query), before)
+tests\atdd\test_story_2_1.py:92: in assert_refused
+    assert body["code"] == "ACTION_REFUSED"
+E   AssertionError: assert 'CLARIFICATION_REQUIRED' == 'ACTION_REFUSED'
+E     
+E     - ACTION_REFUSED
+E     + CLARIFICATION_REQUIRED
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_every_destructive_verb_is_refused_whatever_its_case[remove all jobs for group 4] _
+tests\atdd\test_story_2_1.py:141: in test_every_destructive_verb_is_refused_whatever_its_case
+    assert_refused(client, ask(client, open_session(client), query), before)
+tests\atdd\test_story_2_1.py:92: in assert_refused
+    assert body["code"] == "ACTION_REFUSED"
+E   AssertionError: assert 'CLARIFICATION_REQUIRED' == 'ACTION_REFUSED'
+E     
+E     - ACTION_REFUSED
+E     + CLARIFICATION_REQUIRED
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_every_destructive_verb_is_refused_whatever_its_case[purge the jobs of group 7] _
+tests\atdd\test_story_2_1.py:141: in test_every_destructive_verb_is_refused_whatever_its_case
+    assert_refused(client, ask(client, open_session(client), query), before)
+tests\atdd\test_story_2_1.py:92: in assert_refused
+    assert body["code"] == "ACTION_REFUSED"
+E   AssertionError: assert 'CLARIFICATION_REQUIRED' == 'ACTION_REFUSED'
+E     
+E     - ACTION_REFUSED
+E     + CLARIFICATION_REQUIRED
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_every_destructive_verb_is_refused_whatever_its_case[wipe all jobs for group 2] _
+tests\atdd\test_story_2_1.py:141: in test_every_destructive_verb_is_refused_whatever_its_case
+    assert_refused(client, ask(client, open_session(client), query), before)
+tests\atdd\test_story_2_1.py:92: in assert_refused
+    assert body["code"] == "ACTION_REFUSED"
+E   AssertionError: assert 'CLARIFICATION_REQUIRED' == 'ACTION_REFUSED'
+E     
+E     - ACTION_REFUSED
+E     + CLARIFICATION_REQUIRED
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_every_destructive_verb_is_refused_whatever_its_case[cancel all running jobs for group 4] _
+tests\atdd\test_story_2_1.py:141: in test_every_destructive_verb_is_refused_whatever_its_case
+    assert_refused(client, ask(client, open_session(client), query), before)
+tests\atdd\test_story_2_1.py:92: in assert_refused
+    assert body["code"] == "ACTION_REFUSED"
+E   AssertionError: assert 'CLARIFICATION_REQUIRED' == 'ACTION_REFUSED'
+E     
+E     - ACTION_REFUSED
+E     + CLARIFICATION_REQUIRED
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_every_destructive_verb_is_refused_whatever_its_case[Cancel all running jobs for group 4] _
+tests\atdd\test_story_2_1.py:141: in test_every_destructive_verb_is_refused_whatever_its_case
+    assert_refused(client, ask(client, open_session(client), query), before)
+tests\atdd\test_story_2_1.py:92: in assert_refused
+    assert body["code"] == "ACTION_REFUSED"
+E   AssertionError: assert 'CLARIFICATION_REQUIRED' == 'ACTION_REFUSED'
+E     
+E     - ACTION_REFUSED
+E     + CLARIFICATION_REQUIRED
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_every_destructive_verb_is_refused_whatever_its_case[Terminate all active jobs for group 2] _
+tests\atdd\test_story_2_1.py:141: in test_every_destructive_verb_is_refused_whatever_its_case
+    assert_refused(client, ask(client, open_session(client), query), before)
+tests\atdd\test_story_2_1.py:92: in assert_refused
+    assert body["code"] == "ACTION_REFUSED"
+E   AssertionError: assert 'CLARIFICATION_REQUIRED' == 'ACTION_REFUSED'
+E     
+E     - ACTION_REFUSED
+E     + CLARIFICATION_REQUIRED
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_every_destructive_verb_is_refused_whatever_its_case[kill all jobs for group 4] _
+tests\atdd\test_story_2_1.py:141: in test_every_destructive_verb_is_refused_whatever_its_case
+    assert_refused(client, ask(client, open_session(client), query), before)
+tests\atdd\test_story_2_1.py:92: in assert_refused
+    assert body["code"] == "ACTION_REFUSED"
+E   AssertionError: assert 'CLARIFICATION_REQUIRED' == 'ACTION_REFUSED'
+E     
+E     - ACTION_REFUSED
+E     + CLARIFICATION_REQUIRED
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+__ test_every_destructive_verb_is_refused_whatever_its_case[drain ws-gpu-11] __
+tests\atdd\test_story_2_1.py:141: in test_every_destructive_verb_is_refused_whatever_its_case
+    assert_refused(client, ask(client, open_session(client), query), before)
+tests\atdd\test_story_2_1.py:92: in assert_refused
+    assert body["code"] == "ACTION_REFUSED"
+E   AssertionError: assert 'CLARIFICATION_REQUIRED' == 'ACTION_REFUSED'
+E     
+E     - ACTION_REFUSED
+E     + CLARIFICATION_REQUIRED
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+__ test_every_destructive_verb_is_refused_whatever_its_case[Drain ws-gpu-11] __
+tests\atdd\test_story_2_1.py:141: in test_every_destructive_verb_is_refused_whatever_its_case
+    assert_refused(client, ask(client, open_session(client), query), before)
+tests\atdd\test_story_2_1.py:92: in assert_refused
+    assert body["code"] == "ACTION_REFUSED"
+E   AssertionError: assert 'CLARIFICATION_REQUIRED' == 'ACTION_REFUSED'
+E     
+E     - ACTION_REFUSED
+E     + CLARIFICATION_REQUIRED
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_every_destructive_verb_is_refused_whatever_its_case[cordon ws-gpu-11] __
+tests\atdd\test_story_2_1.py:141: in test_every_destructive_verb_is_refused_whatever_its_case
+    assert_refused(client, ask(client, open_session(client), query), before)
+tests\atdd\test_story_2_1.py:92: in assert_refused
+    assert body["code"] == "ACTION_REFUSED"
+E   AssertionError: assert 'CLARIFICATION_REQUIRED' == 'ACTION_REFUSED'
+E     
+E     - ACTION_REFUSED
+E     + CLARIFICATION_REQUIRED
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_every_destructive_verb_is_refused_whatever_its_case[CORDON ws-gpu-11] __
+tests\atdd\test_story_2_1.py:141: in test_every_destructive_verb_is_refused_whatever_its_case
+    assert_refused(client, ask(client, open_session(client), query), before)
+tests\atdd\test_story_2_1.py:92: in assert_refused
+    assert body["code"] == "ACTION_REFUSED"
+E   AssertionError: assert 'CLARIFICATION_REQUIRED' == 'ACTION_REFUSED'
+E     
+E     - ACTION_REFUSED
+E     + CLARIFICATION_REQUIRED
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_a_resolvable_target_of_any_kind_is_refused[delete all pending jobs for group 2] _
+tests\atdd\test_story_2_1.py:159: in test_a_resolvable_target_of_any_kind_is_refused
+    assert_refused(client, ask(client, open_session(client), query), before)
+tests\atdd\test_story_2_1.py:92: in assert_refused
+    assert body["code"] == "ACTION_REFUSED"
+E   AssertionError: assert 'CLARIFICATION_REQUIRED' == 'ACTION_REFUSED'
+E     
+E     - ACTION_REFUSED
+E     + CLARIFICATION_REQUIRED
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_a_resolvable_target_of_any_kind_is_refused[delete all pending jobs for group#group-2] _
+tests\atdd\test_story_2_1.py:159: in test_a_resolvable_target_of_any_kind_is_refused
+    assert_refused(client, ask(client, open_session(client), query), before)
+tests\atdd\test_story_2_1.py:92: in assert_refused
+    assert body["code"] == "ACTION_REFUSED"
+E   AssertionError: assert 'CLARIFICATION_REQUIRED' == 'ACTION_REFUSED'
+E     
+E     - ACTION_REFUSED
+E     + CLARIFICATION_REQUIRED
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+______ test_a_resolvable_target_of_any_kind_is_refused[cancel job 8823] _______
+tests\atdd\test_story_2_1.py:159: in test_a_resolvable_target_of_any_kind_is_refused
+    assert_refused(client, ask(client, open_session(client), query), before)
+tests\atdd\test_story_2_1.py:92: in assert_refused
+    assert body["code"] == "ACTION_REFUSED"
+E   AssertionError: assert 'CLARIFICATION_REQUIRED' == 'ACTION_REFUSED'
+E     
+E     - ACTION_REFUSED
+E     + CLARIFICATION_REQUIRED
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+____ test_a_resolvable_target_of_any_kind_is_refused[delete job#job-8824] _____
+tests\atdd\test_story_2_1.py:159: in test_a_resolvable_target_of_any_kind_is_refused
+    assert_refused(client, ask(client, open_session(client), query), before)
+tests\atdd\test_story_2_1.py:92: in assert_refused
+    assert body["code"] == "ACTION_REFUSED"
+E   AssertionError: assert 'CLARIFICATION_REQUIRED' == 'ACTION_REFUSED'
+E     
+E     - ACTION_REFUSED
+E     + CLARIFICATION_REQUIRED
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+______ test_a_resolvable_target_of_any_kind_is_refused[drain ws-gpu-11] _______
+tests\atdd\test_story_2_1.py:159: in test_a_resolvable_target_of_any_kind_is_refused
+    assert_refused(client, ask(client, open_session(client), query), before)
+tests\atdd\test_story_2_1.py:92: in assert_refused
+    assert body["code"] == "ACTION_REFUSED"
+E   AssertionError: assert 'CLARIFICATION_REQUIRED' == 'ACTION_REFUSED'
+E     
+E     - ACTION_REFUSED
+E     + CLARIFICATION_REQUIRED
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+___ test_a_resolvable_target_of_any_kind_is_refused[cordon node#ws-gpu-11] ____
+tests\atdd\test_story_2_1.py:159: in test_a_resolvable_target_of_any_kind_is_refused
+    assert_refused(client, ask(client, open_session(client), query), before)
+tests\atdd\test_story_2_1.py:92: in assert_refused
+    assert body["code"] == "ACTION_REFUSED"
+E   AssertionError: assert 'CLARIFICATION_REQUIRED' == 'ACTION_REFUSED'
+E     
+E     - ACTION_REFUSED
+E     + CLARIFICATION_REQUIRED
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_an_unresolved_target_is_entity_not_found_and_never_a_refusal[delete all pending jobs for cs201-group#cs201] _
+tests\atdd\test_story_2_1.py:181: in test_an_unresolved_target_is_entity_not_found_and_never_a_refusal
+    assert body["code"] == "ENTITY_NOT_FOUND"
+E   AssertionError: assert 'CLARIFICATION_REQUIRED' == 'ENTITY_NOT_FOUND'
+E     
+E     - ENTITY_NOT_FOUND
+E     + CLARIFICATION_REQUIRED
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_an_unresolved_target_is_entity_not_found_and_never_a_refusal[delete all pending jobs for group 99-group#group-99] _
+tests\atdd\test_story_2_1.py:181: in test_an_unresolved_target_is_entity_not_found_and_never_a_refusal
+    assert body["code"] == "ENTITY_NOT_FOUND"
+E   AssertionError: assert 'CLARIFICATION_REQUIRED' == 'ENTITY_NOT_FOUND'
+E     
+E     - ENTITY_NOT_FOUND
+E     + CLARIFICATION_REQUIRED
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_an_unresolved_target_is_entity_not_found_and_never_a_refusal[cancel all running jobs for group#nope-group#nope] _
+tests\atdd\test_story_2_1.py:181: in test_an_unresolved_target_is_entity_not_found_and_never_a_refusal
+    assert body["code"] == "ENTITY_NOT_FOUND"
+E   AssertionError: assert 'CLARIFICATION_REQUIRED' == 'ENTITY_NOT_FOUND'
+E     
+E     - ENTITY_NOT_FOUND
+E     + CLARIFICATION_REQUIRED
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_an_unresolved_target_is_entity_not_found_and_never_a_refusal[cancel job 9999-job#job-9999] _
+tests\atdd\test_story_2_1.py:181: in test_an_unresolved_target_is_entity_not_found_and_never_a_refusal
+    assert body["code"] == "ENTITY_NOT_FOUND"
+E   AssertionError: assert 'CLARIFICATION_REQUIRED' == 'ENTITY_NOT_FOUND'
+E     
+E     - ENTITY_NOT_FOUND
+E     + CLARIFICATION_REQUIRED
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_an_unresolved_target_is_entity_not_found_and_never_a_refusal[drain ws-gpu-99-node#ws-gpu-99] _
+tests\atdd\test_story_2_1.py:181: in test_an_unresolved_target_is_entity_not_found_and_never_a_refusal
+    assert body["code"] == "ENTITY_NOT_FOUND"
+E   AssertionError: assert 'CLARIFICATION_REQUIRED' == 'ENTITY_NOT_FOUND'
+E     
+E     - ENTITY_NOT_FOUND
+E     + CLARIFICATION_REQUIRED
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_an_unresolved_target_is_entity_not_found_and_never_a_refusal[cordon node#ghost-node#ghost] _
+tests\atdd\test_story_2_1.py:181: in test_an_unresolved_target_is_entity_not_found_and_never_a_refusal
+    assert body["code"] == "ENTITY_NOT_FOUND"
+E   AssertionError: assert 'CLARIFICATION_REQUIRED' == 'ENTITY_NOT_FOUND'
+E     
+E     - ENTITY_NOT_FOUND
+E     + CLARIFICATION_REQUIRED
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_a_verb_on_the_wrong_kind_of_target_is_a_400_and_stores_nothing[cancel ws-gpu-11] _
+tests\atdd\test_story_2_1.py:201: in test_a_verb_on_the_wrong_kind_of_target_is_a_400_and_stores_nothing
+    assert response.status_code == 400
+E   assert 200 == 400
+E    +  where 200 = <Response [200 OK]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_a_verb_on_the_wrong_kind_of_target_is_a_400_and_stores_nothing[delete node#ws-gpu-11] _
+tests\atdd\test_story_2_1.py:201: in test_a_verb_on_the_wrong_kind_of_target_is_a_400_and_stores_nothing
+    assert response.status_code == 400
+E   assert 200 == 400
+E    +  where 200 = <Response [200 OK]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_a_verb_on_the_wrong_kind_of_target_is_a_400_and_stores_nothing[terminate ws-gpu-11] _
+tests\atdd\test_story_2_1.py:201: in test_a_verb_on_the_wrong_kind_of_target_is_a_400_and_stores_nothing
+    assert response.status_code == 400
+E   assert 200 == 400
+E    +  where 200 = <Response [200 OK]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_a_verb_on_the_wrong_kind_of_target_is_a_400_and_stores_nothing[drain group 2] _
+tests\atdd\test_story_2_1.py:201: in test_a_verb_on_the_wrong_kind_of_target_is_a_400_and_stores_nothing
+    assert response.status_code == 400
+E   assert 200 == 400
+E    +  where 200 = <Response [200 OK]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_a_verb_on_the_wrong_kind_of_target_is_a_400_and_stores_nothing[cordon job 8823] _
+tests\atdd\test_story_2_1.py:201: in test_a_verb_on_the_wrong_kind_of_target_is_a_400_and_stores_nothing
+    assert response.status_code == 400
+E   assert 200 == 400
+E    +  where 200 = <Response [200 OK]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_a_fleet_wide_scope_is_refused_without_resolving_an_entity[cordon entire lab] _
+tests\atdd\test_story_2_1.py:219: in test_a_fleet_wide_scope_is_refused_without_resolving_an_entity
+    assert_refused(client, ask(client, open_session(client), query), before)
+tests\atdd\test_story_2_1.py:92: in assert_refused
+    assert body["code"] == "ACTION_REFUSED"
+E   AssertionError: assert 'CLARIFICATION_REQUIRED' == 'ACTION_REFUSED'
+E     
+E     - ACTION_REFUSED
+E     + CLARIFICATION_REQUIRED
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_a_fleet_wide_scope_is_refused_without_resolving_an_entity[Cordon entire lab] _
+tests\atdd\test_story_2_1.py:219: in test_a_fleet_wide_scope_is_refused_without_resolving_an_entity
+    assert_refused(client, ask(client, open_session(client), query), before)
+tests\atdd\test_story_2_1.py:92: in assert_refused
+    assert body["code"] == "ACTION_REFUSED"
+E   AssertionError: assert 'CLARIFICATION_REQUIRED' == 'ACTION_REFUSED'
+E     
+E     - ACTION_REFUSED
+E     + CLARIFICATION_REQUIRED
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_a_fleet_wide_scope_is_refused_without_resolving_an_entity[drain all nodes] _
+tests\atdd\test_story_2_1.py:219: in test_a_fleet_wide_scope_is_refused_without_resolving_an_entity
+    assert_refused(client, ask(client, open_session(client), query), before)
+tests\atdd\test_story_2_1.py:92: in assert_refused
+    assert body["code"] == "ACTION_REFUSED"
+E   AssertionError: assert 'CLARIFICATION_REQUIRED' == 'ACTION_REFUSED'
+E     
+E     - ACTION_REFUSED
+E     + CLARIFICATION_REQUIRED
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_a_fleet_wide_scope_is_refused_without_resolving_an_entity[drain every node] _
+tests\atdd\test_story_2_1.py:219: in test_a_fleet_wide_scope_is_refused_without_resolving_an_entity
+    assert_refused(client, ask(client, open_session(client), query), before)
+tests\atdd\test_story_2_1.py:92: in assert_refused
+    assert body["code"] == "ACTION_REFUSED"
+E   AssertionError: assert 'CLARIFICATION_REQUIRED' == 'ACTION_REFUSED'
+E     
+E     - ACTION_REFUSED
+E     + CLARIFICATION_REQUIRED
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_a_fleet_wide_scope_is_refused_without_resolving_an_entity[Delete all pending jobs] _
+tests\atdd\test_story_2_1.py:219: in test_a_fleet_wide_scope_is_refused_without_resolving_an_entity
+    assert_refused(client, ask(client, open_session(client), query), before)
+tests\atdd\test_story_2_1.py:92: in assert_refused
+    assert body["code"] == "ACTION_REFUSED"
+E   AssertionError: assert 'CLARIFICATION_REQUIRED' == 'ACTION_REFUSED'
+E     
+E     - ACTION_REFUSED
+E     + CLARIFICATION_REQUIRED
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_a_fleet_wide_scope_is_refused_without_resolving_an_entity[cancel all jobs] _
+tests\atdd\test_story_2_1.py:219: in test_a_fleet_wide_scope_is_refused_without_resolving_an_entity
+    assert_refused(client, ask(client, open_session(client), query), before)
+tests\atdd\test_story_2_1.py:92: in assert_refused
+    assert body["code"] == "ACTION_REFUSED"
+E   AssertionError: assert 'CLARIFICATION_REQUIRED' == 'ACTION_REFUSED'
+E     
+E     - ACTION_REFUSED
+E     + CLARIFICATION_REQUIRED
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_a_compound_destructive_query_is_clarified_never_decomposed[show group 2 jobs and cancel them] _
+tests\atdd\test_story_2_1.py:241: in test_a_compound_destructive_query_is_clarified_never_decomposed
+    assert body["message"] == COMPOUND
+E   AssertionError: assert 'Clarificatio...s this query.' == 'Clarificatio...m separately.'
+E     
+E     - Clarification required: the query mixes a diagnosis with a destructive action; submit them separately.
+E     + Clarification required: no registered intent matches this query.
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_a_compound_destructive_query_is_clarified_never_decomposed[delete group 2 jobs and drain ws-gpu-11] _
+tests\atdd\test_story_2_1.py:241: in test_a_compound_destructive_query_is_clarified_never_decomposed
+    assert body["message"] == COMPOUND
+E   AssertionError: assert 'Clarificatio...s this query.' == 'Clarificatio...m separately.'
+E     
+E     - Clarification required: the query mixes a diagnosis with a destructive action; submit them separately.
+E     + Clarification required: no registered intent matches this query.
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_a_compound_destructive_query_is_clarified_never_decomposed[cancel jobs for group 2 and group 4] _
+tests\atdd\test_story_2_1.py:241: in test_a_compound_destructive_query_is_clarified_never_decomposed
+    assert body["message"] == COMPOUND
+E   AssertionError: assert 'Clarificatio...s this query.' == 'Clarificatio...m separately.'
+E     
+E     - Clarification required: the query mixes a diagnosis with a destructive action; submit them separately.
+E     + Clarification required: no registered intent matches this query.
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_a_compound_destructive_query_is_clarified_never_decomposed[list the jobs of group 2 then delete them] _
+tests\atdd\test_story_2_1.py:241: in test_a_compound_destructive_query_is_clarified_never_decomposed
+    assert body["message"] == COMPOUND
+E   AssertionError: assert 'Clarificatio...s this query.' == 'Clarificatio...m separately.'
+E     
+E     - Clarification required: the query mixes a diagnosis with a destructive action; submit them separately.
+E     + Clarification required: no registered intent matches this query.
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+________ test_the_refusal_turn_is_recorded_in_the_session_and_audited _________
+tests\atdd\test_story_2_1.py:256: in test_the_refusal_turn_is_recorded_in_the_session_and_audited
+    assert turn["intent"] == "propose_destructive_action"
+E   AssertionError: assert 'clarification' == 'propose_destructive_action'
+E     
+E     - propose_destructive_action
+E     + clarification
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_____ test_two_identical_refusals_on_one_session_are_two_contiguous_turns _____
+tests\atdd\test_story_2_1.py:288: in test_two_identical_refusals_on_one_session_are_two_contiguous_turns
+    assert [r.value.code for r in results] == ["ACTION_REFUSED", "ACTION_REFUSED"]
+E   AssertionError: assert ['CLARIFICATI...ION_REQUIRED'] == ['ACTION_REFU...TION_REFUSED']
+E     
+E     At index 0 diff: 'CLARIFICATION_REQUIRED' != 'ACTION_REFUSED'
+E     Use -v to get more diff
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_________ test_a_refusal_and_a_diagnosis_on_one_session_both_complete _________
+tests\atdd\test_story_2_1.py:314: in test_a_refusal_and_a_diagnosis_on_one_session_both_complete
+    assert outcome["refusal"].value.code == "ACTION_REFUSED"
+E   AssertionError: assert 'CLARIFICATION_REQUIRED' == 'ACTION_REFUSED'
+E     
+E     - ACTION_REFUSED
+E     + CLARIFICATION_REQUIRED
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+__________ test_injected_confirmation_text_does_not_lift_the_refusal __________
+tests\atdd\test_story_2_1.py:328: in test_injected_confirmation_text_does_not_lift_the_refusal
+    assert_refused(client, ask(client, open_session(client), query), before)
+tests\atdd\test_story_2_1.py:92: in assert_refused
+    assert body["code"] == "ACTION_REFUSED"
+E   AssertionError: assert 'CLARIFICATION_REQUIRED' == 'ACTION_REFUSED'
+E     
+E     - ACTION_REFUSED
+E     + CLARIFICATION_REQUIRED
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+__________ test_copilot_chat_is_declared_in_the_contract_and_served ___________
+tests\atdd\test_story_2_1.py:335: in test_copilot_chat_is_declared_in_the_contract_and_served
+    assert "post" in paths.get(COPILOT_CHAT, {}), "POST /api/v1/copilot/chat is not served"
+E   AssertionError: POST /api/v1/copilot/chat is not served
+E   assert 'post' in {}
+E    +  where {} = <built-in method get of dict object at 0x0000012DC8218500>('/api/v1/copilot/chat', {})
+E    +    where <built-in method get of dict object at 0x0000012DC8218500> = {'/api/v1/sessions': {'post': {'tags': ['sessions'], 'summary': 'Create Session', 'operationId': 'create_session_api_v...copilot_query_post', 'requestBody': {'content': {'application/json': {'schema': {...}}}, 'required': True}, ...}}, ...}.get
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_____________ test_copilot_chat_rejects_a_body_with_extra_fields ______________
+tests\atdd\test_story_2_1.py:343: in test_copilot_chat_rejects_a_body_with_extra_fields
+    assert response.status_code == 400
+E   assert 404 == 400
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+____________ test_copilot_chat_and_query_answer_a_diagnosis_alike _____________
+tests\atdd\test_story_2_1.py:351: in test_copilot_chat_and_query_answer_a_diagnosis_alike
+    assert via_chat.status_code == via_query.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+E    +  and   200 = <Response [200 OK]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_terminate_is_a_jobs_verb_so_it_is_refused_on_a_group_and_a_400_on_a_node _
+tests\atdd\test_story_2_1.py:407: in test_terminate_is_a_jobs_verb_so_it_is_refused_on_a_group_and_a_400_on_a_node
+    assert_refused(client, ask(client, sid, "terminate all active jobs for group 2"), before)
+tests\atdd\test_story_2_1.py:92: in assert_refused
+    assert body["code"] == "ACTION_REFUSED"
+E   AssertionError: assert 'CLARIFICATION_REQUIRED' == 'ACTION_REFUSED'
+E     
+E     - ACTION_REFUSED
+E     + CLARIFICATION_REQUIRED
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:260 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+=========================== short test summary info ===========================
+FAILED tests/atdd/test_story_2_1.py::test_a_destructive_request_is_refused_on_every_inbound_route[sessions]
+FAILED tests/atdd/test_story_2_1.py::test_a_destructive_request_is_refused_on_every_inbound_route[copilot_query]
+FAILED tests/atdd/test_story_2_1.py::test_a_destructive_request_is_refused_on_every_inbound_route[copilot_chat]
+FAILED tests/atdd/test_story_2_1.py::test_every_destructive_verb_is_refused_whatever_its_case[delete all pending jobs for group 2]
+FAILED tests/atdd/test_story_2_1.py::test_every_destructive_verb_is_refused_whatever_its_case[DELETE all pending jobs for group 2]
+FAILED tests/atdd/test_story_2_1.py::test_every_destructive_verb_is_refused_whatever_its_case[remove all jobs for group 4]
+FAILED tests/atdd/test_story_2_1.py::test_every_destructive_verb_is_refused_whatever_its_case[purge the jobs of group 7]
+FAILED tests/atdd/test_story_2_1.py::test_every_destructive_verb_is_refused_whatever_its_case[wipe all jobs for group 2]
+FAILED tests/atdd/test_story_2_1.py::test_every_destructive_verb_is_refused_whatever_its_case[cancel all running jobs for group 4]
+FAILED tests/atdd/test_story_2_1.py::test_every_destructive_verb_is_refused_whatever_its_case[Cancel all running jobs for group 4]
+FAILED tests/atdd/test_story_2_1.py::test_every_destructive_verb_is_refused_whatever_its_case[Terminate all active jobs for group 2]
+FAILED tests/atdd/test_story_2_1.py::test_every_destructive_verb_is_refused_whatever_its_case[kill all jobs for group 4]
+FAILED tests/atdd/test_story_2_1.py::test_every_destructive_verb_is_refused_whatever_its_case[drain ws-gpu-11]
+FAILED tests/atdd/test_story_2_1.py::test_every_destructive_verb_is_refused_whatever_its_case[Drain ws-gpu-11]
+FAILED tests/atdd/test_story_2_1.py::test_every_destructive_verb_is_refused_whatever_its_case[cordon ws-gpu-11]
+FAILED tests/atdd/test_story_2_1.py::test_every_destructive_verb_is_refused_whatever_its_case[CORDON ws-gpu-11]
+FAILED tests/atdd/test_story_2_1.py::test_a_resolvable_target_of_any_kind_is_refused[delete all pending jobs for group 2]
+FAILED tests/atdd/test_story_2_1.py::test_a_resolvable_target_of_any_kind_is_refused[delete all pending jobs for group#group-2]
+FAILED tests/atdd/test_story_2_1.py::test_a_resolvable_target_of_any_kind_is_refused[cancel job 8823]
+FAILED tests/atdd/test_story_2_1.py::test_a_resolvable_target_of_any_kind_is_refused[delete job#job-8824]
+FAILED tests/atdd/test_story_2_1.py::test_a_resolvable_target_of_any_kind_is_refused[drain ws-gpu-11]
+FAILED tests/atdd/test_story_2_1.py::test_a_resolvable_target_of_any_kind_is_refused[cordon node#ws-gpu-11]
+FAILED tests/atdd/test_story_2_1.py::test_an_unresolved_target_is_entity_not_found_and_never_a_refusal[delete all pending jobs for cs201-group#cs201]
+FAILED tests/atdd/test_story_2_1.py::test_an_unresolved_target_is_entity_not_found_and_never_a_refusal[delete all pending jobs for group 99-group#group-99]
+FAILED tests/atdd/test_story_2_1.py::test_an_unresolved_target_is_entity_not_found_and_never_a_refusal[cancel all running jobs for group#nope-group#nope]
+FAILED tests/atdd/test_story_2_1.py::test_an_unresolved_target_is_entity_not_found_and_never_a_refusal[cancel job 9999-job#job-9999]
+FAILED tests/atdd/test_story_2_1.py::test_an_unresolved_target_is_entity_not_found_and_never_a_refusal[drain ws-gpu-99-node#ws-gpu-99]
+FAILED tests/atdd/test_story_2_1.py::test_an_unresolved_target_is_entity_not_found_and_never_a_refusal[cordon node#ghost-node#ghost]
+FAILED tests/atdd/test_story_2_1.py::test_a_verb_on_the_wrong_kind_of_target_is_a_400_and_stores_nothing[cancel ws-gpu-11]
+FAILED tests/atdd/test_story_2_1.py::test_a_verb_on_the_wrong_kind_of_target_is_a_400_and_stores_nothing[delete node#ws-gpu-11]
+FAILED tests/atdd/test_story_2_1.py::test_a_verb_on_the_wrong_kind_of_target_is_a_400_and_stores_nothing[terminate ws-gpu-11]
+FAILED tests/atdd/test_story_2_1.py::test_a_verb_on_the_wrong_kind_of_target_is_a_400_and_stores_nothing[drain group 2]
+FAILED tests/atdd/test_story_2_1.py::test_a_verb_on_the_wrong_kind_of_target_is_a_400_and_stores_nothing[cordon job 8823]
+FAILED tests/atdd/test_story_2_1.py::test_a_fleet_wide_scope_is_refused_without_resolving_an_entity[cordon entire lab]
+FAILED tests/atdd/test_story_2_1.py::test_a_fleet_wide_scope_is_refused_without_resolving_an_entity[Cordon entire lab]
+FAILED tests/atdd/test_story_2_1.py::test_a_fleet_wide_scope_is_refused_without_resolving_an_entity[drain all nodes]
+FAILED tests/atdd/test_story_2_1.py::test_a_fleet_wide_scope_is_refused_without_resolving_an_entity[drain every node]
+FAILED tests/atdd/test_story_2_1.py::test_a_fleet_wide_scope_is_refused_without_resolving_an_entity[Delete all pending jobs]
+FAILED tests/atdd/test_story_2_1.py::test_a_fleet_wide_scope_is_refused_without_resolving_an_entity[cancel all jobs]
+FAILED tests/atdd/test_story_2_1.py::test_a_compound_destructive_query_is_clarified_never_decomposed[show group 2 jobs and cancel them]
+FAILED tests/atdd/test_story_2_1.py::test_a_compound_destructive_query_is_clarified_never_decomposed[delete group 2 jobs and drain ws-gpu-11]
+FAILED tests/atdd/test_story_2_1.py::test_a_compound_destructive_query_is_clarified_never_decomposed[cancel jobs for group 2 and group 4]
+FAILED tests/atdd/test_story_2_1.py::test_a_compound_destructive_query_is_clarified_never_decomposed[list the jobs of group 2 then delete them]
+FAILED tests/atdd/test_story_2_1.py::test_the_refusal_turn_is_recorded_in_the_session_and_audited
+FAILED tests/atdd/test_story_2_1.py::test_two_identical_refusals_on_one_session_are_two_contiguous_turns
+FAILED tests/atdd/test_story_2_1.py::test_a_refusal_and_a_diagnosis_on_one_session_both_complete
+FAILED tests/atdd/test_story_2_1.py::test_injected_confirmation_text_does_not_lift_the_refusal
+FAILED tests/atdd/test_story_2_1.py::test_copilot_chat_is_declared_in_the_contract_and_served
+FAILED tests/atdd/test_story_2_1.py::test_copilot_chat_rejects_a_body_with_extra_fields
+FAILED tests/atdd/test_story_2_1.py::test_copilot_chat_and_query_answer_a_diagnosis_alike
+FAILED tests/atdd/test_story_2_1.py::test_terminate_is_a_jobs_verb_so_it_is_refused_on_a_group_and_a_400_on_a_node
+51 failed, 4 passed in 3.78s
