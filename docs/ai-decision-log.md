@@ -432,3 +432,37 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 
 | ID | Phase | Category | Short title | Reviewer |
 |---|---|---|---|---|
+| I2-01 | Shift-left review | Decision | A refusal is a session turn; a proposal row is born in `dry_run` | Pending |
+| I2-02 | Shift-left review | Decision | Conditions for the `asyncio.gather` dispatcher (order, one clock read, ids, timeout) | Pending |
+| I2-03 | Shift-left review | Decision | Exactly-once dispatch: conditional UPDATE in one writer transaction, executor outside the writer | Pending |
+| I2-04 | Shift-left review | Decision | Concurrency tests substitute only outbound ports; k6 is the only real-time lane | Pending |
+| I2-05 | Shift-left review | Decision | `confirm_and_dispatch` evaluation order P1 → P5 → P2 → P4 → P3 (OP-I2-1) | Pending |
+| I2-06 | Shift-left review | **Correction (code defect)** | One `SqliteWriter` for all stores: per-store locks let one store commit another's half-written turn (TG-I2-1) | Pending |
+| I2-07 | Shift-left review | Decision | `/copilot/chat` returns refusal + dry-run + 60 s single-use token in one reply, executes nothing | Julio |
+| I2-08 | Shift-left review | Decision | "CS-101" resolves to `group#CS-101`; job actions accept a group target; "active" = running | Julio |
+| I2-09 | Shift-left review | Decision | NFR-6 unchanged; the 50-operator p95 < 800 ms budget is a story 1-6 acceptance criterion | Julio |
+
+## I2-01..I2-09 - Shift-left review of the Impl-2 plan  *(planning text)*
+- **Phase:** before any Impl-2 code, 2026-11-06. Party-mode review (Winston, architect; Murat, test architect) of `docs/impl2-rules.md`
+  and `test/test-design.md` §6 against `planning/ARCHITECTURE.md` and `contracts.md`. The full findings are in `reviews/review-impl2-shift-left.md`.
+- **What the AI found:** no rules decision breaks AD-1..AD-15 as written, but these conflicts did:
+  - the test design expected `refused` proposal rows without a gate token, which `proposals.gate_token NOT NULL` cannot store;
+  - "CS-101" cannot resolve under AD-7, because `CS101` is a course value and `course` is not an entity type;
+  - the 1-6 rows that measured tool budgets on the fake clock required extra clock reads per turn;
+  - per-store locks on the shared connection (`connection.py:14`) let one store commit another store's half-written transaction;
+  - the 50-way replay asserted byte-equality between the losers' bodies and the winner's;
+  - the k6 plan opened one session per VU, but `/copilot/query` opens a session on every request.
+- **Decided by the user (I2-07..I2-09):** Q1, Q2 and Q3 of the review, recorded as Annex adaptations in `docs/impl2-rules.md`.
+- **Applied:**
+  - `test/test-design.md` §6.3.1, §6.3.2, §6.3.3, §6.3.5 and §6.6. §6.4 is recounted: the review adds 7 cases, giving 135.
+    Unit is now 69.6%, 0.4 points under 70%. This is reported as it is: the new cases are integration by nature and were not moved to unit.
+  - `contracts.md`: `propose_destructive_action` P3/Q1, plus the `confirm_and_dispatch` evaluation order, claim and concurrency clause.
+  - Both `epics.md` copies (identical):
+    - story 1.6: the 800 ms acceptance criterion, plus a correction to an existing AC that measured the tool budget "on the Clock port";
+    - story 2.1: a refusal creates no proposal row and mints no token (I2-01).
+  - `walkthrough-impl2.md` (adaptations table only). The I2-08/I2-09 adaptation rows go in `docs/impl2-rules.md`.
+- **Not applied yet:**
+  - `JobRecord.node` (contracts §0.3, `schemas/dto.py`): `src/dto.py` must stay a verbatim copy, so this goes with story 2-2.
+  - The fixture group: goes with stories 2-1/2-2.
+  - The `C5` comment in the migration: editing `migrations/001_*.sql` changes its SHA-256 and every applied database refuses it, so
+    `contracts.md` is the normative text instead.

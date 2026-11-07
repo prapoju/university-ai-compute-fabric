@@ -240,12 +240,13 @@ So that the Copilot stays usable at the busiest moment of the day.
 **Given** the S1 fixture estate and `POST /api/v1/copilot/query`
 **When** the orchestrator needs policy, state (`users_port`, `jobs_port`, `nodes_port`) and catalog reads for one query
 **Then** the independent read-only tool calls are dispatched concurrently with `asyncio.gather`, results are assembled in the fixed `EvidenceSet` order (positions unchanged vs. the sequential path, FR-14), and no tool call writes (AD-1)
-**And** a tool call that exceeds its budget (measured on the Clock port) or fails returns the typed safe-failure answer (`PROVIDER_UNAVAILABLE`, HTTP 503), never an unhandled exception or HTTP 500 (AD-12)
+**And** a tool call that exceeds the fan-out budget or fails returns the typed safe-failure answer (`PROVIDER_UNAVAILABLE`, HTTP 503), never an unhandled exception or HTTP 500 (AD-12). The budget is a wall-time `asyncio.timeout` around the gather, not a Clock-port read, so each turn still takes exactly one clock read (review-impl2-shift-left D-2)
 
 **Given** 50 concurrent operators each sending `Why was student Alex denied access to model deepseek-coder?`
 **When** k6 runs `tests/nfr/copilot-load.js`
 **Then** 100% of responses are HTTP 200 and cite `RULE-CAT-04`, `policy#catalog.4.2` and catalog entry `deepseek-coder` (100% cited accuracy, NFR-3)
 **And** the measured p95 latency is strictly < 800 ms, including queued single-writer latency (R1), and the run records 0 unhandled tool-timeout exceptions
+**And** the 800 ms budget is measured with the deterministic fake prose adapter on one uvicorn worker. It is a story-level budget: NFR-6 (≥ 5 sessions) and the NFR-5 real-LLM budget (p95 ≤ 3 s) are unchanged and reported as a separate lane (Annex 12.5 adaptation, impl2-rules)
 
 ### Story 1.7: React diagnostic console with cited state cards and runbook copy
 
@@ -316,9 +317,9 @@ The gate token is generated in 2.2 and consumed in 2.3/2.4 — never earlier.
 **Requirements:** FR-09, NFR-8, AD-4.
 **Binding invariants:** AD-4 (server-side safety state machine) → contracts §5 I9, I12; NFR-8 zero mutations.
 **Files:** `service/core/safety.py` (destructive classifier), `api/routes/destructive.py`.
-**Schema/DTO:** `ProposalDTO` (`state=refused`); SQL `proposals`.
+**Schema/DTO:** no proposal row: the refusal is a session turn (`AnswerDTO`, canonical `ACTION_REFUSED`). The first `proposals` row is written by the dry-run (2.2) in `state=dry_run`. The `refused` enum value stays in the schema, unused in Impl-2 (review-impl2-shift-left D-1, log I2-01).
 **ATDD path:** `test/atdd/module12_contracts.test.py::test_propose_destructive_action_*`, `::test_explainability_destructive_refusal_cites_rule_and_scope`.
-**DoD:** destructive intents refused with literal `Action refused.` (`ACTION_REFUSED`); 0 copilot-originated writes; compound-destructive → clarification; refusal turn recorded in session context.
+**DoD:** destructive intents refused with literal `Action refused.` (`ACTION_REFUSED`); 0 copilot-originated writes; 0 proposal rows and 0 gate tokens from a refusal; compound-destructive → clarification; refusal turn recorded in session context.
 
 As Nadia,
 I want the Copilot to refuse any destructive request on the spot,
@@ -331,6 +332,7 @@ So that a slip of the keyboard can never mutate the estate.
 **Then** the Copilot classifies the intent as destructive, refuses direct execution with the literal `Action refused.` (`ACTION_REFUSED`), and copilot-originated writes to simulated state = 0 (FR-09, NFR-8)
 **And** a compound query containing any destructive verb routes to clarification, never decomposition; the refusal turn is recorded in session context like any other turn (FR-01, AD-4)
 **And** the target resolves via `resolve_entities` before the refusal completes; an unresolved target returns `Entity Not Found in State` (AD-4)
+**And** the refusal creates no `proposals` row and mints no gate token; the proposal is first persisted by the dry-run in `state = dry_run` (review D-1)
 
 ### Story 2.2: Dry-run snapshot with selector predicate and affected items
 
