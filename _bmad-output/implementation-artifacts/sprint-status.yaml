@@ -73,7 +73,7 @@ development_status:
   1-2-console-shell-session-store-and-conversational-intake: done
   1-3-entity-resolution-and-access-denial-diagnosis-end-to-end-walking-skeleton-happy-path: done
   1-4-structured-claims-citation-cards-and-evidence-level-determinism: done
-  1-5-tool-call-audit-log-and-state-inspection-viewer: review
+  1-5-tool-call-audit-log-and-state-inspection-viewer: done
   1-6-concurrent-multi-tool-diagnostics-under-a-k6-latency-budget: backlog
   1-7-react-diagnostic-console-with-cited-state-cards-and-runbook-copy: backlog
   1-8-inspector-audit-and-safety-console-surfaces: backlog

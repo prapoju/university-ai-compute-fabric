@@ -4,7 +4,7 @@ baseline_commit: a3f9161aabfc540cf386363f23cb43b98ef9e6d9
 
 # Story 1.5: Tool-call audit log and state inspection viewer
 
-Status: review
+Status: done
 
 <!-- Impl-2 foundations story, Flow B (test-along): code and its tests ship in the same commit.
      Backend only. The Inspector (S-B) and Audit (S-C) console surfaces, including the `read-only`
@@ -403,3 +403,15 @@ Withdrawn: P-2 (WAL not set on file databases) was a false positive. Migration `
 Dismissed (7): ids burned when a write fails (D1); cap below 5 rotates rows of the same turn (AC 5); rotation log line before the outer COMMIT; `run_script` inside an open transaction (migrations only, at startup); rotation by sim time after a restart (already deferred by this story); recorder order under `gather` (D4 is in deferred work and in the `ToolCallRecorder` docstring); non-numeric `page` answers `VALIDATION_MALFORMED_BODY`.
 
 Process note (H-09): the story asked for one commit per task and shipped as one commit (`c632482`).
+
+#### Test-trap audit (D.4, 2026-11-07)
+
+No Ice Cream Cone, no Flaky Sleeper (0 sleeps; `Barrier` and `Event`), no Mocking Mirage (real SQLite schema, stores and app; fakes only at outbound ports). 26 mutants on the story's guards: 19 killed at first, 7 survived.
+
+- [x] [Review][Patch] S-1: `has_more` with `<=` survived; the paging test never reached the exact last row. Added `test_has_more_is_false_when_a_page_ends_exactly_on_the_last_row` [tests/api/test_audit_api.py] — `5bd6224`
+- [x] [Review][Patch] S-2: `operator_role` hardcoded to `role-operations` survived; every test used that role. Added `test_every_audit_row_carries_the_operator_role_of_its_session` [tests/api/test_audit_api.py] — `5bd6224`
+- [x] [Review][Patch] S-3: removing `tx.abort()` when a store returns a failure after writing survived (only the audit-failure twin was covered). Added `test_a_store_failure_without_a_driver_error_rolls_back_what_it_already_wrote` [tests/unit/test_session_service.py] — `5bd6224`
+
+Equivalent mutants (no test gap): `PRAGMA foreign_keys` removed from the writer (migration `001` sets it and the writer always migrates), `PRAGMA busy_timeout` removed (driver default is already 5000), `total` clamp removed in `_total` (the loop is already bounded to 100 pages of 100), `audit_id` dropped from the page `ORDER BY` (index `ix_audit_session_ts(session_id, timestamp, audit_id)` already orders by it).
+
+Final gate: `pytest` 1393 passed, branch coverage of `src` 97.07%, `ruff check .` clean, `schema_check` PASS. Log: `docs/evidence/impl2/flow-b-1-5-review-coverage.log`. Status -> done.
