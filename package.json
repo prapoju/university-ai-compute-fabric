@@ -1,0 +1,17 @@
+{
+  "name": "university-ai-compute-fabric",
+  "version": "1.0.0",
+  "description": "Impl-1 build of the **AI Operations Copilot** for the Academic AI Compute Fabric: a read-only, evidence-grounded assistant that explains operational questions (access denials, schedule windows, node triage) from a **simulated** fleet (31 × 24 GB workstations + 1 server with 2 × 48 GB GPUs). No GPU, cluster or network is needed.",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {},
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "private": true,
+  "devDependencies": {
+    "@playwright/test": "^1.65.0"
+  }
+}
