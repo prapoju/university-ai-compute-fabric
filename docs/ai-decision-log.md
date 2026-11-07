@@ -1041,8 +1041,8 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
   - **D10 (the plan's D-P1 applied):** both `epics.md` copies now use `Terminate all active jobs for CS-101` and `delete all pending jobs for group 2`
     in Story 2.2 (commit `01f74d5`). `test/test-design.md` 6.3.2 still has a `cs201` row and was not edited.
 - **AI slips:**
-  - The first draft of the story carried a Windows-style assumption that `Entity Not Found` names the reference as typed; the probe showed it names
-    the case-folded text (`group#cs-101`), so AC 2 was corrected before the commit.
+  - The first draft of the story said `Entity Not Found` names the reference as typed (`group#CS101`); the probe showed it names the case-folded
+    text (`group#cs-101`), so AC 2 was corrected before the commit.
   - The plan called this story size M. With the DTO, the vocabulary, the proposal store, the token source, a use case, a route and the chat
     composition it is closer to L; it stays one story because the Annex scenario needs all of it in one reply.
 - **Outcome:** story 2.2 is `ready-for-dev` in both `sprint-status.yaml` copies. No test or production code yet. The next step is the ATDD red phase,
