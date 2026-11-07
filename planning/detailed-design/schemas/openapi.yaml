@@ -137,7 +137,7 @@ paths:
         "400": { $ref: '#/components/responses/Response400' }
         "500": { $ref: '#/components/responses/Response500' }
         "503": { $ref: '#/components/responses/Response503' }
-      x-error-codes: [VALIDATION_EMPTY_QUERY, VALIDATION_QUERY_TOO_LONG, VALIDATION_MALFORMED_BODY, ENTITY_NOT_FOUND, CANNOT_CONFIRM, CLARIFICATION_REQUIRED, INTENT_NOT_SUPPORTED, PROVIDER_UNAVAILABLE, CLOCK_UNAVAILABLE, LLM_UNAVAILABLE, LLM_PROSE_REJECTED]
+      x-error-codes: [VALIDATION_EMPTY_QUERY, VALIDATION_QUERY_TOO_LONG, VALIDATION_MALFORMED_BODY, ENTITY_NOT_FOUND, CANNOT_CONFIRM, CLARIFICATION_REQUIRED, INTENT_NOT_SUPPORTED, PROVIDER_UNAVAILABLE, CLOCK_UNAVAILABLE, LLM_UNAVAILABLE, LLM_PROSE_REJECTED, AUDIT_WRITE_FAILED]
 
   /api/v1/sessions/{sid}:
     get:
@@ -161,8 +161,9 @@ paths:
       responses:
         "204": { description: "No Content — session reset (contracts §2 reset_session)." }
         "404": { $ref: '#/components/responses/Response404' }
+        "500": { $ref: '#/components/responses/Response500' }
         "503": { $ref: '#/components/responses/Response503' }
-      x-error-codes: [SESSION_NOT_FOUND, CLOCK_UNAVAILABLE, PROVIDER_UNAVAILABLE]
+      x-error-codes: [SESSION_NOT_FOUND, CLOCK_UNAVAILABLE, PROVIDER_UNAVAILABLE, AUDIT_WRITE_FAILED]
 
   /api/v1/state/{entity_type}/{id}:
     get:
@@ -282,7 +283,8 @@ paths:
               schema: { $ref: '#/components/schemas/GetAuditPageResponse' }
         "400": { $ref: '#/components/responses/Response400' }
         "404": { $ref: '#/components/responses/Response404' }
-      x-error-codes: [PAGINATION_INVALID, SESSION_NOT_FOUND]
+        "503": { $ref: '#/components/responses/Response503' }
+      x-error-codes: [PAGINATION_INVALID, VALIDATION_MALFORMED_BODY, SESSION_NOT_FOUND, PROVIDER_UNAVAILABLE]
 
   /api/v1/destructive/dry-runs:
     post:

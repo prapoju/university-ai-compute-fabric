@@ -19,20 +19,26 @@ from dataclasses import dataclass, field
 from typing import TypeVar
 
 from src import dependency_check
-from src.adapters.outbound.db.connection import open_database
+from src.adapters.outbound.db.audit_store import SqliteAuditStore
 from src.adapters.outbound.db.migrate import MigrationError, apply_migrations
 from src.adapters.outbound.db.session_store import SqliteSessionStore
+from src.adapters.outbound.db.sqlite_writer import SqliteWriter
 from src.adapters.outbound.sim.fixtures_adapter import SimProviders
 from src.adapters.outbound.sim.idgen_adapter import SimIdGen
 from src.adapters.outbound.sim.prose_adapter import SimProse
 from src.application.access_denial_handler import INTENT as ACCESS_DENIAL_INTENT
 from src.application.access_denial_handler import AccessDenialHandler
+from src.application.audit_service import AuditService
+from src.application.audit_writer import AuditWriter
 from src.application.entity_resolver import EntityResolver
 from src.application.evidence_assembler import EvidenceAssembler
 from src.application.evidence_service import EvidenceService
 from src.application.pipeline import AnswerPipeline
 from src.application.session_service import SessionService
+from src.application.state_service import StateService
+from src.application.tool_audit import TOOL_PORT_NAMES, ToolCallRecorder, audited
 from src.application.unavailable import (
+    UnavailableAuditUseCases,
     UnavailableEvidenceUseCases,
     UnavailableSessionUseCases,
 )
@@ -40,8 +46,23 @@ from src.application.window_diagnosis_handler import INTENT as WINDOW_INTENT
 from src.application.window_diagnosis_handler import WindowDiagnosisHandler
 from src.config import Settings
 from src.domain.result import is_failure
-from src.ports.inbound import EvidenceUseCases, SessionUseCases
-from src.ports.outbound import IdGenPort, LlmProsePort, SessionStorePort
+from src.ports.inbound import AuditUseCases, EvidenceUseCases, SessionUseCases, StateUseCases
+from src.ports.outbound import (
+    AuditStorePort,
+    CatalogPort,
+    EventStorePort,
+    GroupsPort,
+    IdGenPort,
+    JobsPort,
+    LlmProsePort,
+    NodesPort,
+    PolicyPort,
+    ReservationsPort,
+    SessionStorePort,
+    UnitOfWorkPort,
+    UsersPort,
+    WindowsPort,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +75,7 @@ P = TypeVar("P")
 @dataclass
 class Container:
     settings: Settings
-    connection: sqlite3.Connection | None
+    writer: SqliteWriter | None
     ports: dict[type, object] = field(default_factory=dict)
     readiness: dict[str, ReadinessCheck] = field(default_factory=dict)
 
@@ -75,8 +96,8 @@ class Container:
             raise KeyError(f"no adapter registered for {port_type.__name__}") from None
 
     def close(self) -> None:
-        if self.connection is not None:
-            self.connection.close()
+        if self.writer is not None:
+            self.writer.close()
 
 
 def configure_logging(level: str) -> None:
@@ -92,11 +113,11 @@ def configure_logging(level: str) -> None:
 def build_container(settings: Settings) -> Container:
     configure_logging(settings.log_level)
 
-    connection: sqlite3.Connection | None = None
+    writer: SqliteWriter | None = None
     database_problem: str | None = None
     try:
-        connection = open_database(settings.db_path)
-        apply_migrations(connection, settings.migrations_dir)
+        writer = SqliteWriter.open(settings.db_path)
+        apply_migrations(writer, settings.migrations_dir)
     except (MigrationError, sqlite3.Error, OSError) as exc:
         database_problem = f"{type(exc).__name__}: {exc}"
         logger.error("database/migrations unavailable: %s", database_problem)
@@ -104,8 +125,8 @@ def build_container(settings: Settings) -> Container:
     try:
         providers = SimProviders.from_fixtures(settings.fixtures_dir, settings.clock_start)
     except BaseException:
-        if connection is not None:
-            connection.close()
+        if writer is not None:
+            writer.close()
         raise
 
     if is_failure(providers.estate):
@@ -117,10 +138,10 @@ def build_container(settings: Settings) -> Container:
 
     def migrations() -> str | None:
         """Live check: the connection answers and every migration file is recorded."""
-        if database_problem or connection is None:
+        if database_problem or writer is None:
             return database_problem or "database connection unavailable"
         # The connection is shared with the API threads, so the query goes through the store
-        # (which serializes every statement) instead of touching the connection directly.
+        # (and so through the writer lock) instead of touching the connection directly.
         read = store.applied_migrations() if store is not None else None
         if read is None:
             return "database connection unavailable"
@@ -140,8 +161,22 @@ def build_container(settings: Settings) -> Container:
         # Probing must not consume a read id: that would change the deterministic sequence.
         return None if providers.clock.available else "CLOCK_UNAVAILABLE"
 
-    # -- the session ring: store -> id generator (seeded above stored ids) -> pipeline -> service
-    store, idgen, session_problem = _wire_sessions(connection, database_problem)
+    # -- the session ring: stores -> id generator (seeded above stored ids) -> pipeline -> service
+    store, audit_store, idgen, session_problem = _wire_sessions(
+        writer, database_problem, settings.audit_retention_cap
+    )
+    # Every provider port is wrapped once, so each read made during a turn is a recorded tool call
+    # (FR-11, D3, D4); the wrapped instances are the ones every consumer and the registry receive.
+    recorder = ToolCallRecorder()
+    raw_ports = providers.as_ports()
+    ports: dict[type, object] = {
+        port_type: audited(port_type, raw_ports[port_type], name=name, recorder=recorder)
+        for port_type, name in TOOL_PORT_NAMES.items()
+    }
+    users, catalog, policy = ports[UsersPort], ports[CatalogPort], ports[PolicyPort]
+    groups, jobs, nodes = ports[GroupsPort], ports[JobsPort], ports[NodesPort]
+    reservations, windows = ports[ReservationsPort], ports[WindowsPort]
+    event_store = ports[EventStorePort]
     prose = SimProse()
     pipeline = AnswerPipeline()
     # The diagnoser reads only through the provider ports: with a failed estate every read is a
@@ -149,10 +184,8 @@ def build_container(settings: Settings) -> Container:
     pipeline.register(
         ACCESS_DENIAL_INTENT,
         AccessDenialHandler(
-            resolver=EntityResolver(
-                users=providers.users, catalog=providers.catalog, policy=providers.policy
-            ),
-            assembler=EvidenceAssembler(policy=providers.policy, events=providers.event_store),
+            resolver=EntityResolver(users=users, catalog=catalog, policy=policy),
+            assembler=EvidenceAssembler(policy=policy, events=event_store),
             prose=prose,
             idgen=idgen,
         ),
@@ -160,38 +193,56 @@ def build_container(settings: Settings) -> Container:
     pipeline.register(
         WINDOW_INTENT,
         WindowDiagnosisHandler(
-            resolver=EntityResolver(
-                users=providers.users,
-                catalog=providers.catalog,
-                groups=providers.groups,
-                policy=providers.policy,
-            ),
-            jobs=providers.jobs,
-            windows=providers.windows,
+            resolver=EntityResolver(users=users, catalog=catalog, groups=groups, policy=policy),
+            jobs=jobs,
+            windows=windows,
             prose=prose,
             idgen=idgen,
         ),
     )
+    # state inspection needs no database: a failed estate is a typed failure on every read
+    state = StateService(
+        users=users,
+        catalog=catalog,
+        policy=policy,
+        groups=groups,
+        jobs=jobs,
+        nodes=nodes,
+        reservations=reservations,
+        windows=windows,
+        event_store=event_store,
+    )
     use_cases: SessionUseCases
     evidence: EvidenceUseCases
-    if store is None or session_problem is not None:
+    audit_pages: AuditUseCases
+    if store is None or audit_store is None or writer is None or session_problem is not None:
         use_cases = UnavailableSessionUseCases(session_problem or "session store unavailable")
         evidence = UnavailableEvidenceUseCases(session_problem or "session store unavailable")
+        audit_pages = UnavailableAuditUseCases(session_problem or "session store unavailable")
     else:
         use_cases = SessionService(
-            store=store, clock=providers.clock, idgen=idgen, pipeline=pipeline
+            store=store,
+            clock=providers.clock,
+            idgen=idgen,
+            pipeline=pipeline,
+            uow=writer,
+            audit=AuditWriter(audit_store, idgen),
+            recorder=recorder,
         )
         evidence = EvidenceService(
             store=store,
-            users=providers.users,
-            catalog=providers.catalog,
-            policy=providers.policy,
-            groups=providers.groups,
-            jobs=providers.jobs,
-            nodes=providers.nodes,
-            reservations=providers.reservations,
-            windows=providers.windows,
-            event_store=providers.event_store,
+            users=users,
+            catalog=catalog,
+            policy=policy,
+            groups=groups,
+            jobs=jobs,
+            nodes=nodes,
+            reservations=reservations,
+            windows=windows,
+            event_store=event_store,
+        )
+        audit_pages = AuditService(
+            sessions=store, audit=audit_store, retention_cap=settings.audit_retention_cap
         )
 
     def sessions() -> str | None:
@@ -200,37 +251,57 @@ def build_container(settings: Settings) -> Container:
         probe = store.get("sess-0000000000000000")  # a cheap primary-key lookup
         return probe.code if is_failure(probe) else None
 
+    def audit() -> str | None:
+        if audit_store is None or session_problem is not None:
+            return session_problem or "audit store unavailable"
+        probe = audit_store.page("sess-0000000000000000", 0, 1)  # an indexed miss
+        return probe.code if is_failure(probe) else None
+
     logger.info("container built (fixtures=%s)", settings.fixtures_dir)
     container = Container(
         settings=settings,
-        connection=connection,
-        ports=providers.as_ports(),
+        writer=writer,
+        ports={**raw_ports, **ports},
         readiness={
             "dependencies": dependencies,
             "migrations": migrations,
             "estate": estate,
             "clock": clock,
             "sessions": sessions,
+            "audit": audit,
         },
     )
     if store is not None:
         container.register_port(SessionStorePort, store)
+    if audit_store is not None and writer is not None:
+        container.register_port(AuditStorePort, audit_store)
+        container.register_port(UnitOfWorkPort, writer)
+    container.register_port(ToolCallRecorder, recorder)
     container.register_port(IdGenPort, idgen)
     container.register_port(LlmProsePort, prose)
     container.register_port(AnswerPipeline, pipeline)
     container.register_port(SessionUseCases, use_cases)
     container.register_port(EvidenceUseCases, evidence)
+    container.register_port(AuditUseCases, audit_pages)
+    container.register_port(StateUseCases, state)
     return container
 
 
 def _wire_sessions(
-    connection: sqlite3.Connection | None, database_problem: str | None
-) -> tuple[SqliteSessionStore | None, SimIdGen, str | None]:
-    """The store and a seeded id generator, plus the reason the sessions are unusable (if any)."""
-    if connection is None or database_problem:
-        return None, SimIdGen(), database_problem or "database connection unavailable"
-    store = SqliteSessionStore(connection)
-    counters = store.highest_counters()  # also proves the schema is really there
-    if is_failure(counters):
-        return store, SimIdGen(), "; ".join(counters.observed) or counters.code
-    return store, SimIdGen.from_counters(counters.value), None
+    writer: SqliteWriter | None, database_problem: str | None, retention_cap: int
+) -> tuple[SqliteSessionStore | None, SqliteAuditStore | None, SimIdGen, str | None]:
+    """The stores and a seeded id generator, plus the reason they are unusable (if any).
+
+    The generator continues above every id already stored by either store (E43), so a restart on
+    a file database never reissues a session, answer, claim, tool-call or audit id.
+    """
+    if writer is None or database_problem:
+        return None, None, SimIdGen(), database_problem or "database connection unavailable"
+    store = SqliteSessionStore(writer)
+    audit_store = SqliteAuditStore(writer, retention_cap)
+    counters = {}
+    for read in (store.highest_counters(), audit_store.highest_counters()):
+        if is_failure(read):  # also proves the schema is really there
+            return store, audit_store, SimIdGen(), "; ".join(read.observed) or read.code
+        counters.update(read.value)
+    return store, audit_store, SimIdGen.from_counters(counters), None

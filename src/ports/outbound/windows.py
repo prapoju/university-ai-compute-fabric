@@ -16,3 +16,7 @@ class WindowsPort(ABC):
     @abstractmethod
     def list(self) -> Result[list[PolicyWindowDTO]]:
         """All windows in stable ``window_id`` order (AD-2, AD-14)."""
+
+    @abstractmethod
+    def browse(self, q: str, page: int, page_size: int) -> Result[list[PolicyWindowDTO]]:
+        """Capped page of windows; ``q`` matches the key or bare id case-folded (story 1.5 D8)."""

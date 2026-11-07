@@ -206,7 +206,7 @@ So that I can trust and reproduce what I relay.
 **Requirements:** FR-11, FR-12, AD-10, NFR-11.
 **Binding invariants:** AD-10 (append-only audit + redaction/retention) → contracts §5 I14, I15, I20; AD-1 read-only inspection → I18.
 **Files:** `service/app/audit_writer.py`, `service/adapters/db/audit_store.py`, `api/routes/audit.py`, `api/routes/state.py`.
-**Schema/DTO:** `AuditRecordDTO`, `GetAuditPageResponse`, `StateRecordDTO`; SQL `audit_events` (append-only trigger), retention cap.
+**Schema/DTO:** `AuditRecordDTO`, `GetAuditPageResponse`, `StateRecordDTO`; SQL `audit_records` (append-only trigger), retention cap.
 **ATDD path:** `test/atdd/module12_contracts.test.py::test_get_audit_page_*`, `::test_get_state_record_*`, `::test_browse_state_*`.
 **DoD:** every tool call appears exactly once, chronological; 0 credentials/tokens/secrets; no edit/delete path; retention cap rotates oldest first; inspector renders field-for-field with a read-only marker; absent entity → `S_ENF`.
 

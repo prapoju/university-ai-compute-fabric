@@ -1,20 +1,21 @@
 """SQLite implementation of ``SessionStorePort`` over the migrated Module 12 schema.
 
 Uses only the existing ``sessions`` and ``answers`` tables (a session's *turns* are its
-``answers`` rows; there is no ``turns`` table). One lock serializes every statement on the shared
-connection, so FastAPI's thread pool cannot interleave writes (single writer, AD-10); each
-mutation is committed as one transaction, and any driver or data error becomes a typed
-``Failure("PROVIDER_UNAVAILABLE")`` instead of an exception (AD-12).
+``answers`` rows; there is no ``turns`` table). Every statement goes through the one
+``SqliteWriter`` (review D-6, single writer, AD-10): a mutation runs in ``writer.transaction()``,
+so it joins a unit of work the application already opened, and a read runs under
+``writer.read()``. Any driver or data error becomes a typed ``Failure("PROVIDER_UNAVAILABLE")``
+instead of an exception (AD-12).
 """
 
 from __future__ import annotations
 
 import json
 import sqlite3
-import threading
 from collections.abc import Callable
 from typing import TypeVar
 
+from src.adapters.outbound.db.sqlite_writer import SqliteWriter
 from src.domain.result import Failure, Ok, Result
 from src.dto import AnswerDTO, ClaimDTO, EvidenceDTO, SessionContextDTO, SessionDTO
 from src.ports.outbound import SessionStorePort, StoredSession
@@ -29,40 +30,22 @@ _EMPTY_JSON = "[]"
 
 
 class SqliteSessionStore(SessionStorePort):
-    def __init__(self, connection: sqlite3.Connection) -> None:
-        self._connection = connection
-        self._lock = threading.RLock()
-        # foreign keys are a per-connection setting: make sure answers cannot orphan
-        with self._lock:
-            try:
-                self._connection.execute("PRAGMA foreign_keys = ON")
-            except sqlite3.Error:
-                pass  # a dead connection is reported by the first real call, as a Failure
+    def __init__(self, writer: SqliteWriter) -> None:
+        self._writer = writer
 
     # -- helpers -------------------------------------------------------------------------------
-    def _run(self, work: Callable[[], T]) -> Result[T]:
-        with self._lock:
-            try:
-                value = work()
-                if self._connection.in_transaction:
-                    self._connection.commit()
-                return Ok(value)
-            except (sqlite3.Error, ValueError) as exc:  # ValueError: invalid stored JSON/DTO
-                try:
-                    if self._connection.in_transaction:
-                        self._connection.rollback()
-                except sqlite3.Error:
-                    pass
-                return Failure("PROVIDER_UNAVAILABLE", observed=(f"{type(exc).__name__}: {exc}",))
-            except BaseException:
-                # an unexpected error must not leave a half-written transaction open: the next
-                # successful statement would commit it. Roll back, then let the error surface.
-                try:
-                    if self._connection.in_transaction:
-                        self._connection.rollback()
-                except sqlite3.Error:
-                    pass
-                raise
+    def _run(self, work: Callable[[sqlite3.Connection], T], *, write: bool = False) -> Result[T]:
+        """``work`` inside a writer transaction (``write``) or under the writer's read lock.
+
+        Any other exception propagates; the writer has already rolled the transaction back, so no
+        half-written turn can be committed by a later write.
+        """
+        scope = self._writer.transaction if write else self._writer.read
+        try:
+            with scope() as connection:
+                return Ok(work(connection))
+        except (sqlite3.Error, ValueError) as exc:  # ValueError: invalid stored JSON/DTO
+            return Failure("PROVIDER_UNAVAILABLE", observed=(f"{type(exc).__name__}: {exc}",))
 
     @staticmethod
     def _context_json(context: SessionContextDTO) -> tuple[str, str, str]:
@@ -76,8 +59,8 @@ class SqliteSessionStore(SessionStorePort):
     def create(self, session: SessionDTO, now: str) -> Result[None]:
         entities, intents, answers = self._context_json(session.context)
 
-        def work() -> None:
-            self._connection.execute(
+        def work(db: sqlite3.Connection) -> None:
+            db.execute(
                 "INSERT INTO sessions (session_id, created_at, updated_at, operator_role, status,"
                 " context_resolved_entities, context_prior_intents, context_active_answer_ids)"
                 " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
@@ -93,11 +76,11 @@ class SqliteSessionStore(SessionStorePort):
                 ),
             )
 
-        return self._run(work)
+        return self._run(work, write=True)
 
     def get(self, session_id: str) -> Result[StoredSession | None]:
-        def work() -> StoredSession | None:
-            row = self._connection.execute(
+        def work(db: sqlite3.Connection) -> StoredSession | None:
+            row = db.execute(
                 f"SELECT {_SESSION_COLUMNS} FROM sessions WHERE session_id = ?", (session_id,)
             ).fetchone()
             if row is None:
@@ -120,8 +103,8 @@ class SqliteSessionStore(SessionStorePort):
         return self._run(work)
 
     def list_turns(self, session_id: str) -> Result[list[AnswerDTO]]:
-        def work() -> list[AnswerDTO]:
-            rows = self._connection.execute(
+        def work(db: sqlite3.Connection) -> list[AnswerDTO]:
+            rows = db.execute(
                 "SELECT answer_id, session_id, query, intent, answer_chain, diagnosis_class,"
                 " canonical, recommendation, proposal_ref, prose FROM answers"
                 " WHERE session_id = ? ORDER BY created_at, answer_id",
@@ -136,8 +119,8 @@ class SqliteSessionStore(SessionStorePort):
                     answer_chain=json.loads(chain),
                     diagnosis_class=diagnosis,
                     canonical=canonical,
-                    claims=self._claims_of(aid),
-                    evidence=self._evidence_of(aid),
+                    claims=self._claims_of(db, aid),
+                    evidence=self._evidence_of(db, aid),
                     recommendation=None if recommendation is None else json.loads(recommendation),
                     proposal_ref=proposal_ref,
                     prose=prose,
@@ -150,9 +133,10 @@ class SqliteSessionStore(SessionStorePort):
 
         return self._run(work)
 
-    def _evidence_of(self, answer_id: str) -> list[EvidenceDTO]:
-        """The answer's evidence set in ``position`` order (AD-14). Caller holds the lock."""
-        rows = self._connection.execute(
+    @staticmethod
+    def _evidence_of(db: sqlite3.Connection, answer_id: str) -> list[EvidenceDTO]:
+        """The answer's evidence set in ``position`` order (AD-14). Caller holds the writer lock."""
+        rows = db.execute(
             "SELECT citation_id, source_type, snippet, position FROM evidence"
             " WHERE answer_id = ? ORDER BY position",
             (answer_id,),
@@ -162,12 +146,13 @@ class SqliteSessionStore(SessionStorePort):
             for cid, kind, snippet, position in rows
         ]
 
-    def _claims_of(self, answer_id: str) -> list[ClaimDTO]:
+    @staticmethod
+    def _claims_of(db: sqlite3.Connection, answer_id: str) -> list[ClaimDTO]:
         """The answer's claims in id order, each with its citations in evidence order."""
-        claims = self._connection.execute(
+        claims = db.execute(
             "SELECT claim_id, text FROM claims WHERE answer_id = ? ORDER BY claim_id", (answer_id,)
         ).fetchall()
-        cited = self._connection.execute(
+        cited = db.execute(
             "SELECT cc.claim_id, cc.citation_id FROM claim_citations cc"
             " JOIN evidence e ON e.answer_id = cc.answer_id AND e.citation_id = cc.citation_id"
             " WHERE cc.answer_id = ? ORDER BY cc.claim_id, e.position",
@@ -182,17 +167,17 @@ class SqliteSessionStore(SessionStorePort):
         ]
 
     def answer_evidence(self, answer_id: str) -> Result[list[EvidenceDTO] | None]:
-        def work() -> list[EvidenceDTO] | None:
-            row = self._connection.execute(
+        def work(db: sqlite3.Connection) -> list[EvidenceDTO] | None:
+            row = db.execute(
                 "SELECT 1 FROM answers WHERE answer_id = ?", (answer_id,)
             ).fetchone()
-            return None if row is None else self._evidence_of(answer_id)
+            return None if row is None else self._evidence_of(db, answer_id)
 
         return self._run(work)
 
     def cited_snippet(self, citation_id: str) -> Result[str | None]:
-        def work() -> str | None:
-            row = self._connection.execute(
+        def work(db: sqlite3.Connection) -> str | None:
+            row = db.execute(
                 "SELECT snippet FROM evidence WHERE citation_id = ?"
                 " ORDER BY created_at DESC, answer_id DESC LIMIT 1",
                 (citation_id,),
@@ -206,8 +191,8 @@ class SqliteSessionStore(SessionStorePort):
     ) -> Result[None]:
         entities, intents, answers = self._context_json(context)
 
-        def work() -> None:
-            self._connection.execute(
+        def work(db: sqlite3.Connection) -> None:
+            db.execute(
                 "INSERT INTO answers (answer_id, session_id, query, intent, answer_chain,"
                 " diagnosis_class, canonical, recommendation, proposal_ref, prose,"
                 " created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -228,7 +213,7 @@ class SqliteSessionStore(SessionStorePort):
             )
             # evidence first: claim_citations reference (answer_id, citation_id) in it (AD-14)
             for entry in answer.evidence:
-                self._connection.execute(
+                db.execute(
                     "INSERT INTO evidence (answer_id, citation_id, source_type, snippet, position,"
                     " created_at) VALUES (?, ?, ?, ?, ?, ?)",
                     (
@@ -241,18 +226,18 @@ class SqliteSessionStore(SessionStorePort):
                     ),
                 )
             for claim in answer.claims:
-                self._connection.execute(
+                db.execute(
                     "INSERT INTO claims (claim_id, answer_id, text, created_at)"
                     " VALUES (?, ?, ?, ?)",
                     (claim.claim_id, answer.answer_id, claim.text, now),
                 )
                 for citation_id in claim.claim_citations:
-                    self._connection.execute(
+                    db.execute(
                         "INSERT INTO claim_citations (claim_id, answer_id, citation_id)"
                         " VALUES (?, ?, ?)",
                         (claim.claim_id, answer.answer_id, citation_id),
                     )
-            updated = self._connection.execute(
+            updated = db.execute(
                 "UPDATE sessions SET context_resolved_entities = ?, context_prior_intents = ?,"
                 " context_active_answer_ids = ?, last_turn_at = ?, updated_at = ?"
                 " WHERE session_id = ?",
@@ -261,48 +246,48 @@ class SqliteSessionStore(SessionStorePort):
             if updated.rowcount != 1:
                 raise ValueError(f"unknown session {session_id}")
 
-        return self._run(work)
+        return self._run(work, write=True)
 
     def mark_expired(self, session_id: str, now: str) -> Result[None]:
-        def work() -> None:
-            self._connection.execute(
+        def work(db: sqlite3.Connection) -> None:
+            db.execute(
                 "UPDATE sessions SET status = 'expired', expired_at = coalesce(expired_at, ?),"
                 " updated_at = ? WHERE session_id = ? AND status <> 'expired'",
                 (now, now, session_id),
             )
 
-        return self._run(work)
+        return self._run(work, write=True)
 
     def reset(self, session_id: str, now: str) -> Result[None]:
-        def work() -> None:
-            self._connection.execute(
+        def work(db: sqlite3.Connection) -> None:
+            db.execute(
                 "UPDATE sessions SET status = 'reset', context_resolved_entities = ?,"
                 " context_prior_intents = ?, context_active_answer_ids = ?, updated_at = ?"
                 " WHERE session_id = ? AND status <> 'reset'",
                 (_EMPTY_JSON, _EMPTY_JSON, _EMPTY_JSON, now, session_id),
             )
 
-        return self._run(work)
+        return self._run(work, write=True)
 
     def applied_migrations(self) -> Result[set[str]]:
-        """Filenames recorded in ``schema_migrations``, read under the store lock (readiness)."""
+        """Filenames recorded in ``schema_migrations``, read under the writer lock (readiness)."""
 
-        def work() -> set[str]:
-            rows = self._connection.execute("SELECT filename FROM schema_migrations").fetchall()
+        def work(db: sqlite3.Connection) -> set[str]:
+            rows = db.execute("SELECT filename FROM schema_migrations").fetchall()
             return {name for (name,) in rows}
 
         return self._run(work)
 
     def highest_counters(self) -> Result[dict[str, int]]:
-        def highest(table: str, column: str, prefix: str) -> int:
-            rows = self._connection.execute(f"SELECT {column} FROM {table}").fetchall()
+        def highest(db: sqlite3.Connection, table: str, column: str, prefix: str) -> int:
+            rows = db.execute(f"SELECT {column} FROM {table}").fetchall()
             return max((int(value[len(prefix) :], 16) for (value,) in rows), default=0)
 
-        def work() -> dict[str, int]:
+        def work(db: sqlite3.Connection) -> dict[str, int]:
             return {
-                "session": highest("sessions", "session_id", "sess-"),
-                "answer": highest("answers", "answer_id", "ans-"),
-                "claim": highest("claims", "claim_id", "clm-"),  # globally unique (PK)
+                "session": highest(db, "sessions", "session_id", "sess-"),
+                "answer": highest(db, "answers", "answer_id", "ans-"),
+                "claim": highest(db, "claims", "claim_id", "clm-"),  # globally unique (PK)
             }
 
         return self._run(work)

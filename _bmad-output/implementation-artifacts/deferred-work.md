@@ -35,3 +35,10 @@
 ## Deferred from: code review of story-1-4 (2026-11-07)
 
 - `clock#` read ids restart at `clk-0000000000000001` in every process and `highest_counters` does not seed them. With a file-backed `db_path`, after a restart `GET /api/v1/citations/clock#...` can resolve to another run's clock read and snippet (the "most recent" ordering by `created_at` is also meaningless across restarts, because the sim clock restarts at `M12_CLOCK_START`). Extends the story-1.3 item on id counters: seed the clock counter (or namespace read ids per run) when multi-process or persistent operation is in scope.
+
+## Deferred from: dev of story-1-5 (2026-11-07)
+
+- `browse_state` counts `total` by paging the entity's port (up to 100 page reads at the 10,000 cap, story 1.5 D9). Add a query-only `count` to the read ports if the stores grow beyond the fixture sizes.
+- Session-less reads (`get_state_record`, `browse_state`, `get_answer_evidence`, `get_citation`) write no audit rows (story 1.5 D2): auditing them needs a nullable `tool_calls.session_id` (a migration) and a clock read per request.
+- Story 1-6 must reserve `ToolCallRecorder` slots in argument order before a parallel fan-out; the recorder appends in completion order (story 1.5 D4, review D-2.1/2.3).
+- Per-diagnoser audit events (`toolcall.diagnose_schedule_window`, `toolcall.assemble_evidence`, ...) named in contracts.md are still not emitted: story 1.5 audits the `toolcall.answer_query` head and every provider-port read (D3), which covers the reads those events would describe. The story-3-1 item above stays open for the named events.

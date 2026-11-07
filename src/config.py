@@ -12,7 +12,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, ValidationError, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from src.domain.instants import is_instant
 
@@ -35,6 +35,8 @@ class Settings(BaseModel):
     db_path: str = ":memory:"
     clock_start: str = "2026-10-16T15:00:00.000Z"
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
+    # I20 / D42 / D50: audit_records retained across all sessions; the oldest rows rotate out
+    audit_retention_cap: int = Field(10_000, ge=1)
 
     @field_validator("fixtures_dir", "migrations_dir", "db_path", mode="before")
     @classmethod

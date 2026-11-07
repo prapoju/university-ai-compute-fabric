@@ -446,6 +446,7 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 | I2-12 | Flow C · test automation | Decision, **Correction (test)** | Branch-coverage gaps closed with single-port outages; adversarial audit fixed a silent-replacement gap and a save test that could not fail | Julio |
 | I2-13 | Story 1.4 · Flow B build | Decision | `EventStorePort.get` and the rebuilt `ClockRead` make event and clock citations resolvable (D3-D6); the `S_CNC` downgrade keeps each evidence id once | Julio |
 | I2-14 | Code review + test audit of story 1.4 | **Correction (code defect)**, **Correction (test)** | An uncited claim passed the binding guard and the evidence route returned an undeclared 503; six story-1.4 tests strengthened so the four surviving mutants (M2-M5) now fail a story test | Julio |
+| I2-15 | Story 1.5 · create story | Decision | Turn audit atomic with the `Answer`; session-less reads not audited; tool metadata in `result_summary`; bare state record; `browse` on windows/events; browse `total` by paging (D1-D9) | Julio |
 
 ## I2-01..I2-09 - Shift-left review of the Impl-2 plan  *(planning text)*
 - **Phase:** before any Impl-2 code, 2026-11-06. Party-mode review (Winston, architect; Murat, test architect) of `docs/impl2-rules.md`
@@ -742,3 +743,47 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
   - Story 1.4 is `done` in the story file and in both `sprint-status.yaml` copies, which are identical. Nothing committed.
 - **Not addressed:** the deferred clock-id item above, and 16 findings that stay dismissed (the 18 dismissed in the review, minus the
   two the audit fixed). They are recorded only in this session's review summary.
+
+## I2-15 - Story 1.5: how tool calls are audited and how state is inspected  *(contract amendment, accepted by the user)*
+- **Date / phase:** 2026-11-07, `bmad-create-story` for story 1.5 (Flow B) from baseline `a3f9161`, before any code. The story
+  also carries review D-6 / I2-06 (one `SqliteWriter` for every store). Full text in
+  `_bmad-output/implementation-artifacts/1-5-tool-call-audit-log-and-state-inspection-viewer.md` (Dev Notes, Decisions).
+- **What the AI found in the sources:**
+  - contracts.md asks for `toolcall.state.get`, `toolcall.state.browse`, `toolcall.evidence.get` and `toolcall.citation.get`.
+    Those routes have no session and read no clock, while `tool_calls.session_id` and `timestamp` are `NOT NULL` and the audit
+    API is per session.
+  - openapi.yaml declares no 503 on `GET /sessions/{sid}/audit`, and no `AUDIT_WRITE_FAILED` (500) on `DELETE /sessions/{sid}`
+    or in the `/copilot/query` error codes.
+  - openapi `GET /state/{type}/{id}` returns a bare `Record`, while `dto.py` `GetStateRecordResponse` wraps it in `record`.
+  - `WindowsPort` and `EventStorePort` have no `browse`. The browse ports return pages without a total.
+  - Story 1.5 in `epics.md` names `audit_events`, but the tool-call audit table is `audit_records`.
+- **Decided by the user (Julio):** D1-D9 confirmed as written, and the three open questions answered:
+  - **D1:** the audit rows of a turn commit in the same writer transaction as its `Answer`. A failed turn writes none. Ids are
+    minted before the transaction, in call order (`toolcall.answer_query` first), which is the D-2.3 precondition for 1-6.
+  - **D2 (question 1):** reads without a session write no audit rows. Amend the four Q3 lines in contracts.md.
+  - **D3:** a tool call is a call to one of the 11 provider ports during a turn, plus the `toolcall.answer_query` head and
+    `toolcall.reset_session`. Clock, idgen, prose and stores are not tool calls.
+  - **D3 (question 3):** the session reset audit stays in 1.5, as contracts.md asks. `DELETE /sessions/{sid}` declares 500.
+  - **D4:** the ports are wrapped once in the composition root (deferred-work 1-1), and the calls are recorded through a
+    `contextvars` turn scope. No adapter, handler or port signature changes. 1-6 must reserve slots in argument order.
+  - **D5:** tool metadata goes in `result_summary`, because openapi `AuditRecord` has no tool-name field. The query text is
+    never stored.
+  - **D6:** the audit route declares 503 (precedent I2-14).
+  - **D7:** `GET /state/{type}/{id}` returns the bare record, per openapi and contracts. `dto.py` stays a verbatim copy.
+  - **D8:** a query-only `browse` is added to `WindowsPort` and `EventStorePort` (precedent I2-13 D3). Amend contracts.md OP-8/OP-9.
+  - **D9 (question 2):** browse `total` comes from paging the existing ports, up to 100 reads at the 10,000 cap. No `count`
+    method is added. This stays as deferred work.
+  - **Audit page depth:** `(page - 1) * page_size < cap`. `browse_state` keeps its literal rule `page <= 10_000 / page_size`.
+- **To apply during development (story Task 6.3):** the openapi.yaml and contracts.md amendments above, plus the one-word
+  `audit_events` → `audit_records` fix in both `epics.md` copies.
+- **Outcome:** the story is `ready-for-dev` in the story file and in both `sprint-status.yaml` copies. No code yet. Nothing committed.
+- **Outcome of development (2026-11-07, `bmad-dev-story`, Flow B):** D1-D9 implemented as decided; no new decision.
+  - One `SqliteWriter` owns the only connection and lock (I2-06). The cross-store test was run against the pre-1.5 design (a lock
+    per store on one connection) and was red there: store B's commit persisted store A's half-written row.
+  - Append-only proven on the real schema: `UPDATE` and gate-closed `DELETE` on `audit_records` fail through the migration's
+    triggers, also from a raw second connection (`tests/integration/test_audit_store.py`, `tests/atdd/test_story_1_5.py`).
+  - Gate: full `pytest` 1379 passed, branch coverage of `src` 97.06% (floor 90%), `ruff check .` clean,
+    `test/ci/schema_check.py` PASS, `src/dto.py` byte-identical. Log: `docs/evidence/impl2/flow-b-1-5-coverage.log`.
+  - Contract amendments applied: openapi.yaml (audit 503, `AUDIT_WRITE_FAILED` on `/copilot/query` and `DELETE /sessions/{sid}`),
+    contracts.md (D1, D2 x4, D6, D7, D8, D9, audit page depth, I20), and `audit_events` -> `audit_records` in both `epics.md`.
+  - Story 1.5 is `review` in the story file and in both `sprint-status.yaml` copies. Nothing committed.

@@ -259,6 +259,9 @@ class _WindowsDown(WindowsPort):
         self.list_calls += 1
         return DOWN
 
+    def browse(self, q, page, page_size):
+        return DOWN
+
 
 class _IdGenDownFor(IdGenPort):
     def __init__(self, real: IdGenPort, kinds: set[str]) -> None:

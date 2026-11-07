@@ -93,3 +93,16 @@ def test_relative_db_path_is_anchored_to_the_project_root_but_memory_is_kept(
     assert Settings.from_env({"M12_DB_PATH": ":memory:"}).db_path == ":memory:"
     absolute = str(tmp_path / "x.db")
     assert Settings.from_env({"M12_DB_PATH": absolute}).db_path == absolute
+
+
+def test_audit_retention_cap_defaults_to_ten_thousand_and_is_overridable() -> None:
+    assert Settings.from_env({}).audit_retention_cap == 10_000
+    assert Settings.from_env({"M12_AUDIT_RETENTION_CAP": "5"}).audit_retention_cap == 5
+    assert Settings.from_env({"M12_AUDIT_RETENTION_CAP": "1"}).audit_retention_cap == 1
+
+
+@pytest.mark.parametrize("value", ["0", "-3", "many"])
+def test_audit_retention_cap_below_one_or_not_a_number_is_rejected(value: str) -> None:
+    with pytest.raises(ConfigError) as excinfo:
+        Settings.from_env({"M12_AUDIT_RETENTION_CAP": value})
+    assert "M12_AUDIT_RETENTION_CAP" in str(excinfo.value)

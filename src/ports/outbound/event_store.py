@@ -34,3 +34,7 @@ class EventStorePort(ABC):
         Ordered by ``timestamp`` then ``event_id`` ascending. An unknown ``type`` or an
         empty/inverted window is ``Failure("VALIDATION_MALFORMED_BODY")``.
         """
+
+    @abstractmethod
+    def browse(self, q: str, page: int, page_size: int) -> Result[list[OperationalEventDTO]]:
+        """Capped page of events; ``q`` matches the key or bare id case-folded (story 1.5 D8)."""

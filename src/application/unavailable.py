@@ -11,11 +11,12 @@ from src.domain.result import Failure, Result
 from src.dto import (
     AnswerEnvelopeDTO,
     GetAnswerEvidenceResponse,
+    GetAuditPageResponse,
     GetCitationResponse,
     GetSessionResponse,
     SessionDTO,
 )
-from src.ports.inbound import CanonicalOutcome, EvidenceUseCases, SessionUseCases
+from src.ports.inbound import AuditUseCases, CanonicalOutcome, EvidenceUseCases, SessionUseCases
 
 
 class UnavailableSessionUseCases(SessionUseCases):
@@ -45,4 +46,14 @@ class UnavailableEvidenceUseCases(EvidenceUseCases):
         return self._failure
 
     def get_citation(self, citation_id: str) -> Result[GetCitationResponse]:
+        return self._failure
+
+
+class UnavailableAuditUseCases(AuditUseCases):
+    def __init__(self, reason: str) -> None:
+        self._failure = Failure("PROVIDER_UNAVAILABLE", observed=(reason,))
+
+    def get_audit_page(
+        self, session_id: str, page: int, page_size: int
+    ) -> Result[GetAuditPageResponse]:
         return self._failure

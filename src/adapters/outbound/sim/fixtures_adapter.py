@@ -225,6 +225,9 @@ class SimWindows(WindowsPort):
     def list(self) -> Result[list[PolicyWindowDTO]]:
         return _read(self._backing, lambda s: Ok(s.all()))
 
+    def browse(self, q: str, page: int, page_size: int) -> Result[list[PolicyWindowDTO]]:
+        return _read(self._backing, lambda s: s.browse(q, page, page_size))
+
 
 class SimEventStore(EventStorePort):
     def __init__(self, backing: Backing) -> None:
@@ -262,6 +265,9 @@ class SimEventStore(EventStorePort):
             return Ok(hits)
 
         return _read(self._backing, run)
+
+    def browse(self, q: str, page: int, page_size: int) -> Result[list[OperationalEventDTO]]:
+        return _read(self._backing, lambda s: s.browse(q, page, page_size))
 
 
 class SimPolicyContent(PolicyContentPort):

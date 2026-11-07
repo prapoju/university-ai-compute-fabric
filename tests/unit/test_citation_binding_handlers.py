@@ -7,13 +7,13 @@ diagnosers never produce, so the guard in the handlers is what is under test.
 
 from __future__ import annotations
 
-import sqlite3
 from dataclasses import replace
 
 import pytest
 
 from src.adapters.outbound.db.migrate import apply_migrations
 from src.adapters.outbound.db.session_store import SqliteSessionStore
+from src.adapters.outbound.db.sqlite_writer import SqliteWriter
 from src.adapters.outbound.sim.idgen_adapter import SimIdGen
 from src.adapters.outbound.sim.prose_adapter import SimProse
 from src.application import access_denial_handler, window_diagnosis_handler
@@ -88,9 +88,9 @@ CASES = {
 
 
 def migrated_store() -> SqliteSessionStore:
-    connection = sqlite3.connect(":memory:", check_same_thread=False)
-    apply_migrations(connection, PROJECT_ROOT / "migrations")
-    return SqliteSessionStore(connection)
+    writer = SqliteWriter.open(":memory:")
+    apply_migrations(writer, PROJECT_ROOT / "migrations")
+    return SqliteSessionStore(writer)
 
 
 def run(handler, query: str):

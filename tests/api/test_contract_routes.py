@@ -30,6 +30,10 @@ SERVED_IN_THIS_STORY = {
     # story 1.4
     ("GET", "/api/v1/answers/{}/evidence"),
     ("GET", "/api/v1/citations/{}"),
+    # story 1.5
+    ("GET", "/api/v1/sessions/{}/audit"),
+    ("GET", "/api/v1/state/{}/{}"),
+    ("GET", "/api/v1/state/{}"),
 }
 
 # AD-13: the only state-mutating routes the contract may declare. Sessions are Module-12-owned

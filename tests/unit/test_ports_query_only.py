@@ -27,8 +27,8 @@ CONTRACT_METHODS: dict[str, set[str]] = {
     "JobsPort": {"get", "select", "browse"},
     "NodesPort": {"get", "select", "browse"},
     "ReservationsPort": {"get", "browse"},
-    "WindowsPort": {"get", "list"},
-    "EventStorePort": {"query", "get"},  # get: story 1.4 D3 (contracts.md OP-9)
+    "WindowsPort": {"get", "list", "browse"},  # browse: story 1.5 D8 (contracts.md OP-8)
+    "EventStorePort": {"query", "get", "browse"},  # get: 1.4 D3, browse: 1.5 D8 (OP-9)
     "ClockPort": {"now"},
     "PolicyContentPort": {"get"},
     "RunbookRegistryPort": {"get"},
@@ -37,7 +37,8 @@ CONTRACT_METHODS: dict[str, set[str]] = {
 # Ports for the Module-12-OWNED stores and id generation. They are not estate providers, so the
 # query-only rule (AD-1/AD-13) does not apply to them: AD-1 protects the operational estate.
 #  - IdGenPort is OP-13 and LlmProsePort is OP-14 (contracts.md section 3.1); SessionStorePort is an
-#    internal port (story 1.2, decision D6).
+#    internal port (story 1.2, decision D6). UnitOfWorkPort is the transaction scope over the
+#    owned stores (story 1.5, review D-6 / log I2-06).
 OWNED_PORT_METHODS: dict[str, set[str]] = {
     "IdGenPort": {"new_id"},
     "LlmProsePort": {"compose"},
@@ -45,8 +46,13 @@ OWNED_PORT_METHODS: dict[str, set[str]] = {
         "create", "get", "list_turns", "append_turn", "mark_expired", "reset", "highest_counters",
         "answer_evidence", "cited_snippet",  # story 1.4: the evidence and citation reads
     },
+    "UnitOfWorkPort": {"atomic"},
+    "AuditStorePort": {"append", "page", "highest_counters"},  # story 1.5: append-only (AD-10)
 }  # fmt: skip
 ALL_PORTS = {*CONTRACT_METHODS, *OWNED_PORT_METHODS}
+# a transaction scope yields a context manager, not a read result (begin/commit failures raise
+# UnitOfWorkError, which the application turns into a typed failure)
+SCOPE_PORTS = {"UnitOfWorkPort"}
 
 MUTATION_WORDS = re.compile(
     r"(register|set|add|put|post|update|patch|delete|remove|write|create|apply|save|insert"
@@ -89,7 +95,7 @@ def test_no_method_name_denotes_mutation_or_control_plane_action(port_name: str)
     assert offenders == []
 
 
-@pytest.mark.parametrize("port_name", sorted(ALL_PORTS))
+@pytest.mark.parametrize("port_name", sorted(ALL_PORTS - SCOPE_PORTS))
 def test_every_read_returns_a_typed_result_never_a_bare_value(port_name: str) -> None:
     cls = _port_classes()[port_name]
     for method in _public_methods(cls):

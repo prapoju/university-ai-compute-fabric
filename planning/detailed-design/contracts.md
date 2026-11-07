@@ -140,7 +140,7 @@ Any value outside the enum -> `VALIDATION_BAD_ENTITY_TYPE`.
 - **Postcondition (Q):**
   - Q1: returns `AnswerEnvelope` with `len(answers) >= 1`; each `Answer` schema-valid per §0.4; for a single-intent query `len(answers) == 1`; for a decomposed compound query each sub-answer carries its own `answer_chain` and `canonical` (D37).
   - Q2: state predicate `session.context.resolved_entities` is a superset of the pre-call set; `session.context.prior_intents` and `session.context.active_answer_ids` each gain exactly one appended entry **per returned `Answer`** (so a compound query appends `>= 2`, not one per query) (D51); no operational-state predicate changes: `operational_state_before == operational_state_after` (AD-1).
-  - Q3: audit event `toolcall.answer_query` emitted exactly once per call, plus one audit row per port read performed (AD-10); metric `m12.answer_query.count` and `m12.answer_query.latency_ms` emitted once. Transaction boundary: tool calls and audit rows are committed atomically with the `Answer`; if a later stage fails, the turn's tool calls are voided (marked non-effective) so no orphan audit rows describe a turn that produced no `Answer` (AD-10).
+  - Q3: audit event `toolcall.answer_query` emitted exactly once per call, plus one audit row per port read performed (AD-10); metric `m12.answer_query.count` and `m12.answer_query.latency_ms` emitted once. Transaction boundary: tool calls and audit rows are committed atomically with the `Answer`; if a later stage fails, the turn's tool calls are voided (marked non-effective) so no orphan audit rows describe a turn that produced no `Answer` (AD-10). Impl-2 story 1.5 D1: "voided" means never written. The rows of a turn commit in the same writer transaction as its `Answer`; a turn that ends in a typed failure (400, 404, 410, 503) writes none, and a failed audit write (`AUDIT_WRITE_FAILED`, 500) rolls the `Answer` back too. The `tool_call` and `audit` ids are minted before the transaction, in call order, `toolcall.answer_query` first. A provider-port read is named `toolcall.<port>.<method>` (Q-port-3).
   - Q4: for every `Claim` in the returned answers, `len(claim.claim_citations) >= 1` and every `citation_id` resolves to exactly one `EvidenceSet` entry; `diagnosis_class` and `canonical` are emitted by deterministic code, never read from LLM output (AD-2, AD-8).
   - Q-fail: if `P1`, `P2`, or `P3` fails, no `Answer` is created, `session.context` is unchanged, and no `Answer` row is written; the typed error is returned and the `query` turn is not appended.
 - **Invariant (I):**
@@ -400,7 +400,7 @@ Shared preamble for every inbound read route unless overridden:
 
 - **Layer:** Inbound Port
 - **Precondition (P):** P2: `session_id` exists -> violation: `SESSION_NOT_FOUND` (HTTP 404).
-- **Postcondition (Q):** Q1: HTTP 204 No Content; Q2: `context == {resolved_entities: [], prior_intents: [], active_answer_ids: []}` and `status == reset`; in-flight requests are cancelled and any destructive flow returns to its refusal/dry-run stage; dispatched proposals remain tracked and their late executor result is surfaced (D34). Q3: audit `toolcall.reset_session`.
+- **Postcondition (Q):** Q1: HTTP 204 No Content; Q2: `context == {resolved_entities: [], prior_intents: [], active_answer_ids: []}` and `status == reset`; in-flight requests are cancelled and any destructive flow returns to its refusal/dry-run stage; dispatched proposals remain tracked and their late executor result is surfaced (D34). Q3: audit `toolcall.reset_session`, one row per call, in the same transaction as the reset (story 1.5); a failed audit write is `AUDIT_WRITE_FAILED` (HTTP 500) and the reset is rolled back.
 - **Invariant (I):** reset never authorizes a destructive action and never auto-continues a destructive flow (AD-4, AD-5). Bound to: AD-4.
 - **Concurrency / idempotency:** idempotent; a second reset on a reset session returns 204.
 - **Time:** Clock port for the reset timestamp.
@@ -410,7 +410,7 @@ Shared preamble for every inbound read route unless overridden:
 
 - **Layer:** Inbound Port
 - **Precondition (P):** P1: `{entity_type}` in the §0.2 route enum -> violation: `VALIDATION_BAD_ENTITY_TYPE` (HTTP 400); P1b: `{id}` matches the `{type}#{id}` `EntityKey` shape (id segment `^[A-Za-z0-9._-]{1,200}$`) before lookup -> violation: `VALIDATION_MALFORMED_BODY` (HTTP 400) (E15); P2: the record exists -> violation: `ENTITY_NOT_FOUND` (HTTP 404 with body `S_ENF`).
-- **Postcondition (Q):** Q1: HTTP 200 + the record rendered field-for-field (FR-12); Q3: audit `toolcall.state.get`.
+- **Postcondition (Q):** Q1: HTTP 200 + the bare record rendered field-for-field (FR-12; the openapi `Record`, story 1.5 D7); Q3: not audited: session-less read (story 1.5 D2).
 - **Invariant (I):** L1: response fields equal the provider record field-for-field on sampled records; no redaction of simulated-state identifiers (NFR-11). Bound to: AD-1.
 - **Concurrency / idempotency:** idempotent read.
 - **Time:** none.
@@ -420,7 +420,7 @@ Shared preamble for every inbound read route unless overridden:
 
 - **Layer:** Inbound Port
 - **Precondition (P):** P1: `page >= 1`, `1 <= page_size <= 100`, and `page <= 10_000 / page_size` (bounded OFFSET) -> violation: `PAGINATION_INVALID` (HTTP 400) (E13). P2: `q` is compared case-folded on both sides against the stored id (`q.strip().casefold() == stored_id.casefold()`); an empty `q` returns the capped first page (AD-7, E25).
-- **Postcondition (Q):** Q1: HTTP 200 + `items` with `len(items) <= page_size`; a page beyond `total` returns `items: []` together with the same `total` (no error, E13); `total` is the matched count clamped to the store cap, never an unbounded count beyond it (E49); Q3: audit `toolcall.state.browse`.
+- **Postcondition (Q):** Q1: HTTP 200 + `items` with `len(items) <= page_size`; a page beyond `total` returns `items: []` together with the same `total` (no error, E13); `total` is the matched count clamped to the store cap, never an unbounded count beyond it (E49); `total` is counted by paging the entity's port with `page_size = 100` until a short page, stopping at 10,000 (story 1.5 D9); Q3: not audited: session-less read (story 1.5 D2).
 - **Invariant (I):** L1: the result is capped and paginated; unbounded lists are impossible (D46). Bound to: AD-13.
 - **Concurrency / idempotency:** idempotent read.
 - **Time:** none.
@@ -430,7 +430,7 @@ Shared preamble for every inbound read route unless overridden:
 
 - **Layer:** Inbound Port
 - **Precondition (P):** P2: `answer_id` exists -> violation: `ENTITY_NOT_FOUND` (HTTP 404). The answer store is readable -> violation: `PROVIDER_UNAVAILABLE` (HTTP 503, story 1.4).
-- **Postcondition (Q):** Q1: HTTP 200 + ordered `EvidenceSet` (`position` ascending); Q3: audit `toolcall.evidence.get`.
+- **Postcondition (Q):** Q1: HTTP 200 + ordered `EvidenceSet` (`position` ascending); Q3: not audited: session-less read (story 1.5 D2).
 - **Invariant (I):** L1: returned entries are a subset of the stored answer `EvidenceSet`, unchanged. Bound to: AD-14.
 - **Concurrency / idempotency:** idempotent read.
 - **Time:** none.
@@ -440,7 +440,7 @@ Shared preamble for every inbound read route unless overridden:
 
 - **Layer:** Inbound Port
 - **Precondition (P):** P2: `citation_id` resolves to an existing source -> violation: `ENTITY_NOT_FOUND` (HTTP 404 with body `S_ENF`).
-- **Postcondition (Q):** Q1: HTTP 200 + the source record and the stored snippet; the source record must be a member of the answer's `EvidenceSet` (AD-8). The snippet is the one stored by the most recent answer that cites `citation_id` (story 1.4 D5). A `clock#{read_id}` citation resolves to the `ClockRead` rebuilt from its stored entry, because a clock read cannot be re-read (story 1.4 D4); `source_record` is therefore `Record | ClockRead`. A malformed `citation_id` is `ENTITY_NOT_FOUND`, never a 400 (story 1.4 D6). Q3: audit `toolcall.citation.get`.
+- **Postcondition (Q):** Q1: HTTP 200 + the source record and the stored snippet; the source record must be a member of the answer's `EvidenceSet` (AD-8). The snippet is the one stored by the most recent answer that cites `citation_id` (story 1.4 D5). A `clock#{read_id}` citation resolves to the `ClockRead` rebuilt from its stored entry, because a clock read cannot be re-read (story 1.4 D4); `source_record` is therefore `Record | ClockRead`. A malformed `citation_id` is `ENTITY_NOT_FOUND`, never a 400 (story 1.4 D6). Q3: not audited: session-less read (story 1.5 D2).
 - **Invariant (I):** L1: a citation whose source is absent from the `EvidenceSet` never renders; the answer downgrades to `S_CNC` at answer level. Bound to: AD-8.
 - **Concurrency / idempotency:** idempotent read.
 - **Time:** none.
@@ -456,11 +456,11 @@ Shared preamble for every inbound read route unless overridden:
 - **Time:** none.
 - **Latency budget (NFR):** p95 < 50 ms — a pure registry lookup delegating to `lookup_runbook` (< 5 ms); no generation happens on the read path (D56).
 
-### Operation: `get_audit_page(session_id, page, page_size) -> {entries: AuditRecord[], page, page_size}` — `GET /api/v1/sessions/{sid}/audit?page=&page_size=`
+### Operation: `get_audit_page(session_id, page, page_size) -> {entries: AuditRecord[], page, page_size, total, has_more}` — `GET /api/v1/sessions/{sid}/audit?page=&page_size=`
 
 - **Layer:** Inbound Port
-- **Precondition (P):** P1: pagination valid -> violation: `PAGINATION_INVALID` (HTTP 400); P2: `session_id` exists -> violation: `SESSION_NOT_FOUND` (HTTP 404).
-  - **Postcondition (Q):** Q1: HTTP 200 + entries in chronological order (ordered by `(timestamp, audit_id)` ascending for a deterministic tiebreak), `len(entries) <= page_size`, and page depth never exceeds the 10,000-row retention cap; a page beyond the retained rows returns `entries: []` together with the retained total (D50, E14, E47); Q3: the audit read itself is not audited (read of the audit log).
+- **Precondition (P):** P1: pagination valid: `page >= 1`, `1 <= page_size <= 100`, and `(page - 1) * page_size < cap`, where `cap` is the retention cap (`M12_AUDIT_RETENTION_CAP`, I20), so the page depth never exceeds the retained rows (story 1.5) -> violation: `PAGINATION_INVALID` (HTTP 400); P2: `session_id` exists -> violation: `SESSION_NOT_FOUND` (HTTP 404).
+  - **Postcondition (Q):** Q1: HTTP 200 + entries in chronological order (ordered by `(timestamp, audit_id)` ascending for a deterministic tiebreak), `len(entries) <= page_size`, and page depth never exceeds the 10,000-row retention cap; a page beyond the retained rows returns `entries: []` together with the retained total (D50, E14, E47); `total` is the session's retained row count and `has_more == page * page_size < total`; Q3: the audit read itself is not audited (read of the audit log). Q-fail: the audit store cannot be read -> `PROVIDER_UNAVAILABLE` (HTTP 503, story 1.5 D6).
 - **Invariant (I):** L1: no update/delete path is exposed; entries contain no credentials (key-name-driven redaction, D45). Bound to: AD-10.
 - **Concurrency / idempotency:** idempotent read.
 - **Time:** none.
@@ -578,12 +578,12 @@ These are the only read paths to operational state and policy (AD-1, AD-13). **S
 - **Distinct Q:** `[start, end)` is a half-open interval.
 
 ### OP-8 `windows_port`
-- **Operations:** `get(window_id) -> PolicyWindow|null`; `list() -> PolicyWindow[]`.
-- **Distinct Q:** `list` returns all windows in stable `window_id` order for the window calculator.
+- **Operations:** `get(window_id) -> PolicyWindow|null`; `list() -> PolicyWindow[]`; `browse(q, page, page_size) -> PolicyWindow[]` (query-only, added by Impl-2 story 1.5 D8 so `browse_state` can honour P2 for `windows`, as every other entity port does).
+- **Distinct Q:** `list` returns all windows in stable `window_id` order for the window calculator. `browse` matches `q` case-folded and exactly on the full key or the bare id (an empty `q` lists all), in `window_id` order.
 - **I:** `window_id` unique. Bound to: AD-2, AD-14.
 
 ### OP-9 `event_store_port`
-- **Operations:** `query(entity_ref: EntityKey, type: EventType, window: {start: Instant, end: Instant}) -> OperationalEvent[]`; `get(event_id) -> OperationalEvent|null` (query-only, added by Impl-2 story 1.4 D3 so `get_citation` can resolve an `event#...` citation, as every other entity port has).
+- **Operations:** `query(entity_ref: EntityKey, type: EventType, window: {start: Instant, end: Instant}) -> OperationalEvent[]`; `get(event_id) -> OperationalEvent|null` (query-only, added by Impl-2 story 1.4 D3 so `get_citation` can resolve an `event#...` citation, as every other entity port has); `browse(q, page, page_size) -> OperationalEvent[]` (query-only, added by Impl-2 story 1.5 D8 for `browse_state`, same matching as OP-8 `browse`, in `event_id` order).
 - **Distinct P:** `type in {access_denied, job_cancelled, node_cordoned}` -> violation: `VALIDATION_MALFORMED_BODY` (400); `start < end` (half-open) -> violation: `VALIDATION_MALFORMED_BODY` (400).
 - **Distinct Q:** returns every event with `timestamp` in `[start, end)` and matching `entity_ref`/`type`, ordered by `timestamp` ascending then `event_id` ascending; `recorded_reason` read directly (D25).
 - **I:** event matching is half-open `[start, end)` (D40). Bound to: AD-2.
@@ -698,7 +698,7 @@ Every invariant below has an enforcement point other than "the developer must re
 | I17 safe failure on any dependency | AD-12 | Typed `ok|failure` result at each pipeline stage; abort before prose | `tests/fault_injection` (FR-16): 100% explicit degradation, 0 fabricated detail |
 | I18 no control-plane expansion | AD-13 | Port interface declarations; API route table; static route audit | `tests/route_audit` + import audit: no mutating route outside destructive/executor |
 | I19 time reads only via Clock port | AD-2, DP-5 | Injected `clock_port`; static check banning `datetime.now()`/`time.time()` in `service/core` | `tests/determinism`: frozen clock yields identical output |
-| I20 stores capped 10,000 rows, oldest-first rotation | AD-10, D50 | Retention job; delete-denying trigger exemption for the rotation-writer identity (D42) | `tests/retention`: cap honored, oldest evicted first, rotation logged |
+| I20 stores capped 10,000 rows, oldest-first rotation | AD-10, D50 | Retention job; delete-denying trigger exemption for the rotation-writer identity (D42). Impl-2 story 1.5: `audit_records` is capped by `M12_AUDIT_RETENTION_CAP` (default 10,000, minimum 1) across all sessions; the append that goes over the cap rotates in the same transaction (C9: open the gate, delete the oldest excess rows by `(timestamp, audit_id)` with their `tool_calls`, close the gate) and logs the removed count once at INFO | `tests/retention`: cap honored, oldest evicted first, rotation logged (`tests/integration/test_audit_store.py`) |
 | I21 executor contract frozen; adapter is replacement point | AD-15 | `ExecutorRequest` schema validation on ingress; fixed response shape | `tests/executor_contract`: schema conformance; double-apply surfaces failure |
 | I22 browse is capped/paginated | AD-13, D46 | `browse_state` `page_size <= 100` guard | `tests/browse_cap`: unbounded list impossible |
 

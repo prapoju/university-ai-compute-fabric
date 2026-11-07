@@ -6,12 +6,11 @@ service. Answers are stored through the store's own ``append_turn``, as a turn w
 
 from __future__ import annotations
 
-import sqlite3
-
 import pytest
 
 from src.adapters.outbound.db.migrate import apply_migrations
 from src.adapters.outbound.db.session_store import SqliteSessionStore
+from src.adapters.outbound.db.sqlite_writer import SqliteWriter
 from src.application.evidence_service import CITATION_TYPES, EvidenceService
 from src.config import PROJECT_ROOT
 from src.domain import canonical_strings as cs
@@ -35,10 +34,10 @@ ALEX = "user#alex: Alex Rivera, role student"
 CLOCK = "clock read clk-0000000000000002 at 2026-10-16T15:00:00.000Z"
 
 
-def store_on(connection: sqlite3.Connection | None = None) -> SqliteSessionStore:
-    connection = connection or sqlite3.connect(":memory:", check_same_thread=False)
-    apply_migrations(connection, PROJECT_ROOT / "migrations")
-    store = SqliteSessionStore(connection)
+def store_on(writer: SqliteWriter | None = None) -> SqliteSessionStore:
+    writer = writer or SqliteWriter.open(":memory:")
+    apply_migrations(writer, PROJECT_ROOT / "migrations")
+    store = SqliteSessionStore(writer)
     session = SessionDTO(
         session_id=SID, created_at=T0, operator_role="role-operations", context=EMPTY,
         status="active",
@@ -245,9 +244,9 @@ def test_a_provider_failure_passes_through(store, fixtures_copy, providers_from)
 
 
 def test_a_store_failure_passes_through_for_both_reads(providers) -> None:
-    connection = sqlite3.connect(":memory:", check_same_thread=False)
-    service = service_on(store_on(connection), providers)
-    connection.close()
+    writer = SqliteWriter.open(":memory:")
+    service = service_on(store_on(writer), providers)
+    writer.close()
     for result in (service.get_answer_evidence("ans-1"), service.get_citation("user#alex")):
         assert isinstance(result, Failure) and result.code == "PROVIDER_UNAVAILABLE"
 

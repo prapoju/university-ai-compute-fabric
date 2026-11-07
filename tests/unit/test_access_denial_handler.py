@@ -335,6 +335,9 @@ class _FailingEvents(EventStorePort):
     def get(self, event_id):
         return Failure("PROVIDER_UNAVAILABLE", observed=("event store down",))
 
+    def browse(self, q, page, page_size):
+        return Failure("PROVIDER_UNAVAILABLE", observed=("event store down",))
+
 
 def test_an_event_store_failure_discards_everything_no_partial_evidence(providers) -> None:
     rig = make_rig(providers, events=_FailingEvents())
