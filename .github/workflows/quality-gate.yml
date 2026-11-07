@@ -52,6 +52,8 @@ jobs:
           pattern='\bsleep[[:space:]]*\(|\bfrom[[:space:]]+(time|asyncio)[[:space:]]+import\b.*\bsleep\b|\bwaitForTimeout\b|\bwait_for_timeout\b'
           comment='^[^:]+:[0-9]+:[[:space:]]*(#|//|/\*|\*)'
 
+          # GitHub runs `bash -e -o pipefail`; grep exit 1 must reach PIPESTATUS, not abort.
+          set +e +o pipefail
           grep -rnE \
             --include='*.py' --include='*.js' --include='*.mjs' --include='*.cjs' \
             --include='*.jsx' --include='*.ts' --include='*.mts' --include='*.tsx' \
@@ -78,6 +80,8 @@ jobs:
           pattern='\bnew[[:space:]]+Promise\b.*\bsetTimeout\b|\bpromisify[[:space:]]*\([[:space:]]*setTimeout\b|timers/promises'
           comment='^[^:]+:[0-9]+:[[:space:]]*(//|/\*|\*)'
 
+          # GitHub runs `bash -e -o pipefail`; grep exit 1 must reach PIPESTATUS, not abort.
+          set +e +o pipefail
           grep -rnE \
             --include='*.js' --include='*.mjs' --include='*.cjs' \
             --include='*.jsx' --include='*.ts' --include='*.mts' --include='*.tsx' \
