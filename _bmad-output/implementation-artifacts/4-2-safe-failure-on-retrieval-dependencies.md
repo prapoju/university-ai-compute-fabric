@@ -4,7 +4,7 @@ baseline_commit: d468b55
 
 # Story 4.2: Safe failure on retrieval dependencies
 
-Status: review
+Status: done
 
 <!-- Impl-2 foundations story, Flow B (test-along): code and its tests ship in the same commit.
      Audit on 2026-11-07 (see "What already holds"): every behaviour this story asks for already works
@@ -196,6 +196,7 @@ Task 3:
 - 2026-11-07: Task 1 done (fault helper and the 16-case API fault matrix). Status -> in-progress.
 - 2026-11-07: Task 2 done (clock, `/copilot/query` and read-route failures; 9 more cases).
 - 2026-11-07: Task 3 done (mutation check, coverage evidence). All ACs satisfied, no production change. Status -> review.
+- 2026-11-07: Code review and test-trap audit done (P-1, P-2, T-1, T-2 applied, 2 deferred). pytest 1418 passed, branch coverage 97.12%. Status -> done.
 
 ### Review Findings
 
