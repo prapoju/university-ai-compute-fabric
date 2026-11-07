@@ -9,3 +9,8 @@ htmlcov/
 # Skill copies the BMad installer generates for other assistants (Claude Code uses .claude/)
 .agents/
 .opencode/
+
+node_modules/
+test-results/
+playwright-report/
+console/dist/
