@@ -64,6 +64,42 @@ def test_value_patterns_inside_strings(text: str, expected: str) -> None:
 
 
 @pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ('api_key="abc123"', f'api_key="{REDACTED}"'),
+        ("api_key='abc123'", f"api_key='{REDACTED}'"),
+        ('password = "my secret pass"', f'password = "{REDACTED}"'),
+        ('{"api_key": "abc123"}', f'{{"api_key": "{REDACTED}"}}'),
+        ('{"token":"t0ps3cret","ok":"alex"}', f'{{"token":"{REDACTED}","ok":"alex"}}'),
+        ("Authorization: Basic dXNlcjpwYXNz", f"Authorization: {REDACTED}"),
+        ("x-api-key=abc123", f"x-api-key={REDACTED}"),
+        ("X-Api-Key: abc123", f"X-Api-Key: {REDACTED}"),
+    ],
+)
+def test_quoted_json_basic_and_hyphenated_forms_inside_strings(text: str, expected: str) -> None:
+    redacted = redact(text)
+    assert redacted == expected
+    assert "abc123" not in redacted and "t0ps3cret" not in redacted and "dXNl" not in redacted
+
+
+def test_a_hyphenated_secret_key_is_redacted() -> None:
+    assert redact({"Api-Key": "x", "x-auth-token": "y", "user": "alex"}) == {
+        "Api-Key": REDACTED,
+        "x-auth-token": REDACTED,
+        "user": "alex",
+    }
+
+
+def test_sets_and_frozensets_are_walked_and_keep_their_type() -> None:
+    walked = redact({"s": {"api_key=abc123", "user#alex"}, "f": frozenset({"token: t1"})})
+    assert walked == {
+        "s": {f"api_key={REDACTED}", "user#alex"},
+        "f": frozenset({f"token: {REDACTED}"}),
+    }
+    assert isinstance(walked["s"], set) and isinstance(walked["f"], frozenset)
+
+
+@pytest.mark.parametrize(
     "benign",
     [
         "user#alex", "deepseek-coder", "policy#catalog.4.2", "model#deepseek-coder",
