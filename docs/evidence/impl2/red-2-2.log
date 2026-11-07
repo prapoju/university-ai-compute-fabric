@@ -1,0 +1,333 @@
+FFFFFF....FFFFFFFFFFFFFFFFFFFFFFFFFFF...                                 [100%]
+================================== FAILURES ===================================
+___ test_the_annex_scenario_answers_refusal_summary_and_token_in_one_reply ____
+tests\atdd\test_story_2_2.py:142: in test_the_annex_scenario_answers_refusal_summary_and_token_in_one_reply
+    assert body.get("refusal", {}).get("code") == "ACTION_REFUSED"
+E   AssertionError: assert None == 'ACTION_REFUSED'
+E    +  where None = <built-in method get of dict object at 0x0000022EA5603680>('code')
+E    +    where <built-in method get of dict object at 0x0000022EA5603680> = {}.get
+E    +      where {} = <built-in method get of dict object at 0x0000022EA562B580>('refusal', {})
+E    +        where <built-in method get of dict object at 0x0000022EA562B580> = {'code': 'ENTITY_NOT_FOUND', 'status': 200, 'message': 'Entity Not Found in State: group#cs-101.', 'retryable': False, ...}.get
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:271 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+____ test_the_persisted_row_matches_the_reply_and_its_selector_re_executes ____
+tests\atdd\test_story_2_2.py:163: in test_the_persisted_row_matches_the_reply_and_its_selector_re_executes
+    proposal = reply(client, ANNEX)["proposal"]
+               ^^^^^^^^^^^^^^^^^^^^
+tests\atdd\test_story_2_2.py:125: in reply
+    assert "proposal" in body, f"no dry-run in the reply, got {sorted(body)}"
+E   AssertionError: no dry-run in the reply, got ['code', 'explanation', 'message', 'retryable', 'status']
+E   assert 'proposal' in {'code': 'ENTITY_NOT_FOUND', 'status': 200, 'message': 'Entity Not Found in State: group#cs-101.', 'retryable': False, ...}
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:271 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_____________ test_the_refusal_turn_and_the_audit_of_a_chat_reply _____________
+tests\atdd\test_story_2_2.py:184: in test_the_refusal_turn_and_the_audit_of_a_chat_reply
+    reply(client, ANNEX)
+tests\atdd\test_story_2_2.py:125: in reply
+    assert "proposal" in body, f"no dry-run in the reply, got {sorted(body)}"
+E   AssertionError: no dry-run in the reply, got ['code', 'explanation', 'message', 'retryable', 'status']
+E   assert 'proposal' in {'code': 'ENTITY_NOT_FOUND', 'status': 200, 'message': 'Entity Not Found in State: group#cs-101.', 'retryable': False, ...}
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:271 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+___ test_cs_101_resolves_in_any_case[Terminate all active jobs for CS-101] ____
+tests\atdd\test_story_2_2.py:207: in test_cs_101_resolves_in_any_case
+    proposal = reply(client, query)["proposal"]
+               ^^^^^^^^^^^^^^^^^^^^
+tests\atdd\test_story_2_2.py:125: in reply
+    assert "proposal" in body, f"no dry-run in the reply, got {sorted(body)}"
+E   AssertionError: no dry-run in the reply, got ['code', 'explanation', 'message', 'retryable', 'status']
+E   assert 'proposal' in {'code': 'ENTITY_NOT_FOUND', 'status': 200, 'message': 'Entity Not Found in State: group#cs-101.', 'retryable': False, ...}
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:271 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+___ test_cs_101_resolves_in_any_case[terminate all active jobs for cs-101] ____
+tests\atdd\test_story_2_2.py:207: in test_cs_101_resolves_in_any_case
+    proposal = reply(client, query)["proposal"]
+               ^^^^^^^^^^^^^^^^^^^^
+tests\atdd\test_story_2_2.py:125: in reply
+    assert "proposal" in body, f"no dry-run in the reply, got {sorted(body)}"
+E   AssertionError: no dry-run in the reply, got ['code', 'explanation', 'message', 'retryable', 'status']
+E   assert 'proposal' in {'code': 'ENTITY_NOT_FOUND', 'status': 200, 'message': 'Entity Not Found in State: group#cs-101.', 'retryable': False, ...}
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:271 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+___ test_cs_101_resolves_in_any_case[TERMINATE ALL ACTIVE JOBS FOR Cs-101] ____
+tests\atdd\test_story_2_2.py:207: in test_cs_101_resolves_in_any_case
+    proposal = reply(client, query)["proposal"]
+               ^^^^^^^^^^^^^^^^^^^^
+tests\atdd\test_story_2_2.py:125: in reply
+    assert "proposal" in body, f"no dry-run in the reply, got {sorted(body)}"
+E   AssertionError: no dry-run in the reply, got ['code', 'explanation', 'message', 'retryable', 'status']
+E   assert 'proposal' in {'code': 'ENTITY_NOT_FOUND', 'status': 200, 'message': 'Entity Not Found in State: group#cs-101.', 'retryable': False, ...}
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:271 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_the_dry_run_enumerates_every_item_with_its_own_status[delete all pending jobs for group 2] _
+tests\atdd\test_story_2_2.py:293: in test_the_dry_run_enumerates_every_item_with_its_own_status
+    body = reply(client, query)
+           ^^^^^^^^^^^^^^^^^^^^
+tests\atdd\test_story_2_2.py:125: in reply
+    assert "proposal" in body, f"no dry-run in the reply, got {sorted(body)}"
+E   AssertionError: no dry-run in the reply, got ['code', 'explanation', 'message', 'retryable', 'status']
+E   assert 'proposal' in {'code': 'ACTION_REFUSED', 'status': 200, 'message': 'Action refused.', 'retryable': False, ...}
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:271 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_the_dry_run_enumerates_every_item_with_its_own_status[cancel job 8823] _
+tests\atdd\test_story_2_2.py:293: in test_the_dry_run_enumerates_every_item_with_its_own_status
+    body = reply(client, query)
+           ^^^^^^^^^^^^^^^^^^^^
+tests\atdd\test_story_2_2.py:125: in reply
+    assert "proposal" in body, f"no dry-run in the reply, got {sorted(body)}"
+E   AssertionError: no dry-run in the reply, got ['code', 'explanation', 'message', 'retryable', 'status']
+E   assert 'proposal' in {'code': 'ACTION_REFUSED', 'status': 200, 'message': 'Action refused.', 'retryable': False, ...}
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:271 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_the_dry_run_enumerates_every_item_with_its_own_status[cancel job 8801] _
+tests\atdd\test_story_2_2.py:293: in test_the_dry_run_enumerates_every_item_with_its_own_status
+    body = reply(client, query)
+           ^^^^^^^^^^^^^^^^^^^^
+tests\atdd\test_story_2_2.py:125: in reply
+    assert "proposal" in body, f"no dry-run in the reply, got {sorted(body)}"
+E   AssertionError: no dry-run in the reply, got ['code', 'explanation', 'message', 'retryable', 'status']
+E   assert 'proposal' in {'code': 'ACTION_REFUSED', 'status': 200, 'message': 'Action refused.', 'retryable': False, ...}
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:271 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_the_dry_run_enumerates_every_item_with_its_own_status[cordon ws-gpu-02] _
+tests\atdd\test_story_2_2.py:293: in test_the_dry_run_enumerates_every_item_with_its_own_status
+    body = reply(client, query)
+           ^^^^^^^^^^^^^^^^^^^^
+tests\atdd\test_story_2_2.py:125: in reply
+    assert "proposal" in body, f"no dry-run in the reply, got {sorted(body)}"
+E   AssertionError: no dry-run in the reply, got ['code', 'explanation', 'message', 'retryable', 'status']
+E   assert 'proposal' in {'code': 'ACTION_REFUSED', 'status': 200, 'message': 'Action refused.', 'retryable': False, ...}
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:271 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_the_dry_run_enumerates_every_item_with_its_own_status[drain ws-gpu-05] _
+tests\atdd\test_story_2_2.py:293: in test_the_dry_run_enumerates_every_item_with_its_own_status
+    body = reply(client, query)
+           ^^^^^^^^^^^^^^^^^^^^
+tests\atdd\test_story_2_2.py:125: in reply
+    assert "proposal" in body, f"no dry-run in the reply, got {sorted(body)}"
+E   AssertionError: no dry-run in the reply, got ['code', 'explanation', 'message', 'retryable', 'status']
+E   assert 'proposal' in {'code': 'ACTION_REFUSED', 'status': 200, 'message': 'Action refused.', 'retryable': False, ...}
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:271 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_the_dry_run_enumerates_every_item_with_its_own_status[cordon ws-gpu-11] _
+tests\atdd\test_story_2_2.py:293: in test_the_dry_run_enumerates_every_item_with_its_own_status
+    body = reply(client, query)
+           ^^^^^^^^^^^^^^^^^^^^
+tests\atdd\test_story_2_2.py:125: in reply
+    assert "proposal" in body, f"no dry-run in the reply, got {sorted(body)}"
+E   AssertionError: no dry-run in the reply, got ['code', 'explanation', 'message', 'retryable', 'status']
+E   assert 'proposal' in {'code': 'ACTION_REFUSED', 'status': 200, 'message': 'Action refused.', 'retryable': False, ...}
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:271 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_the_dry_run_enumerates_every_item_with_its_own_status[cancel all running jobs for group 2] _
+tests\atdd\test_story_2_2.py:293: in test_the_dry_run_enumerates_every_item_with_its_own_status
+    body = reply(client, query)
+           ^^^^^^^^^^^^^^^^^^^^
+tests\atdd\test_story_2_2.py:125: in reply
+    assert "proposal" in body, f"no dry-run in the reply, got {sorted(body)}"
+E   AssertionError: no dry-run in the reply, got ['code', 'explanation', 'message', 'retryable', 'status']
+E   assert 'proposal' in {'code': 'ACTION_REFUSED', 'status': 200, 'message': 'Action refused.', 'retryable': False, ...}
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:271 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_the_dry_run_enumerates_every_item_with_its_own_status[Delete all pending jobs] _
+tests\atdd\test_story_2_2.py:293: in test_the_dry_run_enumerates_every_item_with_its_own_status
+    body = reply(client, query)
+           ^^^^^^^^^^^^^^^^^^^^
+tests\atdd\test_story_2_2.py:125: in reply
+    assert "proposal" in body, f"no dry-run in the reply, got {sorted(body)}"
+E   AssertionError: no dry-run in the reply, got ['code', 'explanation', 'message', 'retryable', 'status']
+E   assert 'proposal' in {'code': 'ACTION_REFUSED', 'status': 200, 'message': 'Action refused.', 'retryable': False, ...}
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:271 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+____ test_a_fleet_wide_cordon_lists_every_node_and_skips_the_one_in_fault _____
+tests\atdd\test_story_2_2.py:312: in test_a_fleet_wide_cordon_lists_every_node_and_skips_the_one_in_fault
+    body = reply(client, "cordon entire lab")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\atdd\test_story_2_2.py:125: in reply
+    assert "proposal" in body, f"no dry-run in the reply, got {sorted(body)}"
+E   AssertionError: no dry-run in the reply, got ['code', 'explanation', 'message', 'retryable', 'status']
+E   assert 'proposal' in {'code': 'ACTION_REFUSED', 'status': 200, 'message': 'Action refused.', 'retryable': False, ...}
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:271 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+__ test_the_cs_101_jobs_are_running_on_their_nodes[job-8901-node#ws-gpu-02] ___
+tests\atdd\test_story_2_2.py:336: in test_the_cs_101_jobs_are_running_on_their_nodes
+    assert group.status_code == 200 and group.json()["id"] == "group#CS-101"
+E   assert (404 == 200)
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:271 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+__ test_the_cs_101_jobs_are_running_on_their_nodes[job-8902-node#ws-gpu-05] ___
+tests\atdd\test_story_2_2.py:336: in test_the_cs_101_jobs_are_running_on_their_nodes
+    assert group.status_code == 200 and group.json()["id"] == "group#CS-101"
+E   assert (404 == 200)
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:271 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+__ test_the_cs_101_jobs_are_running_on_their_nodes[job-8903-node#ws-gpu-08] ___
+tests\atdd\test_story_2_2.py:336: in test_the_cs_101_jobs_are_running_on_their_nodes
+    assert group.status_code == 200 and group.json()["id"] == "group#CS-101"
+E   assert (404 == 200)
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:271 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_______ test_a_job_with_no_node_reports_a_null_node_never_a_made_up_one _______
+tests\atdd\test_story_2_2.py:346: in test_a_job_with_no_node_reports_a_null_node_never_a_made_up_one
+    assert record.get("node", "the field is missing") is None
+E   AssertionError: assert 'the field is missing' is None
+E    +  where 'the field is missing' = <built-in method get of dict object at 0x0000022EA59ACB00>('node', 'the field is missing')
+E    +    where <built-in method get of dict object at 0x0000022EA59ACB00> = {'id': 'job#job-8830', 'group_id': 'group#group-4', 'course': 'CS301', 'status': 'running', ...}.get
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:271 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+____________ test_the_dry_run_route_answers_the_contract_proposal _____________
+tests\atdd\test_story_2_2.py:364: in test_the_dry_run_route_answers_the_contract_proposal
+    assert response.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:271 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_____ test_a_dry_run_that_cannot_be_built_creates_no_proposal[no-session] _____
+tests\atdd\test_story_2_2.py:402: in test_a_dry_run_that_cannot_be_built_creates_no_proposal
+    assert response.json()["code"] == code
+E   AssertionError: assert 'ENTITY_NOT_FOUND' == 'SESSION_NOT_FOUND'
+E     
+E     - SESSION_NOT_FOUND
+E     + ENTITY_NOT_FOUND
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:271 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+___ test_a_dry_run_that_cannot_be_built_creates_no_proposal[unknown-action] ___
+tests\atdd\test_story_2_2.py:401: in test_a_dry_run_that_cannot_be_built_creates_no_proposal
+    assert response.status_code == status
+E   assert 404 == 400
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:271 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_____ test_a_dry_run_that_cannot_be_built_creates_no_proposal[no-target] ______
+tests\atdd\test_story_2_2.py:401: in test_a_dry_run_that_cannot_be_built_creates_no_proposal
+    assert response.status_code == status
+E   assert 404 == 400
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:271 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_____ test_a_dry_run_that_cannot_be_built_creates_no_proposal[wrong-kind] _____
+tests\atdd\test_story_2_2.py:401: in test_a_dry_run_that_cannot_be_built_creates_no_proposal
+    assert response.status_code == status
+E   assert 404 == 400
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:271 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_____ test_a_dry_run_that_cannot_be_built_creates_no_proposal[unresolved] _____
+tests\atdd\test_story_2_2.py:401: in test_a_dry_run_that_cannot_be_built_creates_no_proposal
+    assert response.status_code == status
+E   assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:271 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+______ test_a_dry_run_that_cannot_be_built_creates_no_proposal[compound] ______
+tests\atdd\test_story_2_2.py:401: in test_a_dry_run_that_cannot_be_built_creates_no_proposal
+    assert response.status_code == status
+E   assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:271 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_____ test_two_dry_runs_on_one_session_are_two_proposals_with_two_tokens ______
+tests\atdd\test_story_2_2.py:424: in test_two_dry_runs_on_one_session_are_two_proposals_with_two_tokens
+    assert [r.status_code for r in replies] == [200, 200]
+E   assert [404, 404] == [200, 200]
+E     
+E     At index 0 diff: 404 != 200
+E     Use -v to get more diff
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:271 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_fifty_concurrent_dry_runs_give_fifty_unique_tokens_and_no_server_error _
+tests\atdd\test_story_2_2.py:446: in test_fifty_concurrent_dry_runs_give_fifty_unique_tokens_and_no_server_error
+    assert statuses == [200] * 50  # no 500, no "database is locked"
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   assert [404, 404, 40...404, 404, ...] == [200, 200, 20...200, 200, ...]
+E     
+E     At index 0 diff: 404 != 200
+E     Use -v to get more diff
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:271 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+__________ test_the_real_app_issues_a_different_token_on_every_start __________
+tests\atdd\test_story_2_2.py:461: in test_the_real_app_issues_a_different_token_on_every_start
+    token = reply(client, ANNEX)["proposal"]["gate_token"]
+            ^^^^^^^^^^^^^^^^^^^^
+tests\atdd\test_story_2_2.py:125: in reply
+    assert "proposal" in body, f"no dry-run in the reply, got {sorted(body)}"
+E   AssertionError: no dry-run in the reply, got ['code', 'explanation', 'message', 'retryable', 'status']
+E   assert 'proposal' in {'code': 'ENTITY_NOT_FOUND', 'status': 200, 'message': 'Entity Not Found in State: group#cs-101.', 'retryable': False, ...}
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:271 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+____________________ test_the_token_lifetime_is_a_setting _____________________
+tests\atdd\test_story_2_2.py:67: in app_on
+    settings = Settings.from_env(variables)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\config.py:85: in from_env
+    raise ConfigError(f"unknown configuration variable(s): {names}")
+E   src.config.ConfigError: unknown configuration variable(s): M12_GATE_TOKEN_TTL_SECONDS
+
+During handling of the above exception, another exception occurred:
+tests\atdd\test_story_2_2.py:468: in test_the_token_lifetime_is_a_setting
+    with app_on(tmp_path, gate_token_ttl_seconds="5") as client:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\atdd\test_story_2_2.py:71: in app_on
+    pytest.fail(f"configuration is not supported yet: {exc}")
+E   Failed: configuration is not supported yet: unknown configuration variable(s): M12_GATE_TOKEN_TTL_SECONDS
+_______ test_a_jobs_outage_persists_nothing_and_keeps_the_refusal_turn ________
+tests\atdd\test_story_2_2.py:483: in test_a_jobs_outage_persists_nothing_and_keeps_the_refusal_turn
+    assert response.status_code == 503
+E   assert 200 == 503
+E    +  where 200 = <Response [200 OK]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:271 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_______ test_the_dry_run_route_answers_a_jobs_outage_as_a_safe_failure ________
+tests\atdd\test_story_2_2.py:505: in test_the_dry_run_route_answers_a_jobs_outage_as_a_safe_failure
+    assert response.status_code == 503
+E   assert 404 == 503
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:271 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+____________________ test_copilot_query_stays_refusal_only ____________________
+tests\atdd\test_story_2_2.py:516: in test_copilot_query_stays_refusal_only
+    assert body["code"] == "ACTION_REFUSED" and body["message"] == "Action refused."
+E   AssertionError: assert ('ENTITY_NOT_FOUND' == 'ACTION_REFUSED'
+E     
+E     - ACTION_REFUSED
+E     + ENTITY_NOT_FOUND)
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:271 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+=========================== short test summary info ===========================
+FAILED tests/atdd/test_story_2_2.py::test_the_annex_scenario_answers_refusal_summary_and_token_in_one_reply
+FAILED tests/atdd/test_story_2_2.py::test_the_persisted_row_matches_the_reply_and_its_selector_re_executes
+FAILED tests/atdd/test_story_2_2.py::test_the_refusal_turn_and_the_audit_of_a_chat_reply
+FAILED tests/atdd/test_story_2_2.py::test_cs_101_resolves_in_any_case[Terminate all active jobs for CS-101]
+FAILED tests/atdd/test_story_2_2.py::test_cs_101_resolves_in_any_case[terminate all active jobs for cs-101]
+FAILED tests/atdd/test_story_2_2.py::test_cs_101_resolves_in_any_case[TERMINATE ALL ACTIVE JOBS FOR Cs-101]
+FAILED tests/atdd/test_story_2_2.py::test_the_dry_run_enumerates_every_item_with_its_own_status[delete all pending jobs for group 2]
+FAILED tests/atdd/test_story_2_2.py::test_the_dry_run_enumerates_every_item_with_its_own_status[cancel job 8823]
+FAILED tests/atdd/test_story_2_2.py::test_the_dry_run_enumerates_every_item_with_its_own_status[cancel job 8801]
+FAILED tests/atdd/test_story_2_2.py::test_the_dry_run_enumerates_every_item_with_its_own_status[cordon ws-gpu-02]
+FAILED tests/atdd/test_story_2_2.py::test_the_dry_run_enumerates_every_item_with_its_own_status[drain ws-gpu-05]
+FAILED tests/atdd/test_story_2_2.py::test_the_dry_run_enumerates_every_item_with_its_own_status[cordon ws-gpu-11]
+FAILED tests/atdd/test_story_2_2.py::test_the_dry_run_enumerates_every_item_with_its_own_status[cancel all running jobs for group 2]
+FAILED tests/atdd/test_story_2_2.py::test_the_dry_run_enumerates_every_item_with_its_own_status[Delete all pending jobs]
+FAILED tests/atdd/test_story_2_2.py::test_a_fleet_wide_cordon_lists_every_node_and_skips_the_one_in_fault
+FAILED tests/atdd/test_story_2_2.py::test_the_cs_101_jobs_are_running_on_their_nodes[job-8901-node#ws-gpu-02]
+FAILED tests/atdd/test_story_2_2.py::test_the_cs_101_jobs_are_running_on_their_nodes[job-8902-node#ws-gpu-05]
+FAILED tests/atdd/test_story_2_2.py::test_the_cs_101_jobs_are_running_on_their_nodes[job-8903-node#ws-gpu-08]
+FAILED tests/atdd/test_story_2_2.py::test_a_job_with_no_node_reports_a_null_node_never_a_made_up_one
+FAILED tests/atdd/test_story_2_2.py::test_the_dry_run_route_answers_the_contract_proposal
+FAILED tests/atdd/test_story_2_2.py::test_a_dry_run_that_cannot_be_built_creates_no_proposal[no-session]
+FAILED tests/atdd/test_story_2_2.py::test_a_dry_run_that_cannot_be_built_creates_no_proposal[unknown-action]
+FAILED tests/atdd/test_story_2_2.py::test_a_dry_run_that_cannot_be_built_creates_no_proposal[no-target]
+FAILED tests/atdd/test_story_2_2.py::test_a_dry_run_that_cannot_be_built_creates_no_proposal[wrong-kind]
+FAILED tests/atdd/test_story_2_2.py::test_a_dry_run_that_cannot_be_built_creates_no_proposal[unresolved]
+FAILED tests/atdd/test_story_2_2.py::test_a_dry_run_that_cannot_be_built_creates_no_proposal[compound]
+FAILED tests/atdd/test_story_2_2.py::test_two_dry_runs_on_one_session_are_two_proposals_with_two_tokens
+FAILED tests/atdd/test_story_2_2.py::test_fifty_concurrent_dry_runs_give_fifty_unique_tokens_and_no_server_error
+FAILED tests/atdd/test_story_2_2.py::test_the_real_app_issues_a_different_token_on_every_start
+FAILED tests/atdd/test_story_2_2.py::test_the_token_lifetime_is_a_setting - F...
+FAILED tests/atdd/test_story_2_2.py::test_a_jobs_outage_persists_nothing_and_keeps_the_refusal_turn
+FAILED tests/atdd/test_story_2_2.py::test_the_dry_run_route_answers_a_jobs_outage_as_a_safe_failure
+FAILED tests/atdd/test_story_2_2.py::test_copilot_query_stays_refusal_only - ...
+33 failed, 7 passed in 2.79s
