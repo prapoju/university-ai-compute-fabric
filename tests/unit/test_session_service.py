@@ -772,6 +772,34 @@ class _RefusingAudit(SqliteAuditStore):
         return Failure("PROVIDER_UNAVAILABLE", observed=("audit sink refused",))
 
 
+class _FailsAfterWriting(SqliteSessionStore):
+    """Writes through the real store, then returns a typed failure without the database raising."""
+
+    def append_turn(self, *args, **kwargs):
+        ok(super().append_turn(*args, **kwargs))
+        return Failure("PROVIDER_UNAVAILABLE", observed=("failed after the write",))
+
+    def reset(self, *args, **kwargs):
+        ok(super().reset(*args, **kwargs))
+        return Failure("PROVIDER_UNAVAILABLE", observed=("failed after the write",))
+
+
+def test_a_store_failure_without_a_driver_error_rolls_back_what_it_already_wrote() -> None:
+    rig = audited_rig()
+    rig.service = SessionService(
+        store=_FailsAfterWriting(rig.writer), clock=rig.clock, idgen=rig.idgen,
+        pipeline=rig.pipeline, uow=rig.writer, audit=AuditWriter(rig.audit, rig.idgen),
+        recorder=rig.recorder,
+    )  # fmt: skip
+    sid = new_session(rig)
+    assert ask(rig, sid).code == "PROVIDER_UNAVAILABLE"
+    assert rig.service.reset_session(sid).code == "PROVIDER_UNAVAILABLE"
+    assert count(rig, "answers") == 0  # only tx.abort() can undo the answer the store inserted
+    assert count(rig, "audit_records") == 0 and count(rig, "tool_calls") == 0
+    stored = ok(rig.store.get(sid))
+    assert stored.session.status == "active" and stored.session.context == empty_context()
+
+
 def test_an_audit_failure_without_a_driver_error_still_rolls_back_the_answer() -> None:
     rig = audited_rig()
     rig.service = SessionService(

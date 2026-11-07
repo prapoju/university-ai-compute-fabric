@@ -73,6 +73,25 @@ def test_after_s1_the_page_lists_every_tool_call_once_in_call_order(client) -> N
     assert all(S1 not in str(entry) for entry in body["entries"])
 
 
+def test_has_more_is_false_when_a_page_ends_exactly_on_the_last_row(client) -> None:
+    sid = s1(client)  # 5 retained rows
+    exact = audit(client, sid, page=1, page_size=5).json()
+    assert (exact["total"], len(exact["entries"]), exact["has_more"]) == (5, 5, False)
+    short = audit(client, sid, page=1, page_size=4).json()
+    assert (len(short["entries"]), short["has_more"]) == (4, True)
+    last = audit(client, sid, page=5, page_size=1).json()
+    assert [e["result_summary"]["tool_name"] for e in last["entries"]] == S1_TOOL_CALLS[-1:]
+    assert last["has_more"] is False
+
+
+def test_every_audit_row_carries_the_operator_role_of_its_session(client) -> None:
+    sid = client.post(SESSIONS, json={"operator_role": "role-helpdesk"}).json()["session_id"]
+    assert client.post(f"{SESSIONS}/{sid}/queries", json={"query_text": S1}).status_code == 200
+    body = audit(client, sid).json()
+    assert body["total"] == len(S1_TOOL_CALLS)
+    assert {e["operator_role"] for e in body["entries"]} == {"role-helpdesk"}
+
+
 def test_paging_has_more_and_a_page_beyond_the_rows(client) -> None:
     sid = s1(client)
     first = audit(client, sid, page=1, page_size=2).json()
