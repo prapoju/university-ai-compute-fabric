@@ -495,6 +495,7 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 | I2-61 | Final evidence | Decision | Traceability gate computed by the skill rules: CONCERNS; FR-06 as P0 would be FAIL | Julio (standing pre-approval) |
 | I2-62 | Final evidence | **Correction (text)** | Walkthrough and README: three unsupported claims fixed before the commit; the one-command gate verified | Julio (standing pre-approval) |
 | I2-63 | Gate gaps | Decision | NFR-1 corpus (85 %, red on purpose), cold start 0.54 s, two recorded waivers (NFR-7 8-hour, NFR-9 study) | Julio |
+| I2-64 | Gate gaps | **Correction (classifier miss)** | "cant", a bare node id and "cordoned with <code>" fixed; corpus 20 / 20; golden unchanged | Julio |
 
 ## I2-01..I2-09 - Shift-left review of the Impl-2 plan  *(planning text)*
 - **Phase:** before any Impl-2 code, 2026-11-06. Party-mode review (Winston, architect; Murat, test architect) of `docs/impl2-rules.md`
@@ -1529,4 +1530,15 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 - **Harness correction (AI-written code):** the first run of the corpus read the runbook from the wrong key and scored the Annex 12.6 query as a miss. It reads `recommendation.runbook`, which is where the app puts it. The app was right; the harness was wrong. Fixed before the commit; no expectation changed.
 - **Cold start (`tests/nfr/cold_start.py`, log `docs/evidence/impl2/nfr7-cold-start.log`):** uvicorn started as in `playwright.config.ts`, `M12_DB_PATH=:memory:`. The first 200 on `/healthz` came at **0.54 s**, budget 60 s, PASS. The probe uses a bounded deadline and an Event wait, with no `sleep`.
 - **Waivers (recorded in `test/traceability-matrix.md` section 8):** NFR-7 8-hour window at 99 %, and NFR-9 human study. Neither can be measured in the repository. The waivers are logged here with the reason. The rules do not count them, so the verdict does not change because of them.
+- **Reviewer:** Julio.
+
+## I2-64 - Classifier miss found by the NFR-1 corpus: "cant", a node id without "node", and "cordoned with <code>" word order  *(classifier miss, fixed under the approver's option 3; Reviewer: Julio)*
+- **Found by:** the 20-query corpus (`tests/api/test_nfr1_accuracy_corpus.py`, I2-63). The first run scored 17 / 20. The three misses were `why cant group 4 run their fine-tuning job now`, `ws-gpu-11 cordoned ERR_THERMAL_88, what do I do?` and `What should I do about node ws-gpu-11 cordoned with ERR_THERMAL_88?`. All three got `CLARIFICATION_REQUIRED`.
+- **Decision (approver's option 3):** fix the classifier now, as part of story 3.3's intent routing. Do not lower the 90 % threshold and do not edit the corpus expectations. The smallest change was chosen:
+  - `src/domain/intent.py`: the schedule rule accepts `can'?t` (so `cant` routes); a new node rule `\bcordoned\b.*\berr_\w+` routes a cordon with an error code that has no word "node" and no word "code".
+  - `src/domain/references.py`: a fallback for the node id `ws-…` and for the code `err_…`, tried only when the word form ("node", "code") is absent. The word form is read exactly as before.
+- **Scope note:** the approver named only `intent.py`. The corpus also needs the node and code extracted, so the matching fallbacks in `references.py` were the minimum. Stated here so it can be challenged.
+- **Regression cases:** `tests/unit/test_node_triage_intent.py` (three phrasings route to their intent; a cordoned node with no error code is not a triage), `tests/unit/test_runbook.py` (extraction of the two bare phrasings). Against the old code, 5 of the new cases fail.
+- **Golden and suite:** the six golden byte-identity tests (`tests/api/golden`) pass. The full suite: 2164 passed, branch coverage 97.59 %. Log `docs/evidence/impl2/final-pytest-classifier-fix.log`.
+- **Result:** corpus 20 / 20 = 100 %. The fix is commit `66084c4`. The trace rerun gives CONCERNS (P0 7 / 7, overall 24 / 26, P1 17 / 19 = 89.5 %). Commit `ded770c`.
 - **Reviewer:** Julio.
