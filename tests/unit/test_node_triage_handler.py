@@ -14,7 +14,7 @@ from src.application.node_triage_handler import NodeTriageHandler
 from src.application.pipeline import TurnInput, TurnOutput
 from src.domain import canonical_strings as cs
 from src.domain.intent import Routed, classify
-from src.domain.result import Failure, Result, is_ok
+from src.domain.result import Failure, Ok, Result, is_ok
 from src.dto import ClockReadDTO, ProsePromptDTO, RunbookTemplateDTO, SessionContextDTO
 from src.ports.inbound import CanonicalOutcome
 from src.ports.outbound import LlmProsePort
@@ -52,6 +52,12 @@ def handler_for(providers, *, runbooks=None, prose=None) -> tuple[NodeTriageHand
 
 
 def run(handler: NodeTriageHandler, query: str = S3) -> TurnOutput:
+    result = run_result(handler, query)
+    assert is_ok(result), result
+    return result.value
+
+
+def run_result(handler: NodeTriageHandler, query: str = S3):
     decision = classify(query, [])
     assert isinstance(decision, Routed), decision
     turn = TurnInput(
@@ -62,9 +68,7 @@ def run(handler: NodeTriageHandler, query: str = S3) -> TurnOutput:
         decision=decision,
         context=SessionContextDTO(resolved_entities=[], prior_intents=[], active_answer_ids=[]),
     )
-    result = handler(turn)
-    assert is_ok(result), result
-    return result.value
+    return handler(turn)
 
 
 def template(**changes: object) -> RunbookTemplateDTO:
@@ -148,3 +152,24 @@ def test_a_provider_failure_aborts_the_turn_and_never_fabricates_steps(providers
     result = handler(turn)
     assert not is_ok(result) and result.code == "PROVIDER_UNAVAILABLE"
     assert prose.calls == 0
+
+
+class FactLeakingProse(LlmProsePort):
+    """A writer that always states the node id: the guard must reject it, once retried (AD-2, AD-8)."""
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def compose(self, prompt: ProsePromptDTO) -> Result[str]:
+        self.calls += 1
+        return Ok("Node ws-gpu-11 is in fault; follow the steps.")
+
+
+def test_prose_that_states_a_fact_is_rejected_after_one_retry_and_no_answer_renders(
+    providers,
+) -> None:
+    leaking = FactLeakingProse()
+    handler, _ = handler_for(providers, prose=leaking)
+    result = run_result(handler)
+    assert not is_ok(result) and result.code == "LLM_PROSE_REJECTED"
+    assert leaking.calls == 2  # the first try and one retry (PROSE_ATTEMPTS)

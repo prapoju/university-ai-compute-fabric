@@ -1402,3 +1402,8 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 - **Finding (medium):** "What about the node is cordoned with code ERR_THERMAL_88?" returned `ENTITY_NOT_FOUND node#is`. The extractor took the next word after "node" as the id. The same happens with "was", "cordoned" and "the". Reproduced on the running app before the fix.
 - **Fix:** the node extractor skips the stop words that follow "node" (the same approach as the group stop words of story 3.1). A question with no node id is now the clarification `the query must name a node and the error code it reports`, and it is never an `ENTITY_NOT_FOUND` on an invented id. Regression cases: four phrasings in `tests/unit/test_runbook.py`.
 - **Reviewer:** Julio (standing pre-approval).
+
+## I2-52 - Story 3.3 review, finding L-3: no test showed the prose guard on node-triage output  *(test added under the standing pre-approval, Reviewer: Julio (standing pre-approval))*
+- **Finding (low):** the guard that rejects a fact in the writer's prose (AD-2, AD-8) was tested for the access-denial and window diagnosers, not for node triage.
+- **Fix:** a writer that always states the node id is rejected after one retry, and the turn fails with `LLM_PROSE_REJECTED`, in `tests/unit/test_node_triage_handler.py`. No production code changed.
+- **Reviewer:** Julio (standing pre-approval).
