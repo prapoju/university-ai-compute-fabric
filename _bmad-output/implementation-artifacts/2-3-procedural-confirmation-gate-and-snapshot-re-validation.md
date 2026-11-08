@@ -4,7 +4,7 @@ baseline_commit: 4e8f902
 
 # Story 2.3: Procedural confirmation gate and snapshot re-validation
 
-Status: in-progress
+Status: review
 
 <!-- Impl-2 Flow A (ATDD-first), Annex 12.4, third of four stories (2-1 .. 2-4). The red phase is
      recorded BEFORE any production code. This story builds the confirmation gate: a distinct
@@ -59,9 +59,9 @@ Source: `planning/epics.md` Story 2.3, `test/test-design.md` section 6.3.3, `doc
 - [x] **Task 5: The route and the contract text** (AC: 1, 2, 5, 12, 13) -> `feat(story-2.3): POST /destructive/proposals`
   - [x] 5.1 `src/adapters/inbound/destructive.py` gains `POST /api/v1/destructive/proposals` (body `extra=forbid`, `proposal_id` a plain string, `gate_token` validated against `GateToken`), registered through the container; add the operation to `SERVED_IN_THIS_STORY` in `tests/api/test_contract_routes.py` (it is already in `ALLOWED_MUTATING`) in the same commit.
   - [x] 5.2 Amend the text of `openapi.yaml` (`post_confirm` 200 description) and `contracts.md` (`confirm_and_dispatch` Q1 and `post_confirm`) so they say that until the executor exists the route answers `confirmed`, and which delta lines `CONFIRMATION_STALE` carries (D1, D6). No schema, no DTO.
-- [ ] **Task 6: Gate, hammer, mutation check and evidence** (AC: 14) -> `test(story-2.3): green phase evidence`
-  - [ ] 6.1 The tests of Task 1 pass **without having been edited** (`git diff <red commit> -- tests/atdd/test_story_2_3.py docs/evidence/impl2/red-2-3.log` is empty), three times in a row. If one must change, stop and ask.
-  - [ ] 6.2 Mutation check (see Testing standards), then the full `pytest`, branch coverage, `ruff check .`, `schema_check`, the three `diff` checks. Save the coverage run to `docs/evidence/impl2/flow-a-2-3-coverage.log` and the three ATDD runs to `docs/evidence/impl2/flow-a-2-3-atdd-x3.log`.
+- [x] **Task 6: Gate, hammer, mutation check and evidence** (AC: 14) -> `test(story-2.3): green phase evidence`
+  - [x] 6.1 The tests of Task 1 pass **without having been edited** (`git diff <red commit> -- tests/atdd/test_story_2_3.py docs/evidence/impl2/red-2-3.log` is empty), three times in a row. If one must change, stop and ask.
+  - [x] 6.2 Mutation check (see Testing standards), then the full `pytest`, branch coverage, `ruff check .`, `schema_check`, the three `diff` checks. Save the coverage run to `docs/evidence/impl2/flow-a-2-3-coverage.log` and the three ATDD runs to `docs/evidence/impl2/flow-a-2-3-atdd-x3.log`.
 
 ## Dev Notes
 
@@ -167,19 +167,32 @@ Pure rules in `src/domain`, use cases in `src/application`, ports in `src/ports`
 
 ### Agent Model Used
 
-Claude Sonnet 5.5 (`claude-sonnet-5-5`), Claude Code, `bmad-create-story`.
+Claude Sonnet 5.5 (`claude-sonnet-5-5`), Claude Code, `bmad-create-story`, `bmad-testarch-atdd`, `bmad-dev-story`.
 
 ### Debug Log References
 
 - Baseline at `4e8f902`: `pytest` 1824 passed, branch coverage of `src` 97.52%. CI of the pushed history: success (run `42433922694`).
 - Audit probes (2026-11-08, real code): `POST /api/v1/destructive/proposals` is declared in `openapi.yaml` and not served; `ProposalStorePort` has no read; the `proposals` table has `confirmed_at`, the CHECK that ties it to the states after `dry_run` and the state-machine trigger; `SimClock.advance` exists; the estate has no write path.
 
-### Completion Notes List
+- Green phase (2026-11-08): `tests/atdd/test_story_2_3.py` (45 cases) passes without having been edited, three runs in a row (`docs/evidence/impl2/flow-a-2-3-atdd-x3.log`); `git diff f98a941 -- tests/atdd/test_story_2_3.py docs/evidence/impl2/red-2-3.log` is empty. Full run: `pytest` 1928 passed, branch coverage of `src` 97.65% (`docs/evidence/impl2/flow-a-2-3-coverage.log`), `ruff check .` clean, `schema_check` PASS, both `dto.py` copies and both `sprint-status.yaml` copies identical.
+- Mutation check, restored with a `finally` after each: the 14 mutants of the Testing standards list, all killed on the first run: no P5 replay check; no P3 re-validation; no P2 lifetime check; the lifetime with `<` instead of `<=`; the token compared with the proposal id; the claim without its state guard; the claim without its token guard; zero rows mapped to an error; a set with nothing actionable confirming; an audit failure that does not roll the claim back; the session status consulted; the caption left out; re-validation against the stored set itself; the delta omitting the added items.
+- Commits: `f98a941` red, `1c95b8c` store get and claim, `ab62a43` pure rules, `019ecdf` the use case, `2c15e7f` the route and the contract text.
+- Two slips caught before commit, both in my own tests: the red replay-and-rejection case passed on a 404 (a 404 also writes no audit row), so it now asserts the 200, the head and re-validation rows, the replay and the 409 first; and in the unit rig the service used a recorder different from the one its audited ports record into, and the fake id generator did not reach the audit writer, so the rig now wires both.
+- Contract text (D1, D6, confirmed by the user): `openapi.yaml` and `contracts.md` say that the route answers `confirmed` until the executor exists and describe the delta lines; no schema and no DTO changed.
+- The contracts' `Exec = 1` is read as one `dry_run -> confirmed` transition and one set of audit rows; the executor and the real exactly-once count are story 2-4.
 
 - Story context created 2026-11-08, scoped against `src/`, `tests/`, `planning/` and `migrations/` at `4e8f902`. Ultimate context engine analysis completed - comprehensive developer guide created.
 
 ### File List
 
+- New: `src/domain/confirmation.py`, `src/ports/inbound/confirm_use_cases.py`, `src/application/confirmation_service.py`.
+- Changed: `src/ports/outbound/proposal_store.py`, `src/adapters/outbound/db/proposal_store.py` (`get`, `claim`), `src/adapters/inbound/destructive.py`, `src/application/unavailable.py`, `src/bootstrap.py`, `src/ports/inbound/__init__.py`, `planning/detailed-design/schemas/openapi.yaml` and `contracts.md` (text only).
+- Tests: `tests/atdd/test_story_2_3.py` (frozen), `tests/unit/test_confirmation.py`, `tests/unit/test_confirmation_service.py`, `tests/api/test_confirm_route.py`; extended `tests/integration/test_proposal_store.py`; adjusted `tests/unit/test_ports_query_only.py` and `tests/api/test_contract_routes.py`.
+- Evidence: `docs/evidence/impl2/red-2-3.log`, `flow-a-2-3-atdd-x3.log`, `flow-a-2-3-coverage.log`; the ATDD checklist.
+
 ### Change Log
+
+- 2026-11-08: Dev story complete. Tasks 1-6 done, Status -> review.
+- 2026-11-08: D1 and D6 confirmed by the user; the red phase was recorded and confirmed.
 
 - 2026-11-08: Story created (`bmad-create-story`). Status -> ready-for-dev. D2 (the derived expiry) was decided by the user; D1 and D6 wait for the user before the red phase.
