@@ -19,7 +19,11 @@ def clock_at(instant: str) -> ClockReadDTO:
 
 
 def gather(providers, instant: str = "2026-10-16T15:00:00.000Z", user="user#alex"):
-    assembler = EvidenceAssembler(policy=providers.policy, events=providers.event_store)
+    assembler = EvidenceAssembler(
+        policy=providers.policy,
+        events=providers.event_store,
+        reads=ParallelReads(recorder=ToolCallRecorder()),
+    )
     users = providers.users.get(user)
     model = providers.catalog.get("model#deepseek-coder")
     assert is_ok(users) and is_ok(model)

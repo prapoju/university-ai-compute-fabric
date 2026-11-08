@@ -67,11 +67,14 @@ SHARED_POOL = FanoutPool(FANOUT_SLOTS)
 
 
 class ParallelReads:
+    """Runs the reads of one turn in parallel. The recorder is required: a fan-out built without
+    one would drop its audit rows silently (review of story 1.6, deferred item closed here)."""
+
     def __init__(
         self,
         *,
+        recorder: ToolCallRecorder,
         budget_seconds: float = DEFAULT_FANOUT_BUDGET_SECONDS,
-        recorder: ToolCallRecorder | None = None,
         pool: FanoutPool = SHARED_POOL,
     ) -> None:
         self._budget = budget_seconds
@@ -97,8 +100,7 @@ class ParallelReads:
             # the late reads write into their lanes, which are never settled into the turn
             return Failure(UNAVAILABLE, observed=(BUDGET_OBSERVED,))
         outcomes = [future.result() for future in futures]
-        if self._recorder is not None:
-            self._recorder.settle(lanes)
+        self._recorder.settle(lanes)
         for outcome in outcomes:
             if is_failure(outcome):
                 return outcome
@@ -107,10 +109,7 @@ class ParallelReads:
     def _in_lane(
         self, read: Callable[[], Result[Any]], lane: list[RecordedCall]
     ) -> Callable[[], Result[Any]]:
-        guarded = _guarded(read)
-        if self._recorder is None:
-            return guarded
-        return self._recorder.within(lane, guarded)
+        return self._recorder.within(lane, _guarded(read))
 
 
 def _guarded(read: Callable[[], Result[Any]]) -> Callable[[], Result[Any]]:

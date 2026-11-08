@@ -38,11 +38,11 @@ class EvidenceAssembler:
         *,
         policy: PolicyPort,
         events: EventStorePort,
-        reads: ParallelReads | None = None,
+        reads: ParallelReads,
     ) -> None:
         self._policy = policy
         self._events = events
-        self._reads = ParallelReads() if reads is None else reads
+        self._reads = reads
 
     def gather(
         self, user: UserRecordDTO, model: ModelCatalogEntryDTO, now: ClockReadDTO

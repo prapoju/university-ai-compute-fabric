@@ -10,7 +10,9 @@ from src.adapters.outbound.sim.prose_adapter import SimProse
 from src.application.access_denial_handler import AccessDenialHandler
 from src.application.entity_resolver import EntityResolver
 from src.application.evidence_assembler import EvidenceAssembler
+from src.application.parallel_reads import ParallelReads
 from src.application.pipeline import TurnInput, TurnOutput
+from src.application.tool_audit import ToolCallRecorder
 from src.domain.intent import Routed, classify
 from src.domain.result import Failure, is_ok
 from src.dto import ClockReadDTO, RunbookTemplateDTO, SessionContextDTO
@@ -40,7 +42,11 @@ def template(**changes: object) -> RunbookTemplateDTO:
 def handler_for(providers, runbooks) -> AccessDenialHandler:
     return AccessDenialHandler(
         resolver=EntityResolver(users=providers.users, catalog=providers.catalog),
-        assembler=EvidenceAssembler(policy=providers.policy, events=providers.event_store),
+        assembler=EvidenceAssembler(
+            policy=providers.policy,
+            events=providers.event_store,
+            reads=ParallelReads(recorder=ToolCallRecorder()),
+        ),
         prose=SimProse(),
         idgen=SimIdGen(),
         runbooks=runbooks,

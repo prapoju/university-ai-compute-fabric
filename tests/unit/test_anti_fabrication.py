@@ -14,7 +14,9 @@ from src.adapters.outbound.sim.prose_adapter import SimProse
 from src.application.access_denial_handler import AccessDenialHandler
 from src.application.entity_resolver import EntityResolver
 from src.application.evidence_assembler import EvidenceAssembler
+from src.application.parallel_reads import ParallelReads
 from src.application.pipeline import TurnInput
+from src.application.tool_audit import ToolCallRecorder
 from src.application.window_diagnosis_handler import WindowDiagnosisHandler
 from src.config import PROJECT_ROOT
 from src.domain.intent import Clarify, Routed, classify
@@ -45,7 +47,11 @@ def handlers(providers, policy=None):
     return {
         "diagnose_access_denial": AccessDenialHandler(
             resolver=resolver,
-            assembler=EvidenceAssembler(policy=providers.policy, events=providers.event_store),
+            assembler=EvidenceAssembler(
+                policy=providers.policy,
+                events=providers.event_store,
+                reads=ParallelReads(recorder=ToolCallRecorder()),
+            ),
             prose=prose,
             idgen=ids,
             runbooks=SimRunbookRegistry(()),

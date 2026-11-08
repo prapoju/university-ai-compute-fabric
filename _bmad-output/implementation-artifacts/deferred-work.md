@@ -80,7 +80,6 @@
 
 ## Deferred from: story 1-6 (concurrent diagnostics, 2026-11-08)
 
-- `ParallelReads()` built without a recorder silently drops the reads' audit rows. The default exists only so unit doubles construct; the app always passes the recorder (I2-40). Remove the default in a separate change.
 - The 50-operator ATDD case runs under the default 0.5 s wall budget. It is kept on purpose, because that is the production default under load (I2-43). On a slow runner it may flake with a 503.
 - The ATDD ordering gates are set inside the read, before its future completes. A completion-based gate would be stricter. The reverse-order audit case failed 10 of 10 runs under the completion-order mutant, so the risk is theoretical today (I2-44).
 - A late read's audit rows are dropped by design: a read that finishes after the budget never records into the turn, the audit or the evidence (I2-39).

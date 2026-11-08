@@ -20,6 +20,12 @@ BUDGET_FAILURE = Failure("PROVIDER_UNAVAILABLE", observed=("fan-out budget excee
 POOL_FAILURE = Failure("PROVIDER_UNAVAILABLE", observed=("fan-out pool is full",))
 
 
+def test_a_fan_out_cannot_be_built_without_its_recorder() -> None:
+    """Without a recorder the reads' audit rows would be dropped silently, so it is refused."""
+    with pytest.raises(TypeError):
+        ParallelReads(budget_seconds=WAIT, pool=FanoutPool(2))  # type: ignore[call-arg]
+
+
 def test_results_come_back_in_argument_order_whatever_the_completion_order() -> None:
     second_done = threading.Event()
     gate_opened: list[bool] = []
@@ -32,7 +38,8 @@ def test_results_come_back_in_argument_order_whatever_the_completion_order() -> 
         second_done.set()
         return Ok("second")
 
-    reads = ParallelReads(budget_seconds=5.0, pool=FanoutPool(2))  # cannot expire before the gate
+    # cannot expire before the gate
+    reads = ParallelReads(budget_seconds=5.0, recorder=ToolCallRecorder(), pool=FanoutPool(2))
     assert reads.run((first, second)) == Ok(["first", "second"])
     assert gate_opened == [True], "the second read did not run while the first was waiting"
 
@@ -49,7 +56,8 @@ def test_the_first_failure_in_argument_order_is_the_one_reported() -> None:
         second_done.set()
         return Failure("PROVIDER_UNAVAILABLE", observed=("second",))
 
-    reads = ParallelReads(budget_seconds=5.0, pool=FanoutPool(2))  # cannot expire before the gate
+    # cannot expire before the gate
+    reads = ParallelReads(budget_seconds=5.0, recorder=ToolCallRecorder(), pool=FanoutPool(2))
     assert reads.run((first, second)) == Failure("PROVIDER_UNAVAILABLE", observed=("first",))
     assert gate_opened == [True], "the second read did not run while the first was waiting"
 
@@ -58,7 +66,7 @@ def test_a_read_that_raises_is_a_typed_failure_not_an_exception() -> None:
     def boom():
         raise RuntimeError("provider exploded")
 
-    reads = ParallelReads(budget_seconds=WAIT, pool=FanoutPool(2))
+    reads = ParallelReads(budget_seconds=WAIT, recorder=ToolCallRecorder(), pool=FanoutPool(2))
     outcome = reads.run((boom, lambda: Ok("fine")))
     assert outcome == Failure("PROVIDER_UNAVAILABLE", observed=("read raised RuntimeError",))
 
@@ -75,7 +83,8 @@ def test_a_full_pool_refuses_the_turn_without_calling_any_read() -> None:
 
         return call
 
-    outcome = ParallelReads(budget_seconds=WAIT, pool=pool).run((read("a"), read("b")))
+    reads = ParallelReads(budget_seconds=WAIT, recorder=ToolCallRecorder(), pool=pool)
+    outcome = reads.run((read("a"), read("b")))
     assert outcome == POOL_FAILURE
     assert calls == [], "a refused turn must not start any read"
 
