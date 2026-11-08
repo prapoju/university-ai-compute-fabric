@@ -201,14 +201,7 @@ class SessionService(SessionUseCases):
 
     @staticmethod
     def _is_usable(stored: StoredSession, now: str) -> Result[bool]:
-        if stored.session.status in ("reset", "expired"):
-            return Ok(False)
-        last_activity = stored.last_turn_at or stored.session.created_at
-        try:
-            return Ok(not is_idle_expired(last_activity, now))
-        except ValueError as exc:  # a stored timestamp that is not a real instant
-            observed = (f"stored timestamp is not a valid instant: {exc}",)
-            return Failure("PROVIDER_UNAVAILABLE", observed=observed)
+        return session_usable(stored, now)
 
     # -- get_session ---------------------------------------------------------------------------
     def get_session(self, session_id: str) -> Result[GetSessionResponse]:
@@ -252,6 +245,18 @@ class SessionService(SessionUseCases):
             return self._write_audited(
                 lambda: self._store.reset(session_id, now.value.instant), entries.value
             )
+
+
+def session_usable(stored: StoredSession, now: str) -> Result[bool]:
+    """Whether a session still takes requests: not reset, not expired, not idle too long (P2)."""
+    if stored.session.status in ("reset", "expired"):
+        return Ok(False)
+    last_activity = stored.last_turn_at or stored.session.created_at
+    try:
+        return Ok(not is_idle_expired(last_activity, now))
+    except ValueError as exc:  # a stored timestamp that is not a real instant
+        observed = (f"stored timestamp is not a valid instant: {exc}",)
+        return Failure("PROVIDER_UNAVAILABLE", observed=observed)
 
 
 def _head(turn: TurnOutput, resolved: list[str]) -> RecordedCall:

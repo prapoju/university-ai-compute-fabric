@@ -34,6 +34,7 @@ from src.application.audit_service import AuditService
 from src.application.audit_writer import AuditWriter
 from src.application.destructive_handler import INTENT as DESTRUCTIVE_INTENT
 from src.application.destructive_handler import DestructiveRefusalHandler
+from src.application.dry_run_service import DryRunService
 from src.application.entity_resolver import EntityResolver
 from src.application.evidence_assembler import EvidenceAssembler
 from src.application.evidence_service import EvidenceService
@@ -43,6 +44,7 @@ from src.application.state_service import StateService
 from src.application.tool_audit import TOOL_PORT_NAMES, ToolCallRecorder, audited
 from src.application.unavailable import (
     UnavailableAuditUseCases,
+    UnavailableDestructiveUseCases,
     UnavailableEvidenceUseCases,
     UnavailableSessionUseCases,
 )
@@ -50,7 +52,13 @@ from src.application.window_diagnosis_handler import INTENT as WINDOW_INTENT
 from src.application.window_diagnosis_handler import WindowDiagnosisHandler
 from src.config import Settings
 from src.domain.result import is_failure
-from src.ports.inbound import AuditUseCases, EvidenceUseCases, SessionUseCases, StateUseCases
+from src.ports.inbound import (
+    AuditUseCases,
+    DestructiveUseCases,
+    EvidenceUseCases,
+    SessionUseCases,
+    StateUseCases,
+)
 from src.ports.outbound import (
     AuditStorePort,
     CatalogPort,
@@ -229,10 +237,12 @@ def build_container(settings: Settings) -> Container:
     use_cases: SessionUseCases
     evidence: EvidenceUseCases
     audit_pages: AuditUseCases
+    destructive: DestructiveUseCases
     if store is None or audit_store is None or writer is None or session_problem is not None:
         use_cases = UnavailableSessionUseCases(session_problem or "session store unavailable")
         evidence = UnavailableEvidenceUseCases(session_problem or "session store unavailable")
         audit_pages = UnavailableAuditUseCases(session_problem or "session store unavailable")
+        destructive = UnavailableDestructiveUseCases(session_problem or "session store unavailable")
     else:
         use_cases = SessionService(
             store=store,
@@ -257,6 +267,21 @@ def build_container(settings: Settings) -> Container:
         )
         audit_pages = AuditService(
             sessions=store, audit=audit_store, retention_cap=settings.audit_retention_cap
+        )
+        destructive = DryRunService(
+            sessions=store,
+            proposals=SqliteProposalStore(writer),
+            clock=providers.clock,
+            idgen=idgen,
+            resolver=EntityResolver(
+                users=users, catalog=catalog, groups=groups, nodes=nodes, jobs=jobs
+            ),
+            jobs=jobs,
+            nodes=nodes,
+            uow=writer,
+            audit=AuditWriter(audit_store, idgen),
+            recorder=recorder,
+            token_ttl_seconds=settings.gate_token_ttl_seconds,
         )
 
     def sessions() -> str | None:
@@ -298,6 +323,7 @@ def build_container(settings: Settings) -> Container:
     container.register_port(SessionUseCases, use_cases)
     container.register_port(EvidenceUseCases, evidence)
     container.register_port(AuditUseCases, audit_pages)
+    container.register_port(DestructiveUseCases, destructive)
     container.register_port(StateUseCases, state)
     return container
 

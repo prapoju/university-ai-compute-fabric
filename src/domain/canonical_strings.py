@@ -27,6 +27,7 @@ R_MULTIPLE_INTENTS = "more than one intent matches this query; ask one question 
 R_MISSING_REFERENCES = "the query must name both a user and a model"
 R_MISSING_GROUP = "the query must name a group"
 R_MISSING_TARGET = "the query must name a group, a job or a node"
+R_MIXED_TARGETS = "the targets are of different kinds; submit one kind of target at a time"
 R_AMBIGUOUS_REFERENCE = (
     "the reference {ref} matches both a user and a model; name which one you mean"
 )

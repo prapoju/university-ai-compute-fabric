@@ -28,6 +28,7 @@ SERVED_IN_THIS_STORY = {
     # Impl-1 annex 12.1: the inbound entry point over the same use cases
     ("POST", "/api/v1/copilot/query"),
     ("POST", "/api/v1/copilot/chat"),  # story 2.1
+    ("POST", "/api/v1/destructive/dry-runs"),  # story 2.2
     # story 1.4
     ("GET", "/api/v1/answers/{}/evidence"),
     ("GET", "/api/v1/citations/{}"),

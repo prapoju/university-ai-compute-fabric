@@ -8,6 +8,7 @@ session, evidence and citation route answers with the typed safe failure (503,
 from __future__ import annotations
 
 from src.domain.result import Failure, Result
+from src.domain.safety import DestructiveRequest
 from src.dto import (
     AnswerEnvelopeDTO,
     GetAnswerEvidenceResponse,
@@ -16,7 +17,14 @@ from src.dto import (
     GetSessionResponse,
     SessionDTO,
 )
-from src.ports.inbound import AuditUseCases, CanonicalOutcome, EvidenceUseCases, SessionUseCases
+from src.ports.inbound import (
+    AuditUseCases,
+    CanonicalOutcome,
+    DestructiveUseCases,
+    DryRunOutcome,
+    EvidenceUseCases,
+    SessionUseCases,
+)
 
 
 class UnavailableSessionUseCases(SessionUseCases):
@@ -46,6 +54,21 @@ class UnavailableEvidenceUseCases(EvidenceUseCases):
         return self._failure
 
     def get_citation(self, citation_id: str) -> Result[GetCitationResponse]:
+        return self._failure
+
+
+class UnavailableDestructiveUseCases(DestructiveUseCases):
+    def __init__(self, reason: str) -> None:
+        self._failure = Failure("PROVIDER_UNAVAILABLE", observed=(reason,))
+
+    def post_dry_run(
+        self, query_text: str, action: str, target_refs: list[str], session_id: str
+    ) -> Result[DryRunOutcome | CanonicalOutcome]:
+        return self._failure
+
+    def dry_run_request(
+        self, session_id: str, request: DestructiveRequest
+    ) -> Result[DryRunOutcome | CanonicalOutcome]:
         return self._failure
 
 
