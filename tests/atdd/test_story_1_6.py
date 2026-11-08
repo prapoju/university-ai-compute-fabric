@@ -405,7 +405,7 @@ def test_a_read_still_running_at_the_budget_is_a_503_and_records_nothing_afterwa
 
 
 # -- F-7 (review): each read raising alone, and both raising, is one typed 503 -----------------
-def test_an_events_read_that_raises_is_a_typed_503(
+def test_an_events_read_that_raises_gives_the_typed_503_body_with_its_code(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     install(monkeypatch, SimEventStore, "query", PortFault(mode="raises", active=True))
@@ -426,8 +426,8 @@ def test_both_reads_that_raise_are_one_typed_503(
     assert response.json()["code"] == "PROVIDER_UNAVAILABLE"
 
 
-# -- AC 2: a read that raises is the typed 503, never an unhandled 500 ------------------------
-def test_a_read_that_raises_is_a_typed_503_never_a_500(  # regression guard (AD-12)
+# -- AC 2: a read that raises gives the typed 503 body ---------------------------------------------
+def test_a_read_that_raises_gives_the_typed_503_body_with_its_code(  # regression guard (AD-12)
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     install(monkeypatch, SimPolicy, "for_model", PortFault(mode="raises", active=True))
