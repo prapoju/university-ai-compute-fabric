@@ -17,7 +17,7 @@ This report is the final evidence for Impl-2. Every number below is quoted from 
 | Banned waits (`sleep(`, `waitForTimeout`) in `src tests console` | 0 matches | `docs/evidence/impl2/final-banned-waits.log` (empty) |
 | Traceability gate | CONCERNS (P0 7/7, overall 23/26, P1 16/19) | `test/traceability-matrix.md` |
 | NFR evidence | 5 dimensions mapped | `test/nfr-evidence.md` |
-| CI | Recorded after the push (section 8) | `.github/workflows/quality-gate.yml` |
+| CI | Run `42527764596` on `ed8aeb9`: all five jobs success | `.github/workflows/quality-gate.yml`, section 8 |
 
 ## 1. Hardening and concurrency defense
 
@@ -140,9 +140,9 @@ Script `tests/nfr/copilot-load.js`. Thresholds in the script: `http_req_failed r
 |---|---|---:|---:|---:|---:|---:|---|
 | Local, in-memory | `:memory:` | 1000 | 300.66 ms | 368.52 ms | 0 / 1000 (0.00 %) | 4000 / 4000 | `docs/evidence/impl2/k6-12-5.json`, `docs/evidence/impl2/k6-12-5.log` |
 | Local, file database | temporary file | 1000 | 307.93 ms | 367.08 ms | 0 / 1000 (0.00 %) | 4000 / 4000 | `docs/evidence/impl2/k6-12-5-filedb.json`, `docs/evidence/impl2/k6-12-5-filedb.log` |
-| CI | GitHub runner, job `nfr` | pending | pending | pending | pending | pending | recorded after the push (section 8) |
+| CI | Run `42527764596`, job `k6 load thresholds`, `copilot-load-summary.json` | 1000 | 185.52 ms | not exported by the CI summary (only p(90) = 176.09 ms) | 0 / 1000 (0.00 %) | 4000 / 4000 | CI artifact `k6-summary` |
 
-The threshold p95 < 800 ms holds with a margin of about 2.6 times in both local runs, and no check failed. The smoke
+The threshold p95 < 800 ms holds with a margin of about 2.6 times in both local runs and about 4.3 times in CI (185.52 ms), and no check failed in any run. The smoke
 script `tests/nfr/smoke.js` runs the liveness probe with `p(95)<200`, and `make nfr` runs both scripts.
 
 ## 7. Annex 12.6: conversational diagnostic console with cited state cards (stories 3-3 and 1-7)
@@ -185,7 +185,11 @@ with `--trace on` in CI and `on-first-retry` locally (`docs/evidence/impl2/final
 
 **CI artifact.** The job `e2e` in `.github/workflows/quality-gate.yml` runs `npx playwright test --trace on --fail-on-flaky-tests`
 and uploads `test-results/` (artifact `playwright-test-results`, which holds the traces) and `playwright-report/`
-(artifact `playwright-report`). The CI run id of the pushed commit is recorded in this section after the push.
+(artifact `playwright-report`).
+
+**CI run of the pushed commit.** Run `42527764596` on `ed8aeb9` (branch `impl-2`): all five jobs succeeded, namely
+`No sleep / waitForTimeout`, `Schema checks`, `Ruff + pytest (branch coverage >= 90%)`, `k6 load thresholds` and `Playwright E2E`.
+The Playwright job reports `3 passed (5.4s)`. Its artifacts are `playwright-test-results` (traces) and `playwright-report`.
 
 ## 9. Testing pyramid: real counts against 70 / 20 / 10
 
@@ -243,7 +247,7 @@ because both have a source. Recorded in `_bmad-output/implementation-artifacts/3
   Section 12 lists them with their reasons.
 - **E2E breadth.** Two Playwright tests (section 7).
 - **Traceability sensitivity.** Counting FR-06 as P0 would make the gate FAIL (P0 7/8). The scope decision is I2-57 in the decision log.
-- **CI.** The CI run of the pushed commit is recorded in section 8 after the push.
+- **CI.** The CI run of the pushed commit, `42527764596`, is green (section 8). The CI k6 summary exports p(90) and p(95) but not p(99), so the CI p99 is not reported.
 
 ## 12. Out of scope (declared)
 
