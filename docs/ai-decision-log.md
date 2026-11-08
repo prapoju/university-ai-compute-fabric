@@ -1416,3 +1416,14 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 - **Suite:** 2155 passed, branch coverage 97.53 %, saved to `docs/evidence/impl2/flow-b-3-3-review-coverage.log`.
 - **Status:** `done` in the story file and both sprint-status copies.
 - **Reviewer:** Julio (standing pre-approval for the review fixes; L-1 waits for the approver).
+
+## I2-54 - Story 1.7 scope: two E2E tests (Annex 12.6 scenario and one failure path), the other §6.3.7 cases declared out of scope  *(scope decided by the approver; Reviewer: Julio)*
+- **What the AI proposed:** the story file for 1-7 implements the full §6.3.7 list (10 cases) under Flow E.
+- **What the user decided:** only two E2E tests: (1) the Annex 12.6 scenario and (2) one failure path with a visible error state. The other cases of `test/test-design.md` §6.3.7 are declared out of scope in the story file. The failure path is `Student Zed was denied model deepseek-coder. Diagnose and provide runbook.`, which the API answers with `ENTITY_NOT_FOUND` (no provider fault switch needed, TG-I2-6 stays open).
+- **Effect:** the story Scope section lists every out-of-scope case. UX-DR8 is declared a gap for optional 1-8.
+- **Reviewer:** Julio.
+
+## I2-55 - Story 1.7: the badge rule id is derived in the console with the story 1-6 pattern, mirrored and pinned by the E2E  *(standing pre-approval choice; Reviewer: Julio (standing pre-approval))*
+- **Options:** (a) a new DTO field carrying the rule id (contract change, E.6 stop); (b) the console re-extracts it from the policy evidence snippet with the fixed pattern of `rule_of_clause` (story 1-6); (c) the API returns the badge text.
+- **Chosen:** (b). It matches D-P3 (no DTO change, the rule id comes from the snippet). The console mirrors the regex in `console/src/ruleOfClause.ts`; the E2E asserts the exact badge text, so drift fails the spec. Option (c) would move display text into the backend for a single console.
+- **Reviewer:** Julio (standing pre-approval).
