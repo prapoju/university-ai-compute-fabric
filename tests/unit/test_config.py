@@ -119,3 +119,16 @@ def test_audit_retention_cap_below_one_or_not_a_number_is_rejected(value: str) -
     with pytest.raises(ConfigError) as excinfo:
         Settings.from_env({"M12_AUDIT_RETENTION_CAP": value})
     assert "M12_AUDIT_RETENTION_CAP" in str(excinfo.value)
+
+
+# -- story 1.6 (review F-5): the fan-out budget is finite and not below the minimum -----------
+@pytest.mark.parametrize("value", ["inf", "-inf", "nan", "0", "0.001", "-1"])
+def test_the_fanout_budget_rejects_non_finite_and_tiny_values(value: str) -> None:
+    with pytest.raises(ConfigError):
+        Settings.from_env({"M12_TOOL_FANOUT_BUDGET_SECONDS": value})
+
+
+def test_the_fanout_budget_accepts_the_minimum_and_defaults_to_half_a_second() -> None:
+    minimum = Settings.from_env({"M12_TOOL_FANOUT_BUDGET_SECONDS": "0.01"})
+    assert minimum.tool_fanout_budget_seconds == 0.01
+    assert Settings.from_env({}).tool_fanout_budget_seconds == 0.5

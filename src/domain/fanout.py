@@ -6,3 +6,5 @@ rule of the domain and it reads no clock. The 800 ms k6 threshold leaves the res
 """
 
 DEFAULT_FANOUT_BUDGET_SECONDS = 0.5
+# below 10 ms every turn would be refused: worker hand-off alone takes longer (review F-5)
+MIN_FANOUT_BUDGET_SECONDS = 0.01
