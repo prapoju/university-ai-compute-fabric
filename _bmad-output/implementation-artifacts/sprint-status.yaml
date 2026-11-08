@@ -75,7 +75,7 @@ development_status:
   1-4-structured-claims-citation-cards-and-evidence-level-determinism: done
   1-5-tool-call-audit-log-and-state-inspection-viewer: done
   1-6-concurrent-multi-tool-diagnostics-under-a-k6-latency-budget: done
-  1-7-react-diagnostic-console-with-cited-state-cards-and-runbook-copy: ready-for-dev
+  1-7-react-diagnostic-console-with-cited-state-cards-and-runbook-copy: done
   1-8-inspector-audit-and-safety-console-surfaces: backlog
   epic-1-retrospective: optional
 

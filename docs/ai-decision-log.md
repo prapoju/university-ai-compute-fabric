@@ -1427,3 +1427,14 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 - **Options:** (a) a new DTO field carrying the rule id (contract change, E.6 stop); (b) the console re-extracts it from the policy evidence snippet with the fixed pattern of `rule_of_clause` (story 1-6); (c) the API returns the badge text.
 - **Chosen:** (b). It matches D-P3 (no DTO change, the rule id comes from the snippet). The console mirrors the regex in `console/src/ruleOfClause.ts`; the E2E asserts the exact badge text, so drift fails the spec. Option (c) would move display text into the backend for a single console.
 - **Reviewer:** Julio (standing pre-approval).
+
+## I2-56 - Story 1.7 closed: review findings M-1 and L-1 fixed, mutation of the badge killed, full suite green, status done  *(AI summary; review fixes under the standing pre-approval; Reviewer: Julio (standing pre-approval))*
+- **What the AI proposed:** the console (Vite, React 19, strict TypeScript), a single route `/helpdesk/copilot`, a synchronous request with a pending state, the badge derived from the policy evidence with the story 1-6 pattern, the runbook card rendered verbatim as an ordered list, copy with a success mark, and a visible error state. Two E2E tests (I2-54).
+- **Correction to the AI's first version (review M-1):** the answer guard checked only the answer id and the evidence array. A malformed 200 body would have crashed the render instead of showing the error state. The guard now checks the claims and each evidence item (`b36c676`).
+- **Review fix (L-1):** the spec read the template by a path relative to the working directory. It now resolves from its own folder (`224ba7f`). Only the path changed; no assertion was edited.
+- **Mutation check:** the badge text was changed to `Verified via Policy Engine (${rule})`. The Annex test failed on the badge and the failure-path test passed, as it should. Restored; `git diff` clean. Log `docs/evidence/impl2/mutation-1-7-badge.log`.
+- **Live run:** Playwright 3 passed with `--trace on --fail-on-flaky-tests` (`e2e-1-7.log`). Pytest 2155 passed, branch coverage 97.53 % (`flow-e-1-7-review-coverage.log`). Ruff and the schema check pass.
+- **Declared gaps:** UX-DR8 (alertdialog, `Esc`, delegation labels) is not covered by 1-7; it belongs to optional 1-8. The pending state is not asserted by the E2E (a fast local answer may never show it). The held-response case is out of scope.
+- **Banned-wait grep:** `src`, `tests` and `console` contain no call sites. The grep still prints four prose hits (READMEs and a k6 comment that state the rule). They are outside 1-7 and were left as they are.
+- **Status:** `done` in the story file and both `sprint-status.yaml` copies (identical).
+- **Reviewer:** Julio (standing pre-approval for the review fixes).

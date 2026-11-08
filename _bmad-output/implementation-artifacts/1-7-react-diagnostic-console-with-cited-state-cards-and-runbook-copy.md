@@ -1,6 +1,6 @@
 # Story 1.7: React diagnostic console with cited state cards and runbook copy
 
-Status: ready-for-dev
+Status: done
 
 <!-- Annex 12.6 of the Impl-2 task (docs/task-impl2.md). Flow E (Playwright E2E + Page Object Model).
      Red phase first: the E2E spec and CopilotConsolePage are committed before console/ exists.
@@ -51,26 +51,40 @@ UX-DR8 (alertdialog, `Esc`, delegation card labels from story 2-4) is **not** co
 
 Flow E: the spec and the page object are committed red before any console code (Task 1). Task 2 is the green code. Commits follow `test(story-1.7): ...` and `feat(story-1.7): ...`.
 
-- [ ] **Task 1: Red E2E with the page object model** (AC: 1-5, 8)
-  - [ ] 1.1 `tests/e2e/pages/CopilotConsolePage.ts`: prompt input, `Submit Inquiry`, pending state, response container, citation badge, runbook card, ordered runbook steps, `Copy Runbook to Clipboard`, success checkmark, error state. Actions only (`ask(text)`, `copyRunbook()`), no assertions.
-  - [ ] 1.2 `tests/e2e/copilot-console.spec.ts`: test 1 (Annex scenario, AC 1 to 4) and test 2 (failure path, AC 5). Grant `clipboard-read` and `clipboard-write`. Read the clipboard through `page.evaluate(() => navigator.clipboard.readText())`.
-  - [ ] 1.3 Run it. Save the output to `docs/evidence/impl2/red-1-7.log`. Every failure must come from the missing console (no route, no element), not from an import, a fixture or a syntax error.
-- [ ] **Task 2: Console scaffold and behaviour** (AC: 1-7, 9)
-  - [ ] 2.1 `console/`: Vite 8, React 19, TypeScript strict (`"strict": true`, no `any`). Route `/helpdesk/copilot` (React Router or a single route switch; no framework beyond React).
-  - [ ] 2.2 `console/src/api.ts`: `askCopilot(query)` calls `POST /api/v1/copilot/query` with `{query}` and returns the parsed body. It is the only module that calls `fetch`.
-  - [ ] 2.3 Pending state while the request is in flight; the submit button is disabled while pending (single request per submit).
-  - [ ] 2.4 Answer rendering: the answer chain of the first answer, the cited badge (AC 2, see Dev Notes), the runbook card (AC 3), `Copy Runbook to Clipboard` (AC 4) with a success checkmark after `navigator.clipboard.writeText`.
-  - [ ] 2.5 Error rendering (AC 5, 7): when the body has `code` (an `ErrorBody`), show `message` in a visible error element and render no badge, card or copy button.
-- [ ] **Task 3: Playwright configuration and CI** (AC: 10)
-  - [ ] 3.1 `playwright.config.ts`: `webServer` as a list. Entry 1: uvicorn on `:8000` with `/healthz` as the readiness URL (unchanged command). Entry 2: `npm --prefix console run build && npm --prefix console run preview -- --port 4173 --strictPort`, readiness `http://127.0.0.1:4173/`. `baseURL` moves to `http://127.0.0.1:4173`. `trace: 'on-first-retry'` stays.
-  - [ ] 3.2 `console/vite.config.ts`: preview proxy for `/api` and `/healthz` to `http://127.0.0.1:8000`, so the console talks to the real app with no CORS (D-P5).
-  - [ ] 3.3 `.github/workflows/quality-gate.yml`, job `e2e`: add `npm ci --prefix console` and `npm run build --prefix console` before the Playwright step. Keep `--trace on` and the `test-results/` artifact upload.
-  - [ ] 3.4 `Makefile` `e2e` target: no change needed (it runs `npx playwright test`, which builds the console through `webServer`).
-- [ ] **Task 4: Evidence and gates** (AC: 10)
-  - [ ] 4.1 `npx playwright test --trace on --fail-on-flaky-tests 2>&1 | tee docs/evidence/impl2/e2e-1-7.log`.
-  - [ ] 4.2 Copy the Annex test trace to `docs/evidence/impl2/trace-1-7-annex-12-6.zip`.
-  - [ ] 4.3 `grep -rnE 'sleep\(|waitForTimeout' src tests console --exclude-dir=node_modules` returns nothing.
-  - [ ] 4.4 `.venv/bin/python -m ruff check .`, `.venv/bin/python test/ci/schema_check.py`, and the pytest suite with coverage (`--cov-fail-under=90`).
+- [x] **Task 1: Red E2E with the page object model** (AC: 1-5, 8)
+  - [x] 1.1 `tests/e2e/pages/CopilotConsolePage.ts`: prompt input, `Submit Inquiry`, pending state, response container, citation badge, runbook card, ordered runbook steps, `Copy Runbook to Clipboard`, success checkmark, error state. Actions only (`ask(text)`, `copyRunbook()`), no assertions.
+  - [x] 1.2 `tests/e2e/copilot-console.spec.ts`: test 1 (Annex scenario, AC 1 to 4) and test 2 (failure path, AC 5). Grant `clipboard-read` and `clipboard-write`. Read the clipboard through `page.evaluate(() => navigator.clipboard.readText())`.
+  - [x] 1.3 Run it. Save the output to `docs/evidence/impl2/red-1-7.log`. Every failure must come from the missing console (no route, no element), not from an import, a fixture or a syntax error.
+- [x] **Task 2: Console scaffold and behaviour** (AC: 1-7, 9)
+  - [x] 2.1 `console/`: Vite 8, React 19, TypeScript strict (`"strict": true`, no `any`). Route `/helpdesk/copilot` (React Router or a single route switch; no framework beyond React).
+  - [x] 2.2 `console/src/api.ts`: `askCopilot(query)` calls `POST /api/v1/copilot/query` with `{query}` and returns the parsed body. It is the only module that calls `fetch`.
+  - [x] 2.3 Pending state while the request is in flight; the submit button is disabled while pending (single request per submit).
+  - [x] 2.4 Answer rendering: the answer chain of the first answer, the cited badge (AC 2, see Dev Notes), the runbook card (AC 3), `Copy Runbook to Clipboard` (AC 4) with a success checkmark after `navigator.clipboard.writeText`.
+  - [x] 2.5 Error rendering (AC 5, 7): when the body has `code` (an `ErrorBody`), show `message` in a visible error element and render no badge, card or copy button.
+- [x] **Task 3: Playwright configuration and CI** (AC: 10)
+  - [x] 3.1 `playwright.config.ts`: `webServer` as a list. Entry 1: uvicorn on `:8000` with `/healthz` as the readiness URL (unchanged command). Entry 2: `npm --prefix console run build && npm --prefix console run preview -- --port 4173 --strictPort`, readiness `http://127.0.0.1:4173/`. `baseURL` moves to `http://127.0.0.1:4173`. `trace: 'on-first-retry'` stays.
+  - [x] 3.2 `console/vite.config.ts`: preview proxy for `/api` and `/healthz` to `http://127.0.0.1:8000`, so the console talks to the real app with no CORS (D-P5).
+  - [x] 3.3 `.github/workflows/quality-gate.yml`, job `e2e`: add `npm ci --prefix console` and `npm run build --prefix console` before the Playwright step. Keep `--trace on` and the `test-results/` artifact upload.
+  - [x] 3.4 `Makefile` `e2e` target: no change needed (it runs `npx playwright test`, which builds the console through `webServer`).
+- [x] **Task 4: Evidence and gates** (AC: 10)
+  - [x] 4.1 `npx playwright test --trace on --fail-on-flaky-tests 2>&1 | tee docs/evidence/impl2/e2e-1-7.log`.
+  - [x] 4.2 Copy the Annex test trace to `docs/evidence/impl2/trace-1-7-annex-12-6.zip`.
+  - [x] 4.3 `grep -rnE 'sleep\(|waitForTimeout' src tests console --exclude-dir=node_modules` returns nothing.
+  - [x] 4.4 `.venv/bin/python -m ruff check .`, `.venv/bin/python test/ci/schema_check.py`, and the pytest suite with coverage (`--cov-fail-under=90`).
+
+### Review Findings
+
+Inline review (no subagents) of the console (`console/src`), the page object, the spec and the Playwright configuration. Findings are ordered by severity.
+
+- [x] [Review][Patch] **M-1 (medium), fixed** in `b36c676`. `isAnswer` checked only `answer_id` and `evidence` is an array. A 200 body with malformed `claims` or evidence items would crash the render instead of showing the visible error state. The guard now checks claims and each evidence item.
+- [x] [Review][Patch] **L-1 (low), fixed** in `224ba7f`. The spec read the template from a path relative to the working directory. It now resolves from its own folder. Only the path changed; no assertion was touched.
+- [x] [Review][Decision] **POM purity: pass.** The spec has no `locator(`, no `getBy*`, no CSS selector. Every selector is in `CopilotConsolePage.ts`. The spec reads the registry template as data, not as a selector.
+- [x] [Review][Decision] **Flaky waits: none.** No `sleep`, `setTimeout` waits or `waitForTimeout` in `console/src` or `tests/e2e`. Assertions are web-first.
+- [x] [Review][Decision] **Types: pass.** `tsc --noEmit` passes under `strict` with `noUncheckedIndexedAccess`. No `any`. API bodies are narrowed with type guards. The one `as` cast is in the spec, on the template JSON.
+- [x] [Review][Decision] **Blindly Green.** The failure-path test awaits the error message before the absence checks, so `toHaveCount(0)` cannot pass before the answer arrives. The Annex test checks the exact badge text.
+- [x] [Review][Decision] **Mutation.** Badge text changed in `console/src/CopilotConsole.tsx`: the Annex test fails on the badge (`Received: Verified via Policy Engine (RULE-CAT-04)`), the failure-path test still passes, which is correct. Log `docs/evidence/impl2/mutation-1-7-badge.log`. Restored; `git diff` clean.
+- [x] [Review][Decision] **Coverage gap, declared.** UX-DR8 (alertdialog, `Esc`, delegation card labels from story 2-4) is not covered by 1-7. It is a gap for optional story 1-8, which is where the S-D surface lives. The pending-state case is exercised by the Annex test but not asserted (a fast local answer may never show it). The held-response case is out of scope (see Scope).
+- [x] [Review][Decision] **Accepted, not changed.** `ruleOfClause.ts` mirrors the regex of `src/domain/rule_ids.py`. Only the E2E text pins it. A shared fixture would be stronger, but it would couple the console build to the Python test suite. Recorded in I2-55.
 
 ## Dev Notes
 
@@ -140,4 +154,17 @@ Claude (Haiku 5.5) via Claude Code
 
 ### Completion Notes List
 
+- Red phase committed first (`20d9d09`): both E2E tests failed on the missing prompt textbox (`docs/evidence/impl2/red-1-7.log`). The smoke test passed.
+- Green: console, route, badge, runbook card, copy and error state (`ffb27d2`). Playwright config and CI (`dcb5d26`, `2a55f63`).
+- Playwright: 3 passed with `--trace on --fail-on-flaky-tests` (`docs/evidence/impl2/e2e-1-7.log`). Annex trace: `docs/evidence/impl2/trace-1-7-annex-12-6.zip`.
+- Full suite: 2155 passed, branch coverage 97.53 % (`docs/evidence/impl2/flow-e-1-7-review-coverage.log`).
+- Scope: two E2E tests (I2-54). The other §6.3.7 cases are out of scope in the story.
+
 ### File List
+
+- `_bmad-output/implementation-artifacts/1-7-react-diagnostic-console-with-cited-state-cards-and-runbook-copy.md`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` and `implementation-artifacts/sprint-status.yaml` (identical)
+- `console/` (package.json, package-lock.json, tsconfig.json, vite.config.ts, index.html, src/*)
+- `tests/e2e/pages/CopilotConsolePage.ts`, `tests/e2e/copilot-console.spec.ts`, `tests/e2e/pages/README.md`
+- `playwright.config.ts`, `.github/workflows/quality-gate.yml`
+- `docs/ai-decision-log.md` (I2-54, I2-55, I2-56), `docs/evidence/impl2/` (red-1-7, e2e-1-7, trace, mutation-1-7-badge, flow-e-1-7-review-coverage)
