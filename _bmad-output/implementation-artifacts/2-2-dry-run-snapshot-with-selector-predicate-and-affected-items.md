@@ -4,7 +4,7 @@ baseline_commit: 01f74d5
 
 # Story 2.2: Dry-run snapshot with selector predicate and affected items
 
-Status: review
+Status: done
 
 <!-- Impl-2 Flow A (ATDD-first), Annex 12.4, second of four stories (2-1 .. 2-4). The red phase is
      recorded BEFORE any production code. This story builds the dry-run: the selector, the affected
@@ -234,3 +234,15 @@ Code review of `01f74d5..568d756` (2026-11-07): Blind Hunter, Edge Case Hunter a
 Dismissed (2): the JSON round trip of `_refusal_body` is roundabout but exact; the change to the chat branch of the frozen 2.1 case was approved by the user (I2-22).
 
 Mutation check of the patch: no dedupe of refs, no cap, a cap off by one, the keys not deduplicated and a double read of a bare ref - five mutants, all killed (`pytest` 1824 passed, branch coverage of `src` 97.52%).
+
+#### Test-trap audit (D.4, 2026-11-07)
+
+- **Ice Cream Cone:** no. The 61 API cases (40 of the ATDD, 21 of the route) sit on 70 unit cases (pure rules, fixtures and vocabulary, the use case and its failures, the token source, the chat composition) and 13 integration cases on the real `proposals` schema. Every rule of the selector, the items and the summary is pinned by a unit case and the API only confirms the wiring.
+- **Flaky Sleeper:** no. 0 sleeps and 0 wall-clock reads in the 8 files. The clock is the fixed simulated one, the token lifetime is a setting, and the concurrent cases (2 on a `Barrier`, 50 over a pool) assert the **set** of ids and tokens, never which request got which.
+- **Mocking Mirage:** no. The ATDD runs the real app on a file database. The only double on the ATDD path is the `PortFault` that makes `SimJobs.select` fail for the two outage cases, patched before `create_app` because `audited()` binds at build time. The unit doubles of `test_dry_run_service.py` each replace one collaborator by a failing one against a real container with a healthy control case, so they test how the use case fails, not that a mock was called.
+- **Blindly Green:** 22 mutants in all. Of the 17 run after the green phase, one survived (the list filter ignoring exact types) because my test compared with `True`, which no node value equals; it now compares `24.0` with `24` and kills it. The review patch added 5 more (dedupe, cap, cap boundary, key dedupe, double read), all killed.
+- **What can only fail if the code gains a write path:** `estate(client) == before` and `"gt-" not in response.text` on the refusal-only routes pin what did not happen. They are guards by design; the active proofs are the cases that read the state after a dry-run through `GET /state/...` and the row counts of `proposals`.
+
+#### Closure (D.5, 2026-11-07)
+
+Final gate: `pytest` 1824 passed, branch coverage of `src` 97.52%, `ruff check .` clean, `schema_check` PASS, both `dto.py` copies and both `sprint-status.yaml` copies identical. The red-phase file and log are byte-identical to commit `0407109`. Log: `docs/evidence/impl2/flow-a-2-2-review-coverage.log`. Status -> done.

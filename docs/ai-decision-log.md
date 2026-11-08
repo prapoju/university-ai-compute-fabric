@@ -1075,3 +1075,14 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 - **AI slip:** story 2.2 specified `target_refs` with `min_length=1` and no upper bound, and its audit design (D12) did not consider that the number of
   audit rows of a request depends on the caller. The 2.1 handler had no such exposure (one target per query).
 - **Outcome:** fix in `c502192`; Review Findings added to the story; the story stays in `review` until the D.4 audit and the D.5 closure. Reviewer: Juan.
+
+## I2-24 - Story 2.2 closed: trap audit and the evidence it rests on  *(AI audit, reviewer pending)*
+- **Date / phase:** 2026-11-07, D.4 and D.5 of story 2.2 (Flow A).
+- **Prompt (intent):** "si" to continue after the review fixes with the trap audit and the closure.
+- **What the AI checked:** the four traps over the 8 test files of the story. No Ice Cream Cone (61 API cases over 83 unit and integration cases), no
+  Flaky Sleeper (0 sleeps, fixed clock, concurrency asserted as sets), no Mocking Mirage (real app on a file database; the only double is the outage
+  fault, and the unit doubles fail one collaborator at a time against a healthy control), Blindly Green handled by 22 mutants.
+- **AI slip kept on record:** the first run of the mutants left one survivor, the list filter ignoring exact types, because the AI's own test used
+  `True`, which no node value equals. The test was corrected, not the production code, and the mutant is now killed.
+- **Outcome:** story 2.2 is `done` in the story file and in both `sprint-status.yaml` copies; the epic stays `in-progress`. Final gate: 1824 passed,
+  branch coverage 97.52%. Next: story 2-3 (confirmation gate). Reviewer: Pending.
