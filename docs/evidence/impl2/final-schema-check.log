@@ -1,0 +1,6 @@
+ok   001_module12_copilot_schema.sql
+ok   dto.py
+ok   events.schema.json
+ok   openapi.yaml
+GATE PASS: all schema artifacts valid
+schema exit=0

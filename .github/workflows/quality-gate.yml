@@ -199,9 +199,14 @@ jobs:
           cache: npm
       - name: Install Node dependencies
         run: npm ci
+      - name: Install console dependencies
+        run: npm ci --prefix console
+      - name: Build console
+        run: npm run build --prefix console
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
       # playwright.config.ts starts uvicorn itself (webServer) and picks python3 in CI.
+      # The console is built above and served by Vite preview from the same webServer list.
       - name: Run Playwright
         run: npx playwright test --trace on --fail-on-flaky-tests
       - uses: actions/upload-artifact@v5

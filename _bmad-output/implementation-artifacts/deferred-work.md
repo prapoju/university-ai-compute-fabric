@@ -77,3 +77,13 @@
 - A proposal can stay `dispatched` for ever: if the process dies, or the clock or the audit write fails, between the claim and the recording of the result, the executor may already have applied it, nothing retries it (by design, no auto-retry) and a re-dispatch starts only from `failed`. It needs a reconciliation policy (a periodic check of old `dispatched` rows against the executor's own record, `GET /executor/v1/proposals/{pid}`) that the contract does not define.
 - A parent that was already partly applied stays `failed` after a re-dispatch (contract Q2), so it can be re-dispatched again and again, one child each time. Each child passes its own gate and applies nothing by itself; a limit or a link from the parent to its latest child would need its own decision.
 - `ExecutorPort.dispatch` is called under a per-proposal lock held for the whole call; with a real executor the 5 s limit would hold that lock for 5 s. Fine for the simulator and for one process; a real adapter running several processes needs the claim (already conditional) to be the only guard.
+
+## Deferred from: story 1-6 (concurrent diagnostics, 2026-11-08)
+
+- The 50-operator ATDD case runs under the default 0.5 s wall budget. It is kept on purpose, because that is the production default under load (I2-43). On a slow runner it may flake with a 503.
+- The ATDD ordering gates are set inside the read, before its future completes. A completion-based gate would be stricter. The reverse-order audit case failed 10 of 10 runs under the completion-order mutant, so the risk is theoretical today (I2-44).
+- A late read's audit rows are dropped by design: a read that finishes after the budget never records into the turn, the audit or the evidence (I2-39).
+
+## Deferred from: story 3-3 (runbook registry and node triage, 2026-11-08)
+
+- The diagnosers do not emit their tool-call audit events yet. Contract `diagnose_node_triage` Q3 requires `toolcall.diagnose_node_triage`; story 3.3 does not implement it (decision D-4, approved). Same gap as story 1.3 and story 3.1 (contracts.md Q3). Needs a single recorder hook for all diagnosers, decided on its own.

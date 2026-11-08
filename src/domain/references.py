@@ -140,3 +140,44 @@ def in_input_order(query: str, names: Sequence[str]) -> tuple[str, ...]:
     for name in names:
         unique.setdefault(name.casefold(), name)
     return tuple(sorted(unique.values(), key=lambda name: _typed_at(text, name)))
+
+
+@dataclass(frozen=True)
+class NodeTriageReferences:
+    """The raw node token and the error code of a node-triage question, case as typed."""
+
+    node: str
+    code: str
+
+
+# words that follow "node" in a triage question but never are its id: "the node is cordoned"
+# names no node, so it is a clarification and never ENTITY_NOT_FOUND node#is (I2-51)
+_NODE_STOP = (
+    r"(?:is|are|was|were|has|have|had|cordoned|drained|reports|shows|with|the|a|an|it|that|in|on"
+    r"|and|of|for|to)"
+)
+_NODE_REF = re.compile(rf"\bnode(?:#|\s+)(?!{_NODE_STOP}(?=[\s,;:?!.]|$))(?P<node>{_TOKEN})", re.I)
+_NODE_CODE = re.compile(rf"\bcode\s+(?P<code>{_TOKEN})", re.I)
+# A node or a code named without its word: "ws-gpu-11 cordoned ERR_THERMAL_88" (NFR-1 corpus).
+# Tried only when the word form is absent, so the word form is read exactly as before.
+_BARE_NODE_REF = re.compile(r"\b(?P<node>ws-[a-z0-9-]+)\b", re.I)
+_BARE_NODE_CODE = re.compile(r"\b(?P<code>err_[a-z0-9_]+)\b", re.I)
+_RUNBOOK_WORD = re.compile(r"\brunbooks?\b", re.I)
+
+
+def extract_node_triage_references(query: str) -> NodeTriageReferences | None:
+    """The node and the code of ``Node <node> is cordoned with code <code>`` (and variants)."""
+    text = _clean(query)
+    node = _NODE_REF.search(text) or _BARE_NODE_REF.search(text)
+    code = _NODE_CODE.search(text) or _BARE_NODE_CODE.search(text)
+    if node is None or code is None:
+        return None
+    node_token, code_token = _strip(node["node"]), _strip(code["code"])
+    if node_token and code_token:
+        return NodeTriageReferences(node_token, code_token)
+    return None
+
+
+def asks_for_runbook(query: str) -> bool:
+    """Whether the operator explicitly asks for a runbook (the word ``runbook``, any case)."""
+    return _RUNBOOK_WORD.search(_clean(query)) is not None

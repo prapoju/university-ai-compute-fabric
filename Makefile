@@ -40,14 +40,15 @@ e2e:
 > @! grep -rnE --include='*.ts' '^[^/]*waitForTimeout' tests/e2e || { echo "waitForTimeout is banned (docs/impl2-rules.md)"; exit 1; }
 > PY=$(PY) npx playwright test
 
-## k6 smoke against a throwaway uvicorn on :memory:. sleep() is banned: executors pace the load.
+## k6 smoke and the story 1.6 load against a throwaway uvicorn on :memory:. sleep() is banned: executors pace the load.
 nfr:
 > @! grep -rnE --include='*.js' '^[^/]*\bsleep\(' tests/nfr || { echo "sleep() is banned in k6 scripts (docs/impl2-rules.md)"; exit 1; }
 > @M12_DB_PATH=:memory: $(PY) -m uvicorn src.adapters.inbound.app:create_app --factory \
 >   --host 127.0.0.1 --port 8000 --log-level warning & pid=$$!; \
 >   trap 'kill $$pid' EXIT; \
 >   curl -sf --retry 30 --retry-connrefused --retry-delay 1 $(NFR_URL)/healthz >/dev/null \
->   && BASE_URL=$(NFR_URL) k6 run --quiet tests/nfr/smoke.js
+>   && BASE_URL=$(NFR_URL) k6 run --quiet tests/nfr/smoke.js \
+  && BASE_URL=$(NFR_URL) k6 run --quiet tests/nfr/copilot-load.js
 
 ci: lint cov schema e2e nfr
 > @echo "TEA gate PASS"

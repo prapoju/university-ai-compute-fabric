@@ -65,7 +65,7 @@ tests/
 ├── e2e/                   # Playwright specs against the running app
 │   ├── smoke.spec.ts      # GET /healthz
 │   └── pages/             # page objects (console, story 1-7)
-├── nfr/                   # k6 scripts; load paced by executors, never sleep()
+├── nfr/                   # k6 scripts; load paced by executors, never fixed waits
 │   └── smoke.js           # /healthz, constant-arrival-rate, thresholds on p95 and errors
 └── test_example.py        # smoke: every mandatory fixture wired together
 ```
@@ -110,7 +110,7 @@ def test_audit_is_append_only(db, sample):
   full key set, not a subset.
 - **Faults are scripted, never slept through.** Reproduce S1–S3 and the mandatory edge
   case (hallucination prevention, test-design.md R-01) with fixtures, not timing tricks.
-- **No `waitForTimeout` in E2E, no `sleep()` in k6.** Use web-first assertions, and pace load
+- **No fixed waits in E2E or k6.** Use web-first assertions, and pace load
   with `constant-vus` or `constant-arrival-rate`. `make e2e` and `make nfr` fail on either.
 
 ## Environment knobs

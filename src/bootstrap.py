@@ -41,9 +41,13 @@ from src.application.dry_run_service import DryRunService
 from src.application.entity_resolver import EntityResolver
 from src.application.evidence_assembler import EvidenceAssembler
 from src.application.evidence_service import EvidenceService
+from src.application.node_triage_handler import INTENT as NODE_TRIAGE_INTENT
+from src.application.node_triage_handler import NodeTriageHandler
+from src.application.parallel_reads import ParallelReads
 from src.application.pipeline import AnswerPipeline
 from src.application.proposal_dispatcher import ProposalDispatcher
 from src.application.proposal_service import ProposalService
+from src.application.runbook_service import RunbookService
 from src.application.session_service import SessionService
 from src.application.state_service import StateService
 from src.application.tool_audit import TOOL_PORT_NAMES, ToolCallRecorder, audited
@@ -67,6 +71,7 @@ from src.ports.inbound import (
     DestructiveUseCases,
     EvidenceUseCases,
     ProposalUseCases,
+    RunbookUseCases,
     SessionUseCases,
     StateUseCases,
 )
@@ -83,6 +88,7 @@ from src.ports.outbound import (
     PolicyPort,
     ProposalStorePort,
     ReservationsPort,
+    RunbookRegistryPort,
     SessionStorePort,
     UnitOfWorkPort,
     UsersPort,
@@ -193,6 +199,7 @@ def build_container(settings: Settings) -> Container:
     # Every provider port is wrapped once, so each read made during a turn is a recorded tool call
     # (FR-11, D3, D4); the wrapped instances are the ones every consumer and the registry receive.
     recorder = ToolCallRecorder()
+    reads = ParallelReads(budget_seconds=settings.tool_fanout_budget_seconds, recorder=recorder)
     raw_ports = providers.as_ports()
     ports: dict[type, object] = {
         port_type: audited(port_type, raw_ports[port_type], name=name, recorder=recorder)
@@ -202,6 +209,7 @@ def build_container(settings: Settings) -> Container:
     groups, jobs, nodes = ports[GroupsPort], ports[JobsPort], ports[NodesPort]
     reservations, windows = ports[ReservationsPort], ports[WindowsPort]
     event_store = ports[EventStorePort]
+    runbooks = ports[RunbookRegistryPort]
     prose = SimProse()
     pipeline = AnswerPipeline()
     # The diagnoser reads only through the provider ports: with a failed estate every read is a
@@ -210,9 +218,10 @@ def build_container(settings: Settings) -> Container:
         ACCESS_DENIAL_INTENT,
         AccessDenialHandler(
             resolver=EntityResolver(users=users, catalog=catalog, policy=policy),
-            assembler=EvidenceAssembler(policy=policy, events=event_store),
+            assembler=EvidenceAssembler(policy=policy, events=event_store, reads=reads),
             prose=prose,
             idgen=idgen,
+            runbooks=runbooks,
         ),
     )
     pipeline.register(
@@ -221,6 +230,16 @@ def build_container(settings: Settings) -> Container:
             resolver=EntityResolver(users=users, catalog=catalog, groups=groups, policy=policy),
             jobs=jobs,
             windows=windows,
+            prose=prose,
+            idgen=idgen,
+        ),
+    )
+    pipeline.register(
+        NODE_TRIAGE_INTENT,
+        NodeTriageHandler(
+            resolver=EntityResolver(users=users, catalog=catalog, nodes=nodes),
+            nodes=nodes,
+            runbooks=runbooks,
             prose=prose,
             idgen=idgen,
         ),
@@ -372,6 +391,7 @@ def build_container(settings: Settings) -> Container:
     container.register_port(ProposalUseCases, proposal_uc)
     container.register_port(ChatUseCases, ChatService(sessions=use_cases, destructive=destructive))
     container.register_port(StateUseCases, state)
+    container.register_port(RunbookUseCases, RunbookService(registry=runbooks))
     return container
 
 

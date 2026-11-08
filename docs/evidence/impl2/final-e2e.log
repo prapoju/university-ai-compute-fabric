@@ -1,0 +1,14 @@
+[WebServer] 2026-11-08 16:40:19,101 INFO src.bootstrap: container built (fixtures=/home/julio/repos/ia-proyecto/university-ai-compute-fabric/fixtures)
+[WebServer] INFO:     Started server process [1424515]
+[WebServer] INFO:     Waiting for application startup.
+[WebServer] INFO:     Application startup complete.
+[WebServer] INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+
+Running 3 tests using 2 workers
+
+  ✓  1 tests/e2e/smoke.spec.ts:4:1 › GET /healthz reports the process is up (45ms)
+  ✓  2 tests/e2e/copilot-console.spec.ts:16:3 › Helpdesk specialist investigates an access denial › diagnoses the denial, shows the verified runbook and copies it (335ms)
+  ✓  3 tests/e2e/copilot-console.spec.ts:33:3 › Helpdesk specialist investigates an access denial › shows a visible error and no runbook when the inquiry names an unknown student (200ms)
+
+  3 passed (5.1s)
+playwright exit=0

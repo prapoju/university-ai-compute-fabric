@@ -28,6 +28,50 @@ reference; real environment variables only, no `.env` file is loaded); every var
 default. The service serves exactly the routes of
 [`openapi.yaml`](planning/detailed-design/schemas/openapi.yaml); the generated `/docs` is disabled.
 
+## Verify (Impl-2, Linux)
+
+One command runs the whole local gate: ruff, pytest with branch coverage of `src` at or above 90 %,
+the schema check, Playwright E2E and the k6 NFR scripts. It mirrors `.github/workflows/quality-gate.yml`.
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -r requirements-test.txt
+npm ci && npm ci --prefix console && npm run build --prefix console
+npx playwright install chromium
+# k6 2.3.0 must be on PATH (the NFR job in CI pins the same version)
+
+make ci PY=.venv/bin/python        # lint, cov, schema, e2e, nfr; ends with the echo "TEA gate PASS"
+# (that echo only means the local recipes passed; the traceability verdict is in test/traceability-matrix.md)
+```
+
+Single parts, when you need one:
+
+| Check | Command |
+|---|---|
+| Unit, integration, API and ATDD | `.venv/bin/python -m pytest tests -q --strict-markers` |
+| Coverage gate | `make cov PY=.venv/bin/python` |
+| Lint | `make lint PY=.venv/bin/python` |
+| Schemas (SQL, DTO, events, OpenAPI) | `make schema PY=.venv/bin/python` |
+| E2E (Playwright, Page Object Model, traces) | `PY=.venv/bin/python npx playwright test` |
+| NFR (k6, p95 gate on the copilot load) | `make nfr PY=.venv/bin/python` |
+
+No fixed waits anywhere in the code. This prints nothing when it passes:
+
+```bash
+grep -rnE 'sleep\(|waitForTimeout' src tests console --exclude-dir=node_modules
+```
+
+`test/atdd/` is the historical Impl-1 red suite. It fails on purpose, is not part of any gate, and
+`make atdd` runs it only for reference. The active ATDD suites are in `tests/atdd/`.
+
+Evidence and decisions for Impl-2:
+
+- [`walkthrough-impl2.md`](walkthrough-impl2.md): the complete report (hardening, red-phase logs, k6 table, E2E run, test pyramid, limits).
+- [`docs/ai-decision-log.md`](docs/ai-decision-log.md): every AI decision and correction, with its reviewer (I2-NN).
+- [`test/traceability-matrix.md`](test/traceability-matrix.md): requirement to test to evidence, and the gate status.
+- [`test/nfr-evidence.md`](test/nfr-evidence.md): the five NFR dimensions with measured numbers.
+- Evidence files: [`docs/evidence/impl2/`](docs/evidence/impl2/).
+
 ## Copilot query (annex 12.1 inbound)
 
 ```bash
@@ -96,6 +140,17 @@ returned as `recommendation.next_open_window` (`{start, end, timezone}`, contrac
 not blocked), an unknown group is `ENTITY_NOT_FOUND`, and a
 failed clock read is a `503 CLOCK_UNAVAILABLE` (a window is never invented).
 
+### Node triage and runbooks (story 3.3, annex 12.6)
+
+`Node ws-gpu-11 is cordoned with code ERR_THERMAL_88. What should I do?` checks that the node is cordoned and reports
+that code, then answers `node_triage_runbook` with the registered steps of `ERR_THERMAL_88` copied in order, the
+required tools, the safety warning and the provenance (`Lab Safety SOP-THERM-01`, version `1.0`). A node that is not
+cordoned, reports another code, or has no template gets the literal `no runbook available for code {code}.` and no
+steps. `GET /api/v1/runbooks/{error_code}` returns the steps and provenance of an exact code (404 when unregistered).
+The annex 12.6 question `Student Alex was denied model deepseek-coder. Diagnose and provide runbook.` gets the access-denial
+diagnosis with the `access_denial_not_in_allowlist` runbook. The runbook is attached only when the query asks for one.
+Templates are files in `fixtures/runbooks/`; a new one needs no code change.
+
 ### No invented entities (story 4.1)
 
 Anything the query names that is not in state - a user (`ghost_user_99`), a model, a group or a typed
@@ -136,3 +191,5 @@ Dependency direction: `adapters → ports → domain`. The planning documents we
 ## Project status
 
 Tracked in [`implementation-artifacts/sprint-status.yaml`](implementation-artifacts/sprint-status.yaml).
+
+Impl-2: the Annex stories 12.4, 12.5 and 12.6 are done (2-1 to 2-4, 1-6, 3-3, 1-7). The traceability gate is CONCERNS, with NFR-1, NFR-7 and NFR-9 open; see [`walkthrough-impl2.md`](walkthrough-impl2.md) section 11.

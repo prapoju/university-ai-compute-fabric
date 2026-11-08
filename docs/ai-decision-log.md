@@ -453,6 +453,49 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 | I2-19 | Story 2.1 · red phase, green phase and mutation check (Flow A) | Decision, **Correction (test)** | The first genuine ATDD red log (51 failed, 4 guards) was committed before any code; three Impl-1 tests that encoded the pre-2.1 state were made stricter; 12 mutants killed | Juan |
 | I2-20 | Code review + test audit of story 2.1 | **Correction (code defect)**, **Correction (test)** | A destructive request aimed at an unnamed referent was widened to the whole fleet (2-2 would have enumerated every job); one assertion could not fail; two verb lists could drift; 18 mutants killed | Juan |
 | I2-21 | Story 2.2 · create story (Flow A) | Decision | The chat reply gets its own schema; the persisted selector names the port operation and the select vocabulary grows (`node_ids`, list = one of); the status filter comes from the action; `cs201` is no longer enumerated | Juan (D1, D4), Pending (the rest) |
+| I2-22 | - | Correction | Story 2.2: one frozen 2.1 case encoded the chat reply of the refusal-only state | see entry |
+| I2-23 | - | Correction | Code review of story 2.2: one request could flood the audit | see entry |
+| I2-24 | - | Decision | Story 2.2 closed: trap audit and the evidence it rests on | see entry |
+| I2-25 | - | Decision | Story 2.3: what the contract fixes, what the split with 2.4 forces, and what the user decided | see entry |
+| I2-26 | - | Correction | Code review of story 2.3: a rejected confirmation left no trace | see entry |
+| I2-27 | - | Decision | Story 2.3 closed: trap audit and the evidence it rests on | see entry |
+| I2-28 | - | Decision | Story 2.4: the executor changes what the earlier stories could assume | see entry |
+| I2-29 | - | Decision | Story 2.4: decisions confirmed and the red phase committed without a review of the log | see entry |
+| I2-30 | - | Decision | Story 2.4: the delivered schema could not reach `superseded` | see entry |
+| I2-31 | - | Decision | Story 2.4: the confirm dispatches, so the frozen 2.3 tests were adapted | see entry |
+| I2-32 | - | Correction | Story 2.4: two cases of the committed ATDD were wrong about themselves | see entry |
+| I2-33 | - | Correction | Code review of story 2.4: a readable token behind a guessable id | see entry |
+| I2-34 | - | Decision | Story 2.4 closed, and with it epic 2: trap audit and the evidence it rests on | see entry |
+| I2-35 | - | Decision | Story 1.6 created: the route stays sync and the fan-out budget is 0.5 s | Julio |
+| I2-36 | - | Correction | Story 1.6 ATDD: the tool-call ids are hexadecimal, the test parsed them as decimal | Julio |
+| I2-37 | - | Correction | Story 1.6: a policy-outage unit case asserted sequential reads, which parallel reads change | Julio |
+| I2-38 | - | Correction | Story 1.6: the sleep check of the ATDD file tripped the CI banned-waits scan | Julio |
+| I2-39 | - | Decision | Story 1.6 review F-1: the wall budget must return at the budget, so the fan-out moves to a bounded shared pool | Julio |
+| I2-40 | - | Correction | Story 1.6 review F-1: a unit rig built the fan-out without its recorder, and the reads' audit rows were lost | Julio |
+| I2-41 | - | Decision | Story 1.6 review F-6: the budget test asserted only the status, so a response that waited for the hung read passed | Julio |
+| I2-42 | - | Decision | Story 1.6 review F-7: the failure table had only one raising read; the events-only and both-raise cases are added | Julio |
+| I2-43 | - | Correction | Story 1.6 trap audit: test corrections from the mutation check (ATDD edits, unit tests in their own commits) | Julio |
+| I2-44 | - | Correction | Story 1.6 trap audit: the settle-order unit test was racy, and now waits for the second read's completion | Julio |
+| I2-45 | - | Decision | Story 1.6 trap audit: two raising ATDD cases renamed for the typed 503 body, the guard is the unit test's | Julio |
+| I2-46 | - | Decision | Story 1.6 closed: review, trap audit, evidence and status done | Julio |
+| I2-47 | - | Decision | Story 3.3: node triage (S3), runbook registry read route, and one committed ATDD assertion made stricter | Julio |
+| I2-48 | - | Decision | Story 3.3: the access-denial runbook is keyed by the diagnosis class and attached only when asked for; contract amended | Julio |
+| I2-49 | - | Decision | Story 3.3 dev closed: decisions taken under the standing pre-approval, the test-scope note and the open audit item | Julio |
+| I2-50 | - | Decision | Story 3.3: the runbook read is session-less and emits no audit event; contract Q3 aligned with story 1.5 D2 | Julio |
+| I2-51 | - | Decision | Story 3.3 review, finding M-1: a word after "node" that is not an id was taken as a node id | see entry |
+| I2-52 | - | Decision | Story 3.3 review, finding L-3: no test showed the prose guard on node-triage output | see entry |
+| I2-53 | - | Decision | Story 3.3 closed: inline review, mutation check, E.3 regression result and status done | Julio |
+| I2-54 | - | Decision | Story 1.7 scope: two E2E tests (Annex 12.6 scenario and one failure path), the other §6.3.7 cases declared out of scope | Julio |
+| I2-55 | - | Decision | Story 1.7: the badge rule id is derived in the console with the story 1-6 pattern, mirrored and pinned by the E2E | see entry |
+| I2-56 | - | Decision | Story 1.7 closed: review findings M-1 and L-1 fixed, mutation of the badge killed, full suite green, status done | see entry |
+| I2-57 | - | Decision | Impl-2 scope: FR-06 and the optional stories are outside the Annex minimum; the gate oracle follows that scope | see entry |
+| I2-58 | Final hardening | Decision | ParallelReads and EvidenceAssembler require their recorder; banned-wait prose reworded | Julio |
+| I2-59 | Final hardening | **Correction (tool use)** | A whole-tree `ruff format` rewrote 25 files, including the verbatim DTO copy; reverted | Julio |
+| I2-60 | Final evidence | Decision, **Correction (citation)** | NFR audit run inline without subagents; a wrong citation of the token lifetime fixed before the commit | Julio |
+| I2-61 | Final evidence | Decision | Traceability gate computed by the skill rules: CONCERNS; FR-06 as P0 would be FAIL | Julio |
+| I2-62 | Final evidence | **Correction (text)** | Walkthrough and README: three unsupported claims fixed before the commit; the one-command gate verified | Julio |
+| I2-63 | Gate gaps | Decision | NFR-1 corpus (85 %, red on purpose), cold start 0.54 s, two recorded waivers (NFR-7 8-hour, NFR-9 study) | Julio |
+| I2-64 | Gate gaps | **Correction (classifier miss)** | "cant", a bare node id and "cordoned with <code>" fixed; corpus 20 / 20; golden unchanged | Julio |
 
 ## I2-01..I2-09 - Shift-left review of the Impl-2 plan  *(planning text)*
 - **Phase:** before any Impl-2 code, 2026-11-06. Party-mode review (Winston, architect; Murat, test architect) of `docs/impl2-rules.md`
@@ -1256,3 +1299,246 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
   unreachable (I2-30); one commit message with a wrong test count (`c8af915` says 2000, the run was 1985).
 - **Outcome:** story 2.4 and epic 2 are `done` in the story file and in both `sprint-status.yaml` copies (the epic retrospective stays optional). Next
   in the plan: story 1-6 (k6 and the concurrent diagnostics), 3-3, 1-7. Reviewer: Pending.
+
+## I2-35 - Story 1.6 created: the route stays sync and the fan-out budget is 0.5 s  *(user decision, Reviewer: Julio)*
+- **Date / phase:** 2026-11-08, story creation of 1-6 (Flow D), before the ATDD red phase.
+- **Prompt (intent):** create the story for 1-6 from the epic, with the decisions below taken from the shift-left review.
+- **What the AI proposed:** the parallel dispatcher keeps the request path synchronous. The route stays `def` and `ParallelReads` runs `asyncio.run(gather(to_thread(...)))` inside the worker thread (review D-2.6). The earlier plan for this story had made the `/copilot/query` handler `async def`. That was rejected: it would need the per-session guard and the store rewritten for no latency gain on in-process fakes. The AI also proposed a fan-out budget default of 0.5 s for `M12_TOOL_FANOUT_BUDGET_SECONDS`.
+- **What the user decided:** keep the sync route (D-2.6) and add the route-audit assertion in the dev step. Accept 0.5 s as the default. Commit the story file, both copies of `sprint-status.yaml` and this entry together.
+- **Why 0.5 s:** the fan-out is only one part of the turn. The 800 ms p95 must also absorb the single-writer queue, prose, and the audit transaction. A 0.5 s ceiling leaves about 300 ms for those. The number is a guess until measured under k6.
+- **Risk recorded:** when the budget fires, the answer is HTTP 503 (`PROVIDER_UNAVAILABLE`), not a slow 200. Under load, a 503 would break the 100% HTTP 200 gate, so the k6 run will show it as an error, not as latency. A timeout at 0.5 s is therefore a load-test failure to investigate, not a setting to raise without evidence.
+- **Outcome:** the story is `ready-for-dev` in both `sprint-status.yaml` copies. Code, ATDD red phase and k6 run are next. Reviewer: Julio.
+
+## I2-36 - Story 1.6 ATDD: the tool-call ids are hexadecimal, the test parsed them as decimal  *(AI-written test corrected, user approved, Reviewer: Julio)*
+- **Date / phase:** 2026-11-08, dev step of story 1.6 (Flow D), after the red phase and the first green run of the dispatcher.
+- **What was wrong:** the helper `ordinal()` in `tests/atdd/test_story_1_6.py` parsed `tool_call_id` with base 10. The ids are `tc-` followed by 16 hexadecimal digits (`tc-000000000000000a`). The case was red for the wrong reason (`ValueError`), and the red-phase run never reached it, because the reverse-order stall failed first.
+- **What the AI proposed:** parse the suffix with base 16. A scratch run of both completion orders against the real app gave `[0, 1, 2, 3]` for each, status 200, and no gate stalls.
+- **What the user decided:** approved. Changed in its own commit, with this entry. No assertion was weakened: the expected consecutive order is the same.
+- **Reviewer:** Julio.
+
+## I2-37 - Story 1.6: a policy-outage unit case asserted sequential reads, which parallel reads change  *(AI-written test corrected, user approved, Reviewer: Julio)*
+- **Date / phase:** 2026-11-08, dev step of story 1.6 (Flow D).
+- **What was wrong:** `test_a_policy_outage_aborts_before_any_event_is_read` asserted that the events are never read after a policy failure. That is a property of the sequential reads. With the approved parallel reads (I2-35), the events are read alongside the policy. The returned failure did not change.
+- **What the AI proposed:** keep the failure body assertion, and replace the "events never read" assertion with three that hold under parallel reads: the result is the policy's own failure and is not `Ok`; events are read at most once; and the event id `evt-4711` appears in neither the returned result nor the recorded tool calls. The test is renamed to `test_a_policy_outage_fails_the_turn_with_the_policy_failure_and_no_event_evidence`.
+- **What the user decided:** approved with that change. Not a plain deletion. Own commit, with this entry.
+- **Evidence the bodies are unchanged:** six regression queries (S1, S2, ghost, S3, 12.6 and the delete) were run on HEAD production code and on the change, and the JSON bodies are byte-identical.
+- **Reviewer:** Julio.
+
+## I2-38 - Story 1.6: the sleep check of the ATDD file tripped the CI banned-waits scan  *(AI-written test corrected, user approved, Reviewer: Julio)*
+- **Date / phase:** 2026-11-08, after the first k6 run of story 1.6 (Flow D), before the first push of the branch.
+- **What was wrong:** the ATDD case that checks the k6 script for `sleep(` used a plain substring test. The CI banned-waits job scans the repository with a regex. The regex matched the case's own text, so CI would have failed on the ATDD file.
+- **What the AI proposed:** replace the substring test with `re.search(r"\bsleep\s*\(", text)`, which is stricter (it also catches `sleep (` with a space). The assertion message was reworded so that it does not contain `sleep(` as a literal, because the scan also matched the message text. The approved wording was `k6 must not call sleep()`.
+- **What the user decided:** the regex change approved. The message change was made to pass the scan, and it is recorded here so the change is visible.
+- **Check run:** the CI banned-waits pattern, run locally on `src` and `tests`, returns nothing. The ATDD file still passes (12 cases).
+- **Reviewer:** Julio.
+
+## I2-39 - Story 1.6 review F-1: the wall budget must return at the budget, so the fan-out moves to a bounded shared pool  *(change of mechanism versus I2-35, user decision, Reviewer: Julio)*
+- **Date / phase:** 2026-11-08, code review of story 1.6, finding F-1 (high).
+- **What was wrong:** the fan-out ran `asyncio.run` per turn. `asyncio.run` waits for its worker threads when it exits, so a read that hangs made the 503 wait too. A probe with a 0.2 s budget and a read blocked for 3 s answered after 3.01 s. The budget bounded the wait, not the response.
+- **What changed (versus I2-35):** the route stays sync `def` and the budget stays 0.5 s. The mechanism changes. The reads run on one module-level `ThreadPoolExecutor` shared by all turns. `concurrent.futures.wait(timeout=budget)` returns at the budget, and then the turn answers `PROVIDER_UNAVAILABLE` (503). The per-turn event loop and thread pool are gone.
+- **Pool size: 80 slots.** Each turn runs two reads. anyio runs at most 40 sync route handlers at once (its default thread limit), so at most 80 reads are in flight from the request threads. 50 operators therefore never find the pool full. The other 10 wait in anyio, as they do today.
+- **Full pool:** a turn that cannot claim all its slots is refused at once with 503. Nothing is queued behind hung reads.
+- **Late reads:** a read that finishes after the budget writes only into its own lane. The lanes are settled into the turn only when every read finished in time, so a late read never reaches the audit or the evidence. A running read keeps its slot until it returns.
+- **Trade-offs recorded:** a hung provider holds its slots until it returns. Pool threads are not daemon threads, so the process waits for them at exit. The second point is accepted; the first is bounded by the pool size.
+- **Reviewer:** Julio.
+
+## I2-40 - Story 1.6 review F-1: a unit rig built the fan-out without its recorder, and the reads' audit rows were lost  *(AI-written test wiring corrected, user approved with F-1, Reviewer: Julio)*
+- **Date / phase:** 2026-11-08, F-1 of the code review of story 1.6.
+- **What was wrong:** the audited S1 rig in `tests/unit/test_session_service.py` built `EvidenceAssembler` without a recorder. Under asyncio the reads inherited the turn's context, so their audit rows were recorded. Pool threads do not inherit the context, so with I2-39 those two rows were lost. The app's own wiring already passed the recorder, so only the unit rig was affected.
+- **What changed:** the rig now passes `reads=ParallelReads(recorder=rig.recorder)`, the same wiring as `bootstrap.py`. No assertion changed.
+- **Open hazard, recorded:** `ParallelReads()` without a recorder silently drops the reads' audit rows. The default is kept only so existing unit doubles construct. Removing the default is a separate change, not part of this fix.
+- **Reviewer:** Julio.
+
+## I2-41 - Story 1.6 review F-6: the budget test asserted only the status, so a response that waited for the hung read passed  *(AI-written test added, user approved, Reviewer: Julio)*
+- **Date / phase:** 2026-11-08, F-6 of the code review of story 1.6.
+- **What was wrong:** the ATDD budget case asserted the 503 and nothing else, so a response that waited for the hung read passed. That is how F-1 went unseen.
+- **What the AI added:** a case with no wall-clock assertion. The read blocks on a `threading.Event`, and the budget is 0.05 s. The 503 must arrive while the read has not returned (a flag the read sets when it returns). Only then does the test release the read, and the case waits, with a bound, for the read to finish. The audit must still hold no tool call for that session. No sleep and no timing check.
+- **Check:** the first draft asserted that the event was unset, and it passed on the code before F-1 too, because the old response came only after the read gave up on its own bound. The assertion now checks that the read has not returned.
+- **Reviewer:** Julio.
+
+## I2-42 - Story 1.6 review F-7: the failure table had only one raising read; the events-only and both-raise cases are added  *(AI-written test added, user approved, Reviewer: Julio)*
+- **Date / phase:** 2026-11-08, F-7 of the code review of story 1.6.
+- **What was missing:** the test-design row "one tool raises / all tools raise" (6.3.5) was covered only for the policy read.
+- **What the AI added:** two cases. An events read that raises alone gives a typed 503. Both reads raising give one typed 503 with the same code. Both pass on the current code, so they are regression guards on the new fan-out, not red-phase cases.
+- **Reviewer:** Julio.
+
+## I2-43 - Story 1.6 trap audit: test corrections from the mutation check (ATDD edits, unit tests in their own commits)  *(AI-written tests corrected, user approved, Reviewer: Julio)*
+- **Date / phase:** 2026-11-08, after the trap audit of the story-1.6 tests and the mutation check of M1 (wait without the budget), M2 (completion-order settle) and M3 (sequential reads).
+- **What the audit found:** three survivors. The tool-call ids test checked only that the ids were consecutive, so a completion-ordered audit passed it. The budget case checked only the status, code and clock count, and its name claimed a budget check. The ordering tests ran under the default 0.5 s wall budget while their gates could wait up to 2 s, so a slow runner could expire the budget first (a flake risk, read from the code, not reproduced).
+- **ATDD edits (this entry):**
+  1. The tool-call ids test also asserts the tool names follow the call order (`S1_TOOL_CALLS`). No assertion was weakened.
+  2. The budget case is renamed to `test_a_fan_out_past_its_budget_checks_status_code_and_clock_count`, so its name says what it checks.
+  3. The six ordering tests set an explicit 5 s budget, so the budget cannot expire while the gates order the reads.
+- **Unit-test changes, in their own commits (not ATDD):** the two ordering unit tests set a 5 s budget and assert the gate opened; a new unit test asserts that the recorded calls settle in argument order when the second read finishes first.
+- **Known limit, recorded:** the ATDD test for the 50 operators still runs under the default budget, and it is not an ordering test. The red-phase evidence file `docs/evidence/impl2/red-1-6.log` still shows the old name of the budget case. It is evidence and is not edited.
+- **Reviewer:** Julio.
+
+## I2-44 - Story 1.6 trap audit: the settle-order unit test was racy, and now waits for the second read's completion  *(AI-written test corrected, user approved, Reviewer: Julio)*
+- **Date / phase:** 2026-11-08, after the mutation check of M2 (completion-order settle) with the new unit test of I2-43.
+- **What was wrong:** the new unit test gated the first read on the second read's return. Under M2 the first read could finish before the second's completion callback ran, so M2 survived the first run.
+- **What changed:** the first read now waits for the second read's future to complete. A test-only pool subclass sets the flag from a done callback added before ParallelReads adds its own. The assertion on the gate was added, so a gate that never opens fails the test.
+- **Check:** on the correct code the test passed 10 of 10 runs. Under M2 it failed 10 of 10 runs. The ATDD audit-order test also failed 10 of 10 runs under M2.
+- **Reviewer:** Julio.
+
+## I2-45 - Story 1.6 trap audit: two raising ATDD cases renamed for the typed 503 body, the guard is the unit test's  *(AI-written tests renamed, user approved, Reviewer: Julio)*
+- **Date / phase:** 2026-11-08, after the mutant M4 (per-read guard removed). Only the unit test failed; both raising ATDD cases still passed, because the app's error handler also maps an unexpected exception to 503.
+- **What changed:** `test_a_read_that_raises_is_a_typed_503_never_a_500` is renamed `test_a_read_that_raises_gives_the_typed_503_body_with_its_code`, and `test_an_events_read_that_raises_is_a_typed_503` is renamed `test_an_events_read_that_raises_gives_the_typed_503_body_with_its_code`. The assertions are unchanged. The guard is covered by `test_a_read_that_raises_is_a_typed_failure_not_an_exception` in the unit file.
+- **Reviewer:** Julio.
+
+## I2-46 - Story 1.6 closed: review, trap audit, evidence and status done  *(AI summary, Reviewer: Julio)*
+- **What the AI proposed:** the policy and events reads run in parallel, inside a sync `def` route, with a wall budget of 0.5 s. The first design, an `async def` handler, was not used; see I2-35.
+- **What the user decided:** keep the sync route (review D-2.6, I2-35). For the review finding F-1 (the budget did not bound a hung read), option A: one bounded shared pool of 80 slots, with the answer at the budget and refusal when the pool is full (I2-39). Pool size 80 is anyio's 40 sync handlers times two reads. The 50-operator case keeps the 0.5 s default on purpose.
+- **Review:** one high (F-1) and five patches (F-2, F-3, F-5, F-6, F-7). All are fixed. F-3 was partly wrong: three ticked tasks were not implemented, and they are now implemented or re-worded.
+- **Trap audit:** the corrections are logged as I2-43 (the ATDD edits from the audit), I2-44 (a racy unit test, fixed) and I2-45 (two raising cases renamed).
+- **Test corrections across the story, each logged:** I2-36 (hex ids), I2-37 (the outage case), I2-38 (the sleep check), I2-40 (the unit rig's recorder wiring), I2-41 (the budget case added for F-6) and I2-42 (the raising cases added for F-7).
+- **Mutation check:** M1 (wait without the budget), M2 (completion-order settle), M3 (sequential reads) and M4 (no per-read guard) are each killed by at least one test. M4 is killed only by the unit test.
+- **Evidence:** k6 in-memory and file-DB reruns in `docs/evidence/impl2/k6-12-5*`. The full suite with coverage is in `flow-d-1-6-review-coverage.log`. The CI result is reported in the push, not in this log.
+- **Open items:** `_bmad-output/implementation-artifacts/deferred-work.md`, section for story 1-6.
+- **Status:** done, in the story file and both sprint-status copies.
+- **Reviewer:** Julio.
+
+## I2-47 - Story 3.3: node triage (S3), runbook registry read route, and one committed ATDD assertion made stricter  *(AI-written code and test change, user approved, Reviewer: Julio)*
+- **Date / phase:** 2026-11-08, dev of story 3-3 (Flow B), after the approval of decisions D-1 to D-4 in the story file.
+- **What the AI proposed:** a pure node-triage rule (`src/domain/runbook.py`) and a diagnoser that checks P1 (cordoned) and P2 (the queried code is the node's recorded code) before it looks up the template. The steps are copied from the registered template in order, never generated. The intent `diagnose_node_triage` (`RULE-INTENT-NODE-TRIAGE`) matches a `node ... cordoned ... code` question. The access-denial rule also gains a `denied ... diagnose` pattern for annex 12.6. The read route `GET /api/v1/runbooks/{error_code}` is served by a thin `RunbookService`.
+- **What the user decided:** D-3 (a miss is the canonical literal `no runbook available for code {code}.` with no steps, where `{code}` is the node's recorded code, or `null`) and D-4 (`toolcall.diagnose_node_triage` stays deferred, in `deferred-work.md`). Approved in the story file.
+- **Canonical miss storage:** the stored answer has `diagnosis_class = no_runbook_available` and `canonical` unset. The answer DTO enum has no `RUNBOOK_NOT_FOUND`, and changing the schema is not part of D-3. The HTTP response still returns `RUNBOOK_NOT_FOUND` with the literal, as the other canonical outcomes do.
+- **Registration rules:** the registry port has no `register` method (AD-1, see `src/ports/outbound/runbook_registry.py`). Empty steps and an unsourced physical template are rejected when the fixtures load (`RUNBOOK_TEMPLATE_EMPTY`, `RUNBOOK_TEMPLATE_UNSOURCED`), not by a 422 at runtime.
+- **Test corrections (existing tests changed because story 3.3 changes the behaviour):**
+  - `tests/unit/test_intent.py`: the S3 question leaves the out-of-domain list, since it now routes. The rule list expectation gains `diagnose_node_triage`. Both are intended changes; the rest of the test is untouched.
+  - `tests/atdd/test_story_2_4.py::test_every_contract_operation_is_served` (renamed from `..._but_the_runbook_is_served`): the assertion was `missing == {GET /api/v1/runbooks/{}}`, a snapshot of the one operation the story left unserved. It now asserts `missing == set()`. This is stricter, not weaker: every contract operation must be served. Approved by Julio.
+- **Served routes:** `SERVED_IN_THIS_STORY` gains `GET /api/v1/runbooks/{}`, in the same commit as the route.
+- **Status:** dev of story 3-3 in progress; the review and closing entries follow.
+- **Reviewer:** Julio.
+
+## I2-48 - Story 3.3: the access-denial runbook is keyed by the diagnosis class and attached only when asked for; contract amended  *(AI-written code, contract amendment and tests, user approved, Reviewer: Julio)*
+- **Date / phase:** 2026-11-08, dev of story 3-3, after decisions D-1 and D-2 were approved.
+- **Key choice:** the template `fixtures/runbooks/access-denial-not-in-allowlist.json` has `error_code = access_denial_not_in_allowlist`, the diagnosis class of the answer. The registry is keyed by exact `error_code` (contracts.md `lookup_runbook` Q4), so the class string is the key and no lookup rule changes. The alternative, a separate access-denial code, would have needed a new code and a second mapping.
+- **Contract amendment (same commit as the code):** `planning/detailed-design/contracts.md`, operation `diagnose_access_denial`, Q1. `recommendation` is `null` unless the query explicitly asks for a runbook (contains the word `runbook`) and a renderable template is registered for the class. Then it has the `diagnose_node_triage` Q1 shape. `openapi.yaml` needed no change: the `Answer.recommendation` schema is already `object | null`.
+- **Attachment rule:** the diagnosis, claims, evidence and class are unchanged. The answer chain gains `recommendation` only when a runbook is attached. A registry failure aborts the turn (AD-12). A physical template without an approved source is not attached.
+- **Regression:** S1, S2 and `ghost_user_99` are compared byte for byte with bodies captured at HEAD before the change (`tests/api/golden/copilot_query_at_head.json`, read through `POST /api/v1/copilot/query`). The annex 12.6 query gets the registered steps verbatim, and its claims and evidence equal those of S1.
+- **Test changes (existing tests, mechanical):** the four unit-test constructions of `AccessDenialHandler` (`test_access_denial_handler.py`, `test_citation_binding_handlers.py`, `test_anti_fabrication.py`, `test_session_service.py`) pass the new required collaborator `runbooks=SimRunbookRegistry(())`. Their assertions are unchanged.
+- **Status:** the NFR-10 template test and the loader rejection tests follow in their own commits.
+- **Reviewer:** Julio.
+
+## I2-49 - Story 3.3 dev closed: decisions taken under the standing pre-approval, the test-scope note and the open audit item  *(AI summary; standing-pre-approval choices marked; Reviewer: Julio)*
+- **Date / phase:** 2026-11-08, end of the dev of story 3-3 (Flow B, one commit per task). Status `review`; the code review is next and no fix is applied before the approval.
+- **Commits:** `9d5a6a0` node-triage domain and S3 rule; `7199ab5` node-triage handler and canonical misses; `72bace1` read route and the ATDD assertion (I2-47); `5f43ae7` access-denial runbook (I2-48); `a466909`/`1db9d6a` NFR-10 test; `ad051c1` loader rules; then this closing commit.
+- **Decisions taken under the standing pre-approval (Reviewer: Julio):**
+  - The S3 triage is a pure check of P1 and P2 before the template lookup, as the contract orders it. Chosen because it is the contract's order.
+  - The node-triage claim cites the node record only. The cordon event is not read. The contract's diagnoser input carries no event record. The story's AC 1 said "and the cordon event"; it is amended.
+  - The NFR-10 test copies the estate to a temporary folder and adds one template file. This avoids changing `fixtures/` for a test.
+  - The loader rules (D44) are tested through `load_estate`. The registry port stays read-only (AD-1), so no 422 comes from a `register` method at runtime.
+- **Open item, not decided:** `GET /api/v1/runbooks/{error_code}` does not emit `toolcall.runbook.get`, which contracts.md `get_runbook` Q3 names. Story 1.5 D2 does not audit session-less reads. The two disagree, so the item is in `deferred-work.md` (section 3-3). This is not an E.6 change and not a standing-pre-approval choice: it is left for the approver.
+- **Test corrections across the story:** `tests/unit/test_intent.py` (two expectations, S3 and the rule list), `tests/atdd/test_story_2_4.py` (approved, I2-47), and the four `AccessDenialHandler` constructions (I2-48, mechanical). No assertion was weakened.
+- **Mutation check:** breaking the cordon/code guard of `runbook_miss` fails 3 tests; breaking the physical-source guard fails 2. Both restored; the tree was clean afterwards.
+- **README:** a section for story 3.3 after the 3.1 section.
+- **Status:** `review` in the story file and both copies of `sprint-status.yaml`.
+- **Reviewer:** Julio. The open audit item was resolved by I2-50.
+
+## I2-50 - Story 3.3: the runbook read is session-less and emits no audit event; contract Q3 aligned with story 1.5 D2  *(contract text aligned with an existing decision, Reviewer: Julio)*
+- **What the AI proposed:** `GET /api/v1/runbooks/{error_code}` takes no session, so it writes nothing and emits no `toolcall` event. `contracts.md` `get_runbook` Q3 said `toolcall.runbook.get`. The contract now says the read is session-less and emits no event, as story 1.5 D2 decided for all session-less reads.
+- **Why:** the contract and story 1.5 D2 disagreed. The route is session-less, so an audit row would have no session to attach to. Julio chose to align the contract with the existing decision.
+- **Deferred item:** removed from `deferred-work.md` (section 3-3).
+- **Reviewer:** Julio.
+
+## I2-51 - Story 3.3 review, finding M-1: a word after "node" that is not an id was taken as a node id  *(finding applied under the standing pre-approval, Reviewer: Julio)*
+- **Finding (medium):** "What about the node is cordoned with code ERR_THERMAL_88?" returned `ENTITY_NOT_FOUND node#is`. The extractor took the next word after "node" as the id. The same happens with "was", "cordoned" and "the". Reproduced on the running app before the fix.
+- **Fix:** the node extractor skips the stop words that follow "node" (the same approach as the group stop words of story 3.1). A question with no node id is now the clarification `the query must name a node and the error code it reports`, and it is never an `ENTITY_NOT_FOUND` on an invented id. Regression cases: four phrasings in `tests/unit/test_runbook.py`.
+- **Reviewer:** Julio.
+
+## I2-52 - Story 3.3 review, finding L-3: no test showed the prose guard on node-triage output  *(test added under the standing pre-approval, Reviewer: Julio)*
+- **Finding (low):** the guard that rejects a fact in the writer's prose (AD-2, AD-8) was tested for the access-denial and window diagnosers, not for node triage.
+- **Fix:** a writer that always states the node id is rejected after one retry, and the turn fails with `LLM_PROSE_REJECTED`, in `tests/unit/test_node_triage_handler.py`. No production code changed.
+- **Reviewer:** Julio.
+
+## I2-53 - Story 3.3 closed: inline review, mutation check, E.3 regression result and status done  *(AI summary; standing-pre-approval choices marked; Reviewer: Julio)*
+- **Review:** inline (no subagents). Findings and their fixes are in the story file, section Review Findings. M-1 (a word after "node" taken as an id) is fixed in `c417448` (I2-51). L-3 (no prose-guard test for node triage) is fixed in `c8ef1e8` (I2-52). L-2 (latency evidence for AC 10) is recorded in `607b740`. All three are applied under the standing pre-approval.
+- **Open, for the approver:** L-1. A non-physical template without an approved source renders `provenance.source = null`. The contract allows this; AC 1 speaks of an approved-source line. Changing it would change the scope of `RUNBOOK_TEMPLATE_UNSOURCED`, a contract change, so it was not applied. The shipped templates both have a source.
+- **E.3 regression, read-only (six queries, TestClient):** queries 1, 2, 4 and 6 give the expected diagnosis (query 4 and 6 with 5 runbook steps). Query 3 gives `ENTITY_NOT_FOUND user#ghost_user_99`. Query 5 does not match the guide: `delete all pending jobs for cs201` gives `ENTITY_NOT_FOUND group#cs201` at the story base commit too (`cs201` is not in the estate, I2-18). The refusal literal holds for `Terminate all active jobs for CS-101` and `delete all pending jobs for group 4`. The guide's expectation for query 5 needs correcting; no code changed.
+- **Mutation check:** breaking the cordon/code guard of `runbook_miss` fails 3 tests; breaking the physical-source guard fails 2. Both restored, tree clean.
+- **Suite:** 2155 passed, branch coverage 97.53 %, saved to `docs/evidence/impl2/flow-b-3-3-review-coverage.log`.
+- **Status:** `done` in the story file and both sprint-status copies.
+- **Reviewer:** Julio. Julio accepted L-1 as a known limitation, listed in the walkthrough (section 10).
+
+## I2-54 - Story 1.7 scope: two E2E tests (Annex 12.6 scenario and one failure path), the other §6.3.7 cases declared out of scope  *(scope decided by the approver; Reviewer: Julio)*
+- **What the AI proposed:** the story file for 1-7 implements the full §6.3.7 list (10 cases) under Flow E.
+- **What the user decided:** only two E2E tests: (1) the Annex 12.6 scenario and (2) one failure path with a visible error state. The other cases of `test/test-design.md` §6.3.7 are declared out of scope in the story file. The failure path is `Student Zed was denied model deepseek-coder. Diagnose and provide runbook.`, which the API answers with `ENTITY_NOT_FOUND` (no provider fault switch needed, TG-I2-6 stays open).
+- **Effect:** the story Scope section lists every out-of-scope case. UX-DR8 is declared a gap for optional 1-8.
+- **Reviewer:** Julio.
+
+## I2-55 - Story 1.7: the badge rule id is derived in the console with the story 1-6 pattern, mirrored and pinned by the E2E  *(standing pre-approval choice; Reviewer: Julio)*
+- **Options:** (a) a new DTO field carrying the rule id (contract change, E.6 stop); (b) the console re-extracts it from the policy evidence snippet with the fixed pattern of `rule_of_clause` (story 1-6); (c) the API returns the badge text.
+- **Chosen:** (b). It matches D-P3 (no DTO change, the rule id comes from the snippet). The console mirrors the regex in `console/src/ruleOfClause.ts`; the E2E asserts the exact badge text, so drift fails the spec. Option (c) would move display text into the backend for a single console.
+- **Reviewer:** Julio.
+
+## I2-56 - Story 1.7 closed: review findings M-1 and L-1 fixed, mutation of the badge killed, full suite green, status done  *(AI summary; review fixes under the standing pre-approval; Reviewer: Julio)*
+- **What the AI proposed:** the console (Vite, React 19, strict TypeScript), a single route `/helpdesk/copilot`, a synchronous request with a pending state, the badge derived from the policy evidence with the story 1-6 pattern, the runbook card rendered verbatim as an ordered list, copy with a success mark, and a visible error state. Two E2E tests (I2-54).
+- **Correction to the AI's first version (review M-1):** the answer guard checked only the answer id and the evidence array. A malformed 200 body would have crashed the render instead of showing the error state. The guard now checks the claims and each evidence item (`b36c676`).
+- **Review fix (L-1):** the spec read the template by a path relative to the working directory. It now resolves from its own folder (`224ba7f`). Only the path changed; no assertion was edited.
+- **Mutation check:** the badge text was changed to `Verified via Policy Engine (${rule})`. The Annex test failed on the badge and the failure-path test passed, as it should. Restored; `git diff` clean. Log `docs/evidence/impl2/mutation-1-7-badge.log`.
+- **Live run:** Playwright 3 passed with `--trace on --fail-on-flaky-tests` (`e2e-1-7.log`). Pytest 2155 passed, branch coverage 97.53 % (`flow-e-1-7-review-coverage.log`). Ruff and the schema check pass.
+- **Declared gaps:** UX-DR8 (alertdialog, `Esc`, delegation labels) is not covered by 1-7; it belongs to optional 1-8. The pending state is not asserted by the E2E (a fast local answer may never show it). The held-response case is out of scope.
+- **Banned-wait grep:** `src`, `tests` and `console` contain no call sites. The grep still prints four prose hits (READMEs and a k6 comment that state the rule). They are outside 1-7 and were left as they are.
+- **Status:** `done` in the story file and both `sprint-status.yaml` copies (identical).
+- **Reviewer:** Julio.
+
+## I2-57 - Impl-2 scope: FR-06 and the optional stories are outside the Annex minimum; the gate oracle follows that scope  *(scope decision under the standing pre-approval; Reviewer: Julio)*
+- **Date / phase:** 2026-11-08, traceability (bmad-testarch-trace) before the final walkthrough.
+- **What the AI proposed:** declare optional stories 3-2, 3-4, 4-3 and 1-8 out of scope (D-P2). FR-06 is then outside the Annex minimum, and so are the parts of FR-01 and FR-02 that depend on 3-4, the part of FR-16 that depends on 4-3, and the console surfaces of FR-09 to FR-12 that belong to 1-8. The gate oracle counts the 26 requirements that remain. FR-06 is excluded from the P0 set. Its EC guard (R-01) stays covered by story 4-1.
+- **Why it matters for the verdict:** counting FR-06 as P0 would make P0 7 of 8 (87.5 %), which the gate rules score as FAIL. The matrix states this sensitivity in its header. The decision is recorded here so it can be challenged.
+- **What the user decided:** the scope is fixed in the standing pre-approval (D-P2, optional stories out of scope, story 1-7 covering two E2E tests by a time cut). The AI chose the reading that keeps FR-06 out of the gate oracle, because the retrospective diagnosis is not built.
+- **Result:** `gate_status: CONCERNS` in `test/traceability-matrix.md` (P0 7 of 7, overall 23 of 26, P1 16 of 19). The open items are NFR-1, NFR-7 and NFR-9.
+- **Reviewer:** Julio. Julio confirmed the scope in session.
+
+## I2-58 - Final hardening: the banned-wait prose is reworded, and ParallelReads requires its recorder (story 1.6 deferred item)  *(decision under the standing pre-approval; Reviewer: Julio)*
+- **Date / phase:** 2026-11-08, final sprint, steps 0 and 1.
+- **What the AI proposed:** (a) reword the four prose mentions of the banned waits in `tests/README.md`, `tests/e2e/pages/README.md` and `tests/nfr/smoke.js` so the grep over `src tests console` prints nothing, keeping the meaning (commit `98d2914`); (b) make `recorder` a required keyword of `ParallelReads`, and make `reads` a required argument of `EvidenceAssembler` as well, because its default built a `ParallelReads()` with no recorder (commit `cafd942`). The deferred item of story 1.6 is removed from `deferred-work.md`.
+- **Why required, not a default:** a fan-out without its recorder drops the reads' audit rows silently (the hazard recorded in I2-40). The default existed only so unit doubles construct, so each double now passes an explicit `ToolCallRecorder`.
+- **What changed in the test suite:** six unit files get an explicit recorder, and `tests/unit/test_parallel_reads.py::test_a_fan_out_cannot_be_built_without_its_recorder` pins the required argument (`TypeError`). The unit, integration, API and ATDD suites pass: 2153 before the final full run.
+- **Result:** `make cov`, ruff and the schema check are green. The banned-wait grep prints nothing.
+- **Reviewer:** Julio.
+
+## I2-59 - Correction (tool use): a broad `ruff format` rewrote 25 files, including the verbatim DTO copy  *(AI mistake caught by the test suite and reverted)*
+- **What the AI did:** it ran `ruff format src tests` and `ruff check --fix src tests` over the whole tree. That reformatted 25 files that were not part of the change: `src/dto.py` (a verbatim copy of the contract, so the reformat broke `tests/unit/test_dto_contract.py::test_dto_module_is_a_verbatim_copy_of_the_contract`), `tests/README.md` (ruff formats the Python snippet inside Markdown), and several support files.
+- **What was corrected:** every file outside the intended set was restored with `git checkout`, and the intended diff was reviewed file by file before the commit. The test that failed on `src/dto.py` was the signal. The formatter was then run only on the touched files.
+- **Lesson written down:** format only the files a change touches; never run a whole-tree formatter over a repository that has verbatim copies of a contract.
+- **Reviewer:** Julio.
+
+## I2-60 - NFR audit run inline, without subagents, and a citation error corrected before the commit  *(AI summary; Reviewer: Julio)*
+- **Prompt (intent):** regenerate `test/nfr-evidence.md` with the `bmad-testarch-nfr` skill over the five dimensions of task-impl2 §2 item 4, with no subagents.
+- **What the AI did:** the skill's evaluation steps `04a` to `04d` delegate to subagents, which the standing rules exclude. The same checks were run inline against the files: the k6 JSON exports (p95 300.66 ms and 307.93 ms, p99 368.52 ms and 367.08 ms, 0 failed of 1000), the test names found by grep, and the Playwright log. Each cited path and each test name was checked to exist before the commit (`0256f8a`).
+- **Correction (citation):** the first draft cited I2-03 to I2-05 for the 60 s token lifetime. Those entries are about dispatch, concurrency and evaluation order. The reference was changed to the Annex adaptation in `docs/impl2-rules.md`, and the throughput citation to I2-35 and I2-39, before the commit.
+- **Gap left open, not filled:** the CI rows of the k6 table and the E2E table are pending the push.
+- **Reviewer:** Julio.
+
+## I2-61 - Traceability gate computed from the rules: CONCERNS, with FAIL as the sensitivity case  *(gate decision computed by the rules of the skill; scope from I2-57; Reviewer: Julio)*
+- **What the AI proposed:** compute the gate from the skill's rules, not pick a verdict. The oracle is the 26 requirements that remain after the scope of I2-57. P0 is the release-blocker set of `test/test-design.md` §1.3 (R-01, R-02, R-03, R-05) mapped to requirements, which gives 7 requirements. P1 is the other 19.
+- **Counting rule:** a requirement is COVERED only if a green test links to it and its stated thresholds are evidenced here. PARTIAL counts as not covered: NFR-1 (the 20-query corpus does not exist), NFR-7 (no 8-hour window, no cold-start time), NFR-9 (no human study).
+- **Result:** P0 7 of 7 (100 %), overall 23 of 26 (88.5 %), P1 16 of 19 (84.2 %). The rules give CONCERNS. The live-evidence rule does not apply, because no live manifest exists.
+- **Sensitivity, stated in the matrix:** if FR-06 were counted as P0, P0 would be 7 of 8 (87.5 %) and the rules would give FAIL. The run was not stopped, because the FR-06 exclusion follows the declared scope. The reviewer should confirm that reading.
+- **Reviewer:** Julio.
+
+## I2-62 - Walkthrough and README: two text claims corrected before the commit, and the one-command gate run  *(AI summary and correction (text); Reviewer: Julio)*
+- **What the AI proposed:** replace the "Work in progress" stub of `walkthrough-impl2.md` with the complete report (hardening, the three Annex stories, red-phase logs with their commit order, the k6 table, the E2E run, the pyramid against 70/20/10, the Annex table, limits and the L-1 finding). Add a Linux "Verify" section to `README.md` and point it at the decision log and the walkthrough.
+- **Correction (text):** the first draft had three claims that the files did not support. The sum for integration, API and ATDD (30.9 %) was 31.1 %. The sentence that the pyramid deviation was recorded in `test/test-design.md` §6 was removed, because that file says nothing about it. A test name cited for P5 was changed to the one that really covers a conflicting token (`tests/atdd/test_story_2_3.py`). Every path in the walkthrough and the README was checked with a script.
+- **Verification:** `make ci PY=.venv/bin/python` exits 0 on this commit. Its last line is the Makefile's echo `TEA gate PASS`, which only says the local recipes passed. The traceability verdict is in `test/traceability-matrix.md`.
+- **Reviewer:** Julio.
+
+## I2-63 - NFR-1 corpus, cold-start check, and two waivers (8-hour availability, human usability)  *(decision and waivers; Reviewer: Julio)*
+- **Prompt (intent):** close the gate gaps honestly: a 20-query accuracy corpus for NFR-1, a cold-start check for NFR-7, and recorded waivers for the parts that cannot be measured here.
+- **NFR-1 corpus (`tests/api/test_nfr1_accuracy_corpus.py`):** 20 queries, paraphrases and variants of S1, S2, S3, the ghost_user_99 edge case, the Annex 12.6 query and the destructive refusal. Each expectation comes from the Annex scenario and its fixture, not from the output. Result: **17 / 20 = 85 %**, below the 90 % threshold. The three misses are real app behaviour and stay in the corpus: `why cant group 4 run their fine-tuning job now`, `ws-gpu-11 cordoned ERR_THERMAL_88, what do I do?` and `What should I do about node ws-gpu-11 cordoned with ERR_THERMAL_88?` all answer `CLARIFICATION_REQUIRED`. The accuracy test is red on purpose and is not relaxed.
+- **Harness correction (AI-written code):** the first run of the corpus read the runbook from the wrong key and scored the Annex 12.6 query as a miss. It reads `recommendation.runbook`, which is where the app puts it. The app was right; the harness was wrong. Fixed before the commit; no expectation changed.
+- **Cold start (`tests/nfr/cold_start.py`, log `docs/evidence/impl2/nfr7-cold-start.log`):** uvicorn started as in `playwright.config.ts`, `M12_DB_PATH=:memory:`. The first 200 on `/healthz` came at **0.54 s**, budget 60 s, PASS. The probe uses a bounded deadline and an Event wait, with no `sleep`.
+- **Waivers (recorded in `test/traceability-matrix.md` section 8):** NFR-7 8-hour window at 99 %, and NFR-9 human study. Neither can be measured in the repository. The waivers are logged here with the reason. The rules do not count them, so the verdict does not change because of them.
+- **Reviewer:** Julio.
+
+## I2-64 - Classifier miss found by the NFR-1 corpus: "cant", a node id without "node", and "cordoned with <code>" word order  *(classifier miss, fixed under the approver's option 3; Reviewer: Julio)*
+- **Found by:** the 20-query corpus (`tests/api/test_nfr1_accuracy_corpus.py`, I2-63). The first run scored 17 / 20. The three misses were `why cant group 4 run their fine-tuning job now`, `ws-gpu-11 cordoned ERR_THERMAL_88, what do I do?` and `What should I do about node ws-gpu-11 cordoned with ERR_THERMAL_88?`. All three got `CLARIFICATION_REQUIRED`.
+- **Decision (approver's option 3):** fix the classifier now, as part of story 3.3's intent routing. Do not lower the 90 % threshold and do not edit the corpus expectations. The smallest change was chosen:
+  - `src/domain/intent.py`: the schedule rule accepts `can'?t` (so `cant` routes); a new node rule `\bcordoned\b.*\berr_\w+` routes a cordon with an error code that has no word "node" and no word "code".
+  - `src/domain/references.py`: a fallback for the node id `ws-…` and for the code `err_…`, tried only when the word form ("node", "code") is absent. The word form is read exactly as before.
+- **Scope note:** the approver named only `intent.py`. The corpus also needs the node and code extracted, so the matching fallbacks in `references.py` were the minimum. Stated here so it can be challenged.
+- **Regression cases:** `tests/unit/test_node_triage_intent.py` (three phrasings route to their intent; a cordoned node with no error code is not a triage), `tests/unit/test_runbook.py` (extraction of the two bare phrasings). Against the old code, 5 of the new cases fail.
+- **Golden and suite:** the six golden byte-identity tests (`tests/api/golden`) pass. The full suite: 2164 passed, branch coverage 97.59 %. Log `docs/evidence/impl2/final-pytest-classifier-fix.log`.
+- **Result:** corpus 20 / 20 = 100 %. The fix is commit `66084c4`. The trace rerun gives CONCERNS (P0 7 / 7, overall 24 / 26, P1 17 / 19 = 89.5 %). Commit `ded770c`.
+- **Reviewer:** Julio.

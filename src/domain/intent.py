@@ -60,15 +60,17 @@ INTENT_RULES: tuple[IntentRule, ...] = (
             _rx(r"\bwhy\b.*\b(?:can't|cannot|can not|unable to|not allowed to)\b.*\baccess\b"),
             # "alex was denied access to deepseek-coder"
             _rx(r"\b(?:denied|blocked|refused)\b.*\baccess\b"),
+            # "alex was denied deepseek-coder. diagnose and provide runbook" (annex 12.6)
+            _rx(r"\b(?:denied|blocked|refused)\b.*\bdiagnose\b"),
         ),
     ),
     IntentRule(
         intent_code="diagnose_schedule_window",
         rule_id="RULE-INTENT-SCHEDULE-WINDOW",
         patterns=(
-            # "why can't group 4 run their fine-tuning job right now"
+            # "why can't group 4 run their fine-tuning job right now" (and "cant" without it)
             _rx(
-                r"\bwhy\b.*\b(?:can't|cannot|can not|won't|unable to|not able to"
+                r"\bwhy\b.*\b(?:can'?t|cannot|can not|won't|unable to|not able to"
                 r"|(?:isn't|is not|aren't)\b.*\bable to)\b.*\b(?:run|start|launch|execute)\b"
             ),
             # "why is group 4's job pending / not running / waiting"
@@ -78,6 +80,17 @@ INTENT_RULES: tuple[IntentRule, ...] = (
             # "when can group 4 run their job" / "when does the next window open"
             _rx(r"\bwhen\b.*\b(?:can|will|could)\b.*\b(?:run|start|launch)\b"),
             _rx(r"\bwhen\b.*\bnext\b.*\bwindow\b"),
+        ),
+    ),
+    IntentRule(
+        intent_code="diagnose_node_triage",
+        rule_id="RULE-INTENT-NODE-TRIAGE",
+        patterns=(
+            # "node ws-gpu-11 is cordoned with code ERR_THERMAL_88. what should i do?" (S3)
+            _rx(r"\bnode\b.*\bcordoned\b.*\bcode\b"),
+            # "ws-gpu-11 cordoned err_thermal_88, what do i do?": the node has no word "node", and
+            # the code follows "cordoned with" without the word "code"
+            _rx(r"\bcordoned\b.*\berr_\w+"),
         ),
     ),
 )

@@ -35,6 +35,7 @@ from src.ports.outbound import (
 )
 
 P = TypeVar("P")
+T = TypeVar("T")
 
 # D3: the provider ports whose calls are tool calls. Clock, idgen, prose and stores are not.
 TOOL_PORT_NAMES: dict[type, str] = {
@@ -65,8 +66,9 @@ class RecordedCall:
 class ToolCallRecorder:
     """The calls of the active turn, in call order.
 
-    Forward constraint for story 1-6: a parallel fan-out appends in completion order, so
-    ``ParallelReads`` must reserve the slots in argument order before the gather (D-2.1/2.3).
+    A parallel fan-out (story 1.6) records each read into its own lane, reserved in argument
+    order before the gather, and settles the lanes into the turn in that order afterwards, so
+    completion order never reaches the audit (review D-2.1, D-2.3).
     """
 
     def __init__(self) -> None:
@@ -88,6 +90,29 @@ class ToolCallRecorder:
         calls = self._calls.get()
         if calls is not None:
             calls.append(call)
+
+    def within(self, lane: list[RecordedCall], read: Callable[[], T]) -> Callable[[], T]:
+        """``read``, with its recorded calls going to ``lane``.
+
+        The lane is set in the worker thread's own copy of the context (``asyncio.to_thread``
+        copies it), so no other read in the fan-out sees it.
+        """
+
+        def run() -> T:
+            token = self._calls.set(lane)  # pool threads are reused: reset when the read ends
+            try:
+                return read()
+            finally:
+                self._calls.reset(token)
+
+        return run
+
+    def settle(self, lanes: list[list[RecordedCall]]) -> None:
+        """Append the lanes to the active turn, in argument order; a no-op without a turn."""
+        calls = self._calls.get()
+        if calls is not None:
+            for lane in lanes:
+                calls.extend(lane)
 
 
 def _dump(value: Any) -> Any:

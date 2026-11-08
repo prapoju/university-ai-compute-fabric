@@ -1,7 +1,7 @@
 // k6 smoke: the liveness probe holds a small steady load.
 // Run: k6 run tests/nfr/smoke.js   (BASE_URL defaults to http://127.0.0.1:8000; see `make nfr`)
 //
-// No sleep(): the constant-arrival-rate executor paces the load (docs/impl2-rules.md).
+// No fixed pauses: the constant-arrival-rate executor paces the load (docs/impl2-rules.md).
 import http from 'k6/http';
 import { check } from 'k6';
 

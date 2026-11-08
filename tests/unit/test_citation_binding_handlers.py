@@ -14,13 +14,16 @@ import pytest
 from src.adapters.outbound.db.migrate import apply_migrations
 from src.adapters.outbound.db.session_store import SqliteSessionStore
 from src.adapters.outbound.db.sqlite_writer import SqliteWriter
+from src.adapters.outbound.sim.fixtures_adapter import SimRunbookRegistry
 from src.adapters.outbound.sim.idgen_adapter import SimIdGen
 from src.adapters.outbound.sim.prose_adapter import SimProse
 from src.application import access_denial_handler, window_diagnosis_handler
 from src.application.access_denial_handler import AccessDenialHandler
 from src.application.entity_resolver import EntityResolver
 from src.application.evidence_assembler import EvidenceAssembler
+from src.application.parallel_reads import ParallelReads
 from src.application.pipeline import TurnInput
+from src.application.tool_audit import ToolCallRecorder
 from src.application.window_diagnosis_handler import WindowDiagnosisHandler
 from src.config import PROJECT_ROOT
 from src.domain import canonical_strings as cs
@@ -63,9 +66,14 @@ def bend(monkeypatch, module, name: str, how) -> None:
 def access_denial(providers, prose: SimProse, idgen: SimIdGen) -> AccessDenialHandler:
     return AccessDenialHandler(
         resolver=EntityResolver(users=providers.users, catalog=providers.catalog),
-        assembler=EvidenceAssembler(policy=providers.policy, events=providers.event_store),
+        assembler=EvidenceAssembler(
+            policy=providers.policy,
+            events=providers.event_store,
+            reads=ParallelReads(recorder=ToolCallRecorder()),
+        ),
         prose=prose,
         idgen=idgen,
+        runbooks=SimRunbookRegistry(()),
     )
 
 

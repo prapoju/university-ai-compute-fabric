@@ -12,14 +12,16 @@ from dataclasses import dataclass
 
 import pytest
 
-from src.adapters.outbound.sim.fixtures_adapter import SimCatalog, SimUsers
+from src.adapters.outbound.sim.fixtures_adapter import SimCatalog, SimRunbookRegistry, SimUsers
 from src.adapters.outbound.sim.idgen_adapter import SimIdGen
 from src.adapters.outbound.sim.prose_adapter import SimProse
 from src.adapters.outbound.sim.record_store import RecordStore
 from src.application.access_denial_handler import AccessDenialHandler
 from src.application.entity_resolver import EntityResolver
 from src.application.evidence_assembler import EvidenceAssembler
+from src.application.parallel_reads import ParallelReads
 from src.application.pipeline import TurnInput, TurnOutput
+from src.application.tool_audit import ToolCallRecorder
 from src.config import PROJECT_ROOT
 from src.domain import canonical_strings as cs
 from src.domain.intent import FOLLOW_UP_RULE_ID, Routed, classify
@@ -49,10 +51,13 @@ def make_rig(providers, *, users=None, catalog=None, events=None, idgen=None) ->
             users=users or providers.users, catalog=catalog or providers.catalog
         ),
         assembler=EvidenceAssembler(
-            policy=providers.policy, events=events or providers.event_store
+            policy=providers.policy,
+            events=events or providers.event_store,
+            reads=ParallelReads(recorder=ToolCallRecorder()),
         ),
         prose=prose,
         idgen=idgen or SimIdGen(),
+        runbooks=SimRunbookRegistry(()),
     )
     return Rig(handler, prose, providers)
 

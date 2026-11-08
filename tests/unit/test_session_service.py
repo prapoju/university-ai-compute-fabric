@@ -17,13 +17,14 @@ from src.adapters.outbound.db.migrate import apply_migrations
 from src.adapters.outbound.db.session_store import SqliteSessionStore
 from src.adapters.outbound.db.sqlite_writer import SqliteWriter
 from src.adapters.outbound.sim.clock_adapter import SimClock
-from src.adapters.outbound.sim.fixtures_adapter import SimProviders
+from src.adapters.outbound.sim.fixtures_adapter import SimProviders, SimRunbookRegistry
 from src.adapters.outbound.sim.idgen_adapter import SimIdGen
 from src.adapters.outbound.sim.prose_adapter import SimProse
 from src.application.access_denial_handler import AccessDenialHandler
 from src.application.audit_writer import AuditWriter
 from src.application.entity_resolver import EntityResolver
 from src.application.evidence_assembler import EvidenceAssembler
+from src.application.parallel_reads import ParallelReads
 from src.application.pipeline import AnswerPipeline, TurnOutput
 from src.application.session_service import SessionService
 from src.application.tool_audit import TOOL_PORT_NAMES, ToolCallRecorder, audited
@@ -619,9 +620,14 @@ def audited_rig(database: str = ":memory:", *, users: UsersPort | None = None) -
         "diagnose_access_denial",
         AccessDenialHandler(
             resolver=EntityResolver(users=ports[UsersPort], catalog=ports[CatalogPort]),
-            assembler=EvidenceAssembler(policy=ports[PolicyPort], events=ports[EventStorePort]),
+            assembler=EvidenceAssembler(
+                policy=ports[PolicyPort],
+                events=ports[EventStorePort],
+                reads=ParallelReads(recorder=rig.recorder),
+            ),
             prose=SimProse(),
             idgen=rig.idgen,
+            runbooks=SimRunbookRegistry(()),
         ),
     )
     return rig
