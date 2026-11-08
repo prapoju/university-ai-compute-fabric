@@ -1407,3 +1407,12 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 - **Finding (low):** the guard that rejects a fact in the writer's prose (AD-2, AD-8) was tested for the access-denial and window diagnosers, not for node triage.
 - **Fix:** a writer that always states the node id is rejected after one retry, and the turn fails with `LLM_PROSE_REJECTED`, in `tests/unit/test_node_triage_handler.py`. No production code changed.
 - **Reviewer:** Julio (standing pre-approval).
+
+## I2-53 - Story 3.3 closed: inline review, mutation check, E.3 regression result and status done  *(AI summary; standing-pre-approval choices marked; Reviewer: Julio)*
+- **Review:** inline (no subagents). Findings and their fixes are in the story file, section Review Findings. M-1 (a word after "node" taken as an id) is fixed in `c417448` (I2-51). L-3 (no prose-guard test for node triage) is fixed in `c8ef1e8` (I2-52). L-2 (latency evidence for AC 10) is recorded in `607b740`. All three are applied under the standing pre-approval.
+- **Open, for the approver:** L-1. A non-physical template without an approved source renders `provenance.source = null`. The contract allows this; AC 1 speaks of an approved-source line. Changing it would change the scope of `RUNBOOK_TEMPLATE_UNSOURCED`, a contract change, so it was not applied. The shipped templates both have a source.
+- **E.3 regression, read-only (six queries, TestClient):** queries 1, 2, 4 and 6 give the expected diagnosis (query 4 and 6 with 5 runbook steps). Query 3 gives `ENTITY_NOT_FOUND user#ghost_user_99`. Query 5 does not match the guide: `delete all pending jobs for cs201` gives `ENTITY_NOT_FOUND group#cs201` at the story base commit too (`cs201` is not in the estate, I2-18). The refusal literal holds for `Terminate all active jobs for CS-101` and `delete all pending jobs for group 4`. The guide's expectation for query 5 needs correcting; no code changed.
+- **Mutation check:** breaking the cordon/code guard of `runbook_miss` fails 3 tests; breaking the physical-source guard fails 2. Both restored, tree clean.
+- **Suite:** 2155 passed, branch coverage 97.53 %, saved to `docs/evidence/impl2/flow-b-3-3-review-coverage.log`.
+- **Status:** `done` in the story file and both sprint-status copies.
+- **Reviewer:** Julio (standing pre-approval for the review fixes; L-1 waits for the approver).
