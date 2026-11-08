@@ -1318,3 +1318,14 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 - **What was missing:** the test-design row "one tool raises / all tools raise" (6.3.5) was covered only for the policy read.
 - **What the AI added:** two cases. An events read that raises alone gives a typed 503. Both reads raising give one typed 503 with the same code. Both pass on the current code, so they are regression guards on the new fan-out, not red-phase cases.
 - **Reviewer:** Julio.
+
+## I2-43 - Story 1.6 trap audit: test corrections from the mutation check (ATDD edits, unit tests in their own commits)  *(AI-written tests corrected, user approved, Reviewer: Julio)*
+- **Date / phase:** 2026-11-08, after the trap audit of the story-1.6 tests and the mutation check of M1 (wait without the budget), M2 (completion-order settle) and M3 (sequential reads).
+- **What the audit found:** three survivors. The tool-call ids test checked only that the ids were consecutive, so a completion-ordered audit passed it. The budget case checked only the status, code and clock count, and its name claimed a budget check. The ordering tests ran under the default 0.5 s wall budget while their gates could wait up to 2 s, so a slow runner could expire the budget first (a flake risk, read from the code, not reproduced).
+- **ATDD edits (this entry):**
+  1. The tool-call ids test also asserts the tool names follow the call order (`S1_TOOL_CALLS`). No assertion was weakened.
+  2. The budget case is renamed to `test_a_fan_out_past_its_budget_checks_status_code_and_clock_count`, so its name says what it checks.
+  3. The six ordering tests set an explicit 5 s budget, so the budget cannot expire while the gates order the reads.
+- **Unit-test changes, in their own commits (not ATDD):** the two ordering unit tests set a 5 s budget and assert the gate opened; a new unit test asserts that the recorded calls settle in argument order when the second read finishes first.
+- **Known limit, recorded:** the ATDD test for the 50 operators still runs under the default budget, and it is not an ordering test. The red-phase evidence file `docs/evidence/impl2/red-1-6.log` still shows the old name of the budget case. It is evidence and is not edited.
+- **Reviewer:** Julio.
