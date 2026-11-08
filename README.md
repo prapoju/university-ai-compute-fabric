@@ -96,6 +96,17 @@ returned as `recommendation.next_open_window` (`{start, end, timezone}`, contrac
 not blocked), an unknown group is `ENTITY_NOT_FOUND`, and a
 failed clock read is a `503 CLOCK_UNAVAILABLE` (a window is never invented).
 
+### Node triage and runbooks (story 3.3, annex 12.6)
+
+`Node ws-gpu-11 is cordoned with code ERR_THERMAL_88. What should I do?` checks that the node is cordoned and reports
+that code, then answers `node_triage_runbook` with the registered steps of `ERR_THERMAL_88` copied in order, the
+required tools, the safety warning and the provenance (`Lab Safety SOP-THERM-01`, version `1.0`). A node that is not
+cordoned, reports another code, or has no template gets the literal `no runbook available for code {code}.` and no
+steps. `GET /api/v1/runbooks/{error_code}` returns the steps and provenance of an exact code (404 when unregistered).
+The annex 12.6 question `Student Alex was denied model deepseek-coder. Diagnose and provide runbook.` gets the access-denial
+diagnosis with the `access_denial_not_in_allowlist` runbook. The runbook is attached only when the query asks for one.
+Templates are files in `fixtures/runbooks/`; a new one needs no code change.
+
 ### No invented entities (story 4.1)
 
 Anything the query names that is not in state - a user (`ghost_user_99`), a model, a group or a typed

@@ -88,3 +88,4 @@
 ## Deferred from: story 3-3 (runbook registry and node triage, 2026-11-08)
 
 - The diagnosers do not emit their tool-call audit events yet. Contract `diagnose_node_triage` Q3 requires `toolcall.diagnose_node_triage`; story 3.3 does not implement it (decision D-4, approved). Same gap as story 1.3 and story 3.1 (contracts.md Q3). Needs a single recorder hook for all diagnosers, decided on its own.
+- `GET /api/v1/runbooks/{error_code}` does not emit the audit row `toolcall.runbook.get` that contracts.md `get_runbook` Q3 names. The route is session-less, and story 1.5 D2 does not audit session-less reads. The contract and that decision disagree, so it is recorded here (I2-49). Decide whether a session-less read is audited, then either the route or the contract changes.

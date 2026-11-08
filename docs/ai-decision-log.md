@@ -1376,3 +1376,18 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 - **Test changes (existing tests, mechanical):** the four unit-test constructions of `AccessDenialHandler` (`test_access_denial_handler.py`, `test_citation_binding_handlers.py`, `test_anti_fabrication.py`, `test_session_service.py`) pass the new required collaborator `runbooks=SimRunbookRegistry(())`. Their assertions are unchanged.
 - **Status:** the NFR-10 template test and the loader rejection tests follow in their own commits.
 - **Reviewer:** Julio.
+
+## I2-49 - Story 3.3 dev closed: decisions taken under the standing pre-approval, the test-scope note and the open audit item  *(AI summary; standing-pre-approval choices marked; Reviewer: Julio)*
+- **Date / phase:** 2026-11-08, end of the dev of story 3-3 (Flow B, one commit per task). Status `review`; the code review is next and no fix is applied before the approval.
+- **Commits:** `9d5a6a0` node-triage domain and S3 rule; `7199ab5` node-triage handler and canonical misses; `72bace1` read route and the ATDD assertion (I2-47); `5f43ae7` access-denial runbook (I2-48); `a466909`/`1db9d6a` NFR-10 test; `ad051c1` loader rules; then this closing commit.
+- **Decisions taken under the standing pre-approval (Reviewer: Julio, standing pre-approval):**
+  - The S3 triage is a pure check of P1 and P2 before the template lookup, as the contract orders it. Chosen because it is the contract's order.
+  - The node-triage claim cites the node record only. The cordon event is not read. The contract's diagnoser input carries no event record. The story's AC 1 said "and the cordon event"; it is amended.
+  - The NFR-10 test copies the estate to a temporary folder and adds one template file. This avoids changing `fixtures/` for a test.
+  - The loader rules (D44) are tested through `load_estate`. The registry port stays read-only (AD-1), so no 422 comes from a `register` method at runtime.
+- **Open item, not decided:** `GET /api/v1/runbooks/{error_code}` does not emit `toolcall.runbook.get`, which contracts.md `get_runbook` Q3 names. Story 1.5 D2 does not audit session-less reads. The two disagree, so the item is in `deferred-work.md` (section 3-3). This is not an E.6 change and not a standing-pre-approval choice: it is left for the approver.
+- **Test corrections across the story:** `tests/unit/test_intent.py` (two expectations, S3 and the rule list), `tests/atdd/test_story_2_4.py` (approved, I2-47), and the four `AccessDenialHandler` constructions (I2-48, mechanical). No assertion was weakened.
+- **Mutation check:** breaking the cordon/code guard of `runbook_miss` fails 3 tests; breaking the physical-source guard fails 2. Both restored; the tree was clean afterwards.
+- **README:** a section for story 3.3 after the 3.1 section.
+- **Status:** `review` in the story file and both copies of `sprint-status.yaml`.
+- **Reviewer:** Julio (standing pre-approval for the choices above; the open audit item waits for Julio).
