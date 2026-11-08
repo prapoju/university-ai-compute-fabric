@@ -76,7 +76,7 @@ development_status:
   1-5-tool-call-audit-log-and-state-inspection-viewer: done
   1-6-concurrent-multi-tool-diagnostics-under-a-k6-latency-budget: done
   1-7-react-diagnostic-console-with-cited-state-cards-and-runbook-copy: done
-  1-8-inspector-audit-and-safety-console-surfaces: backlog
+  1-8-inspector-audit-and-safety-console-surfaces: backlog  # optional, out of scope for Impl-2 (I2-57)
   epic-1-retrospective: optional
 
   epic-2: done
@@ -88,13 +88,13 @@ development_status:
 
   epic-3: in-progress
   3-1-schedule-and-window-diagnosis: done
-  3-2-retrospective-event-log-diagnosis: backlog
+  3-2-retrospective-event-log-diagnosis: backlog  # optional, out of scope for Impl-2 (I2-57)
   3-3-runbook-registry-and-node-triage-runbook: done
-  3-4-intent-taxonomy-extension-and-session-follow-up-references: backlog
+  3-4-intent-taxonomy-extension-and-session-follow-up-references: backlog  # optional, out of scope for Impl-2 (I2-57)
   epic-3-retrospective: optional
 
   epic-4: in-progress
   4-1-anti-fabrication-guardrail-and-content-data-hygiene-mandatory-edge-case: done
   4-2-safe-failure-on-retrieval-dependencies: done
-  4-3-safe-failure-on-the-prose-runtime-and-malformed-input: backlog
+  4-3-safe-failure-on-the-prose-runtime-and-malformed-input: backlog  # optional, out of scope for Impl-2 (I2-57)
   epic-4-retrospective: optional
