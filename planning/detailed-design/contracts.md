@@ -450,7 +450,7 @@ Shared preamble for every inbound read route unless overridden:
 
 - **Layer:** Inbound Port
 - **Precondition (P):** P1: `error_code` matches `^[A-Za-z0-9._-]{1,64}$` -> violation: `VALIDATION_MALFORMED_BODY` (HTTP 400); P2: a template exists for the exact code -> violation: `RUNBOOK_NOT_FOUND` (HTTP 404 with body `no runbook available for code {error_code}.`, byte-identical to `S_RBX`, D57).
-- **Postcondition (Q):** Q1: HTTP 200 + `{steps, provenance}` as two separate sections (AD-9); Q3: audit `toolcall.runbook.get`.
+- **Postcondition (Q):** Q1: HTTP 200 + `{steps, provenance}` as two separate sections (AD-9); Q3: this is a session-less read and emits no `toolcall` event, as in story 1.5 D2 (session-less reads are not audited); the route therefore writes nothing.
 - **Invariant (I):** inherits `lookup_runbook` `L1–L2`. Bound to: AD-9.
 - **Concurrency / idempotency:** idempotent read.
 - **Time:** none.

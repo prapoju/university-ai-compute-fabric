@@ -1391,3 +1391,9 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 - **README:** a section for story 3.3 after the 3.1 section.
 - **Status:** `review` in the story file and both copies of `sprint-status.yaml`.
 - **Reviewer:** Julio (standing pre-approval for the choices above; the open audit item waits for Julio).
+
+## I2-50 - Story 3.3: the runbook read is session-less and emits no audit event; contract Q3 aligned with story 1.5 D2  *(contract text aligned with an existing decision, Reviewer: Julio)*
+- **What the AI proposed:** `GET /api/v1/runbooks/{error_code}` takes no session, so it writes nothing and emits no `toolcall` event. `contracts.md` `get_runbook` Q3 said `toolcall.runbook.get`. The contract now says the read is session-less and emits no event, as story 1.5 D2 decided for all session-less reads.
+- **Why:** the contract and story 1.5 D2 disagreed. The route is session-less, so an audit row would have no session to attach to. Julio chose to align the contract with the existing decision.
+- **Deferred item:** removed from `deferred-work.md` (section 3-3).
+- **Reviewer:** Julio.
