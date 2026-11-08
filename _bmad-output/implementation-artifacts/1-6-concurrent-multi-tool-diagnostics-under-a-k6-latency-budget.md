@@ -21,8 +21,10 @@ Source: `planning/epics.md` Story 1.6. Requirements: FR-04, FR-13, NFR-3, NFR-5,
 3. **k6 at 50 operators.** Given 50 concurrent operators each sending `Why was student Alex denied access to model deepseek-coder?`, when k6 runs `tests/nfr/copilot-load.js`, then 100% of responses are HTTP 200 and cite `RULE-CAT-04`, `policy#catalog.4.2` and catalog entry `deepseek-coder` (100% cited accuracy, NFR-3), the measured p95 latency is strictly < 800 ms including queued single-writer latency (R1), and the run records 0 unhandled tool-timeout exceptions.
 
 4. **Scope of the 800 ms budget.** The budget is measured with the deterministic fake prose adapter on one uvicorn worker. It is a story-level budget. NFR-6 (≥ 5 sessions) and the NFR-5 real-LLM budget (p95 ≤ 3 s) are unchanged and reported as a separate lane (Annex 12.5 adaptation, recorded in the decision log of this increment).
+   - **Met** (k6 run, dev step): in-memory p95 371.26 ms (p99 435.84 ms), file DB p95 401.75 ms (p99 509.63 ms), 0% HTTP errors (0/1000), checks 100% (4000/4000), server tracebacks 0 in both runs. Evidence: `docs/evidence/impl2/k6-12-5.json`, `docs/evidence/impl2/k6-12-5.log`, `docs/evidence/impl2/k6-12-5-filedb.json`, `docs/evidence/impl2/k6-12-5-filedb.log`. Thresholds unchanged. The CI run has its own result, recorded separately.
 
 5. **Evidence archived.** The k6 summary (p95, p99, error rate) is saved to `docs/evidence/impl2/k6-12-5.json` by `k6 run --summary-export`, never hand-edited.
+   - **Met:** both summaries are saved, and p99 is reported through the `--summary-trend-stats` flag, not the script. The four evidence files are listed under AC 3.
 
 ## Tasks / Subtasks
 
