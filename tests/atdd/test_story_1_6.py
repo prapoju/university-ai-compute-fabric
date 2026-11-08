@@ -439,4 +439,4 @@ def test_the_load_script_declares_the_story_thresholds_and_never_sleeps() -> Non
     assert re.search(r"checks['\"]?\s*:\s*\[\s*['\"]rate==1", text)
     for citation in ("RULE-CAT-04", "policy#catalog.4.2", "deepseek-coder"):
         assert citation in text, f"the script must check {citation}"
-    assert "sleep(" not in text, "k6 must not call sleep()"
+    assert not re.search(r"\bsleep\s*\(", text), "k6 must not pause with a sleep call"

@@ -1280,3 +1280,11 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 - **What the user decided:** approved with that change. Not a plain deletion. Own commit, with this entry.
 - **Evidence the bodies are unchanged:** six regression queries (S1, S2, ghost, S3, 12.6 and the delete) were run on HEAD production code and on the change, and the JSON bodies are byte-identical.
 - **Reviewer:** Julio.
+
+## I2-38 - Story 1.6: the sleep check of the ATDD file tripped the CI banned-waits scan  *(AI-written test corrected, user approved, Reviewer: Julio)*
+- **Date / phase:** 2026-11-08, after the first k6 run of story 1.6 (Flow D), before the first push of the branch.
+- **What was wrong:** the ATDD case that checks the k6 script for `sleep(` used a plain substring test. The CI banned-waits job scans the repository with a regex. The regex matched the case's own text, so CI would have failed on the ATDD file.
+- **What the AI proposed:** replace the substring test with `re.search(r"\bsleep\s*\(", text)`, which is stricter (it also catches `sleep (` with a space). The assertion message was reworded so that it does not contain `sleep(` as a literal, because the scan also matched the message text. The approved wording was `k6 must not call sleep()`.
+- **What the user decided:** the regex change approved. The message change was made to pass the scan, and it is recorded here so the change is visible.
+- **Check run:** the CI banned-waits pattern, run locally on `src` and `tests`, returns nothing. The ATDD file still passes (12 cases).
+- **Reviewer:** Julio.
