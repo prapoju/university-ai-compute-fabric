@@ -426,6 +426,16 @@ class ProposalDTO(_DTO):
     executor_result: Optional[ExecutorResultDTO] = None
 
 
+class ChatRefusalResponse(_DTO):
+    """The Annex 12.4 chat reply to a refused destructive request (story 2.2, D1)."""
+
+    refusal: ErrorBody  # the canonical ``Action refused.``
+    impact_summary: str
+    proposal: ProposalDTO  # state ``dry_run``
+    token_expires_at: Instant
+    confirmation_enabled: bool
+
+
 class ExecutorRequestDTO(_DTO):
     """Frozen executor contract payload (AD-15)."""
 

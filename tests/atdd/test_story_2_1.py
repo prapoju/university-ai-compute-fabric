@@ -85,16 +85,24 @@ def proposals(client: TestClient) -> int:
         return db.execute("SELECT count(*) FROM proposals").fetchone()[0]
 
 
-def assert_refused(client: TestClient, response, before: dict) -> None:
-    """The refusal envelope and everything that must not have happened (AC 1, 8)."""
+def assert_refused(client: TestClient, response, before: dict, *, chat: bool = False) -> None:
+    """The refusal envelope and everything that must not have happened (AC 1, 8).
+
+    ``chat``: since story 2.2 (I2-22) ``/copilot/chat`` answers the refusal nested under ``refusal``
+    next to its dry-run, so that route has a token and a ``dry_run`` proposal by design; every
+    other route stays refusal-only and mints neither.
+    """
     body = response.json()
     assert response.status_code == 200
+    if chat:
+        body = body["refusal"]
     assert body["code"] == "ACTION_REFUSED"
     assert body["message"] == REFUSED
     assert body["retryable"] is False
-    assert "gt-" not in response.text  # no gate token is minted by a refusal
+    if not chat:
+        assert "gt-" not in response.text  # no gate token is minted by a refusal
+        assert proposals(client) == 0  # no proposals row either (review D-1, I2-01)
     assert estate(client) == before  # copilot-originated writes to simulated state = 0
-    assert proposals(client) == 0  # no proposals row either (review D-1, I2-01)
 
 
 # -- AC 1, 10: the refusal, through the three inbound routes -----------------------------------
@@ -112,7 +120,7 @@ def test_a_destructive_request_is_refused_on_every_inbound_route(
         else:
             path = COPILOT_QUERY if route == "copilot_query" else COPILOT_CHAT
             response = client.post(path, json={"query": query})
-        assert_refused(client, response, before)
+        assert_refused(client, response, before, chat=route == "copilot_chat")
         assert prose.call_count == prose_calls  # a refusal never reaches the prose writer
 
 

@@ -147,8 +147,9 @@ paths:
       description: >
         Annex 12.4 entry point. A thin route over the same use cases as `copilot_query`: it opens a
         session for the operator and submits `query` in it. A destructive request is refused with the
-        canonical `Action refused.` (`ACTION_REFUSED`, 200); the dry-run summary and the gate token
-        are added by story 2.2.
+        canonical `Action refused.` (`ACTION_REFUSED`, 200) and the reply is a `ChatRefusalResponse`:
+        the refusal, the impact summary, the `dry_run` proposal with its gate token, the token expiry
+        and `confirmation_enabled` (story 2.2). `copilot_query` stays refusal-only.
       requestBody:
         required: true
         content:
@@ -156,13 +157,14 @@ paths:
             schema: { $ref: '#/components/schemas/CopilotChatRequest' }
       responses:
         "200":
-          description: AnswerEnvelope, or a canonical 200 ErrorBody (same as copilot_query).
+          description: AnswerEnvelope, a canonical 200 ErrorBody, or a ChatRefusalResponse.
           content:
             application/json:
               schema:
                 oneOf:
                   - { $ref: '#/components/schemas/AnswerEnvelope' }
                   - { $ref: '#/components/schemas/ErrorBody' }
+                  - { $ref: '#/components/schemas/ChatRefusalResponse' }
         "400": { $ref: '#/components/responses/Response400' }
         "500": { $ref: '#/components/responses/Response500' }
         "503": { $ref: '#/components/responses/Response503' }
@@ -785,6 +787,16 @@ components:
         gate_token: { $ref: '#/components/schemas/GateToken' }
         confirmation: { oneOf: [{ $ref: '#/components/schemas/Confirmation' }, { type: "null" }] }
         executor_result: { oneOf: [{ $ref: '#/components/schemas/ExecutorResult' }, { type: "null" }] }
+    ChatRefusalResponse:
+      type: object
+      additionalProperties: false
+      required: [refusal, impact_summary, proposal, token_expires_at, confirmation_enabled]
+      properties:
+        refusal: { $ref: '#/components/schemas/ErrorBody' }
+        impact_summary: { type: string }
+        proposal: { $ref: '#/components/schemas/Proposal' }
+        token_expires_at: { $ref: '#/components/schemas/Instant' }
+        confirmation_enabled: { type: boolean }
     ExecutorRequest:
       type: object
       additionalProperties: false

@@ -1047,3 +1047,17 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
     composition it is closer to L; it stays one story because the Annex scenario needs all of it in one reply.
 - **Outcome:** story 2.2 is `ready-for-dev` in both `sprint-status.yaml` copies. No test or production code yet. The next step is the ATDD red phase,
   after the user confirms D1 and D4.
+
+## I2-22 - Story 2.2: one frozen 2.1 case encoded the chat reply of the refusal-only state  *(AI-written test corrected, user approved)*
+- **Date / phase:** 2026-11-07, `bmad-dev-story` Task 6 of story 2.2, when `/copilot/chat` first answered the Annex reply.
+- **Prompt (intent):** "Si" to the option offered by the AI when the committed ATDD of 2.1 failed (guide E.6).
+- **What happened:** with `ChatRefusalResponse` (D1, approved by the user) `/copilot/chat` answers `{refusal, impact_summary, proposal, ...}`.
+  `tests/atdd/test_story_2_1.py::test_a_destructive_request_is_refused_on_every_inbound_route[copilot_chat]` asserted the flat envelope, no `gt-` in
+  the reply and 0 `proposals` rows on that route, which is exactly what AC 1 of story 2.2 reverses. Story 2.2 listed three regression guards and
+  did not foresee this one.
+- **Decision:** only the `copilot_chat` branch of that case changed: `assert_refused(..., chat=True)` reads the refusal under `refusal` and drops
+  the "no token" and "0 proposals" checks for that route. The code, message, `retryable`, prose-writer and unchanged-estate assertions still hold on
+  all three routes, and `sessions` and `copilot_query` keep every original check. No assertion was weakened for them.
+- **AI slip:** the story author did not run the 2.1 suite against the planned chat shape before freezing the 2.2 red phase; the conflict was found by
+  the first full run of Task 6.
+- **Outcome:** Task 6 commit carries this change. Reviewer: Juan (approved the option).

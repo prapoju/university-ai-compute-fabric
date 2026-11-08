@@ -32,6 +32,7 @@ from src.application.access_denial_handler import INTENT as ACCESS_DENIAL_INTENT
 from src.application.access_denial_handler import AccessDenialHandler
 from src.application.audit_service import AuditService
 from src.application.audit_writer import AuditWriter
+from src.application.chat_service import ChatService
 from src.application.destructive_handler import INTENT as DESTRUCTIVE_INTENT
 from src.application.destructive_handler import DestructiveRefusalHandler
 from src.application.dry_run_service import DryRunService
@@ -54,6 +55,7 @@ from src.config import Settings
 from src.domain.result import is_failure
 from src.ports.inbound import (
     AuditUseCases,
+    ChatUseCases,
     DestructiveUseCases,
     EvidenceUseCases,
     SessionUseCases,
@@ -324,6 +326,7 @@ def build_container(settings: Settings) -> Container:
     container.register_port(EvidenceUseCases, evidence)
     container.register_port(AuditUseCases, audit_pages)
     container.register_port(DestructiveUseCases, destructive)
+    container.register_port(ChatUseCases, ChatService(sessions=use_cases, destructive=destructive))
     container.register_port(StateUseCases, state)
     return container
 
