@@ -33,6 +33,7 @@ from src.application.access_denial_handler import AccessDenialHandler
 from src.application.audit_service import AuditService
 from src.application.audit_writer import AuditWriter
 from src.application.chat_service import ChatService
+from src.application.confirmation_service import ConfirmationService
 from src.application.destructive_handler import INTENT as DESTRUCTIVE_INTENT
 from src.application.destructive_handler import DestructiveRefusalHandler
 from src.application.dry_run_service import DryRunService
@@ -45,6 +46,7 @@ from src.application.state_service import StateService
 from src.application.tool_audit import TOOL_PORT_NAMES, ToolCallRecorder, audited
 from src.application.unavailable import (
     UnavailableAuditUseCases,
+    UnavailableConfirmUseCases,
     UnavailableDestructiveUseCases,
     UnavailableEvidenceUseCases,
     UnavailableSessionUseCases,
@@ -56,6 +58,7 @@ from src.domain.result import is_failure
 from src.ports.inbound import (
     AuditUseCases,
     ChatUseCases,
+    ConfirmUseCases,
     DestructiveUseCases,
     EvidenceUseCases,
     SessionUseCases,
@@ -240,11 +243,13 @@ def build_container(settings: Settings) -> Container:
     evidence: EvidenceUseCases
     audit_pages: AuditUseCases
     destructive: DestructiveUseCases
+    confirm: ConfirmUseCases
     if store is None or audit_store is None or writer is None or session_problem is not None:
         use_cases = UnavailableSessionUseCases(session_problem or "session store unavailable")
         evidence = UnavailableEvidenceUseCases(session_problem or "session store unavailable")
         audit_pages = UnavailableAuditUseCases(session_problem or "session store unavailable")
         destructive = UnavailableDestructiveUseCases(session_problem or "session store unavailable")
+        confirm = UnavailableConfirmUseCases(session_problem or "session store unavailable")
     else:
         use_cases = SessionService(
             store=store,
@@ -278,6 +283,18 @@ def build_container(settings: Settings) -> Container:
             resolver=EntityResolver(
                 users=users, catalog=catalog, groups=groups, nodes=nodes, jobs=jobs
             ),
+            jobs=jobs,
+            nodes=nodes,
+            uow=writer,
+            audit=AuditWriter(audit_store, idgen),
+            recorder=recorder,
+            token_ttl_seconds=settings.gate_token_ttl_seconds,
+        )
+        confirm = ConfirmationService(
+            proposals=SqliteProposalStore(writer),
+            sessions=store,
+            clock=providers.clock,
+            idgen=idgen,
             jobs=jobs,
             nodes=nodes,
             uow=writer,
@@ -326,6 +343,7 @@ def build_container(settings: Settings) -> Container:
     container.register_port(EvidenceUseCases, evidence)
     container.register_port(AuditUseCases, audit_pages)
     container.register_port(DestructiveUseCases, destructive)
+    container.register_port(ConfirmUseCases, confirm)
     container.register_port(ChatUseCases, ChatService(sessions=use_cases, destructive=destructive))
     container.register_port(StateUseCases, state)
     return container

@@ -355,7 +355,7 @@ paths:
             schema: { $ref: '#/components/schemas/PostConfirmRequest' }
       responses:
         "200":
-          description: "Proposal in {dispatched, executed, failed}; caption S_CAP carried in confirmation.caption."
+          description: "Proposal in {confirmed, dispatched, executed, failed} (confirmed until the executor exists, story 2.3); caption S_CAP carried in confirmation.caption."
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Proposal' }

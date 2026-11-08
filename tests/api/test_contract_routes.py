@@ -29,6 +29,7 @@ SERVED_IN_THIS_STORY = {
     ("POST", "/api/v1/copilot/query"),
     ("POST", "/api/v1/copilot/chat"),  # story 2.1
     ("POST", "/api/v1/destructive/dry-runs"),  # story 2.2
+    ("POST", "/api/v1/destructive/proposals"),  # story 2.3
     # story 1.4
     ("GET", "/api/v1/answers/{}/evidence"),
     ("GET", "/api/v1/citations/{}"),
