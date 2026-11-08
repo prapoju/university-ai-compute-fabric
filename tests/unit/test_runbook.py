@@ -124,6 +124,20 @@ def test_the_s3_question_yields_the_node_and_the_code_as_typed() -> None:
 @pytest.mark.parametrize(
     "query",
     [
+        # NFR-1 corpus (story 3.3 scope): no word "node", and the code follows "cordoned with"
+        "ws-gpu-11 cordoned ERR_THERMAL_88, what do I do?",
+        "What should I do about node ws-gpu-11 cordoned with ERR_THERMAL_88?",
+    ],
+)
+def test_a_bare_node_id_and_a_code_without_its_word_are_extracted(query: str) -> None:
+    refs = extract_node_triage_references(query)
+    assert refs is not None
+    assert (refs.node, refs.code) == ("ws-gpu-11", "ERR_THERMAL_88")
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
         "What about the node is cordoned with code ERR_THERMAL_88?",
         "The node was cordoned with code ERR_THERMAL_88, what now?",
         "node cordoned with code ERR_THERMAL_88 what should I do",

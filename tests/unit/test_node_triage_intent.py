@@ -44,3 +44,34 @@ def test_a_node_question_that_also_asks_for_a_cordon_is_never_split() -> None:
 def test_a_cordon_request_without_a_node_question_is_not_a_triage() -> None:
     routed = classify("cordon ws-gpu-11 now", [])
     assert not (isinstance(routed, Routed) and routed.intent_code == "diagnose_node_triage")
+
+
+@pytest.mark.parametrize(
+    ("query", "intent", "rule"),
+    [
+        # NFR-1 corpus misses, fixed in story 3.3 scope (smallest rule change)
+        (
+            "ws-gpu-11 cordoned ERR_THERMAL_88, what do I do?",
+            "diagnose_node_triage",
+            "RULE-INTENT-NODE-TRIAGE",
+        ),
+        (
+            "What should I do about node ws-gpu-11 cordoned with ERR_THERMAL_88?",
+            "diagnose_node_triage",
+            "RULE-INTENT-NODE-TRIAGE",
+        ),
+        (
+            "why cant group 4 run their fine-tuning job now",
+            "diagnose_schedule_window",
+            "RULE-INTENT-SCHEDULE-WINDOW",
+        ),
+    ],
+)
+def test_the_corpus_phrasings_route_to_their_intent(query: str, intent: str, rule: str) -> None:
+    assert classify(query, []) == Routed(intent, rule)
+
+
+def test_a_cordoned_node_with_no_error_code_is_not_a_node_triage() -> None:
+    assert classify("why was ws-gpu-11 cordoned?", []) != Routed(
+        "diagnose_node_triage", "RULE-INTENT-NODE-TRIAGE"
+    )

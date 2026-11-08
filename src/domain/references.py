@@ -158,14 +158,18 @@ _NODE_STOP = (
 )
 _NODE_REF = re.compile(rf"\bnode(?:#|\s+)(?!{_NODE_STOP}(?=[\s,;:?!.]|$))(?P<node>{_TOKEN})", re.I)
 _NODE_CODE = re.compile(rf"\bcode\s+(?P<code>{_TOKEN})", re.I)
+# A node or a code named without its word: "ws-gpu-11 cordoned ERR_THERMAL_88" (NFR-1 corpus).
+# Tried only when the word form is absent, so the word form is read exactly as before.
+_BARE_NODE_REF = re.compile(r"\b(?P<node>ws-[a-z0-9-]+)\b", re.I)
+_BARE_NODE_CODE = re.compile(r"\b(?P<code>err_[a-z0-9_]+)\b", re.I)
 _RUNBOOK_WORD = re.compile(r"\brunbooks?\b", re.I)
 
 
 def extract_node_triage_references(query: str) -> NodeTriageReferences | None:
     """The node and the code of ``Node <node> is cordoned with code <code>`` (and variants)."""
     text = _clean(query)
-    node = _NODE_REF.search(text)
-    code = _NODE_CODE.search(text)
+    node = _NODE_REF.search(text) or _BARE_NODE_REF.search(text)
+    code = _NODE_CODE.search(text) or _BARE_NODE_CODE.search(text)
     if node is None or code is None:
         return None
     node_token, code_token = _strip(node["node"]), _strip(code["code"])
