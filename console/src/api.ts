@@ -14,13 +14,18 @@ export interface Runbook {
   provenance: { source: string | null; version: string };
 }
 
+export interface Claim {
+  claim_id: string;
+  text: string;
+}
+
 export interface Answer {
   answer_id: string;
   intent: string;
   answer_chain: string[];
   diagnosis_class: string | null;
   canonical: string | null;
-  claims: { claim_id: string; text: string }[];
+  claims: Claim[];
   evidence: Evidence[];
   recommendation: { runbook: Runbook } | null;
   prose: string;
@@ -62,8 +67,28 @@ function isRunbook(value: unknown): value is Runbook {
   );
 }
 
+function isEvidence(value: unknown): value is Evidence {
+  return (
+    isRecord(value) &&
+    typeof value.citation_id === 'string' &&
+    typeof value.source_type === 'string' &&
+    typeof value.snippet === 'string' &&
+    typeof value.position === 'number'
+  );
+}
+
+function isClaim(value: unknown): value is Claim {
+  return isRecord(value) && typeof value.claim_id === 'string' && typeof value.text === 'string';
+}
+
 function isAnswer(value: unknown): value is Answer {
-  if (!isRecord(value) || typeof value.answer_id !== 'string' || !Array.isArray(value.evidence)) {
+  if (!isRecord(value) || typeof value.answer_id !== 'string' || typeof value.prose !== 'string') {
+    return false;
+  }
+  if (!Array.isArray(value.claims) || !value.claims.every(isClaim)) {
+    return false;
+  }
+  if (!Array.isArray(value.evidence) || !value.evidence.every(isEvidence)) {
     return false;
   }
   if (value.recommendation === null) {
