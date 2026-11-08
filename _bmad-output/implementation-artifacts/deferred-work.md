@@ -84,3 +84,7 @@
 - The 50-operator ATDD case runs under the default 0.5 s wall budget. It is kept on purpose, because that is the production default under load (I2-43). On a slow runner it may flake with a 503.
 - The ATDD ordering gates are set inside the read, before its future completes. A completion-based gate would be stricter. The reverse-order audit case failed 10 of 10 runs under the completion-order mutant, so the risk is theoretical today (I2-44).
 - A late read's audit rows are dropped by design: a read that finishes after the budget never records into the turn, the audit or the evidence (I2-39).
+
+## Deferred from: story 3-3 (runbook registry and node triage, 2026-11-08)
+
+- The diagnosers do not emit their tool-call audit events yet. Contract `diagnose_node_triage` Q3 requires `toolcall.diagnose_node_triage`; story 3.3 does not implement it (decision D-4, approved). Same gap as story 1.3 and story 3.1 (contracts.md Q3). Needs a single recorder hook for all diagnosers, decided on its own.
