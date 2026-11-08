@@ -99,15 +99,15 @@ student).
 
 | NFR | Priority | Evidence section | Verdict and reason |
 |---|---|---|---|
-| NFR-1 Diagnosis accuracy (100 % on 4 mandatory fixtures; ≥ 90 % on a 20-query corpus) | P1 | §5 only partly; the fixtures S1 to S4 are in `tests/unit/test_access_denial_handler.py` and `tests/e2e/copilot-console.spec.ts` | **PARTIAL.** The 4 mandatory fixtures pass. The 20-query extension corpus is not built, so the ≥ 90 % threshold is not evidenced. |
+| NFR-1 Diagnosis accuracy (100 % on 4 mandatory fixtures; ≥ 90 % on a 20-query corpus) | P1 | §1 of nfr-evidence does not cover it; see `tests/api/test_nfr1_accuracy_corpus.py` | **NOT COVERED (measured 17 / 20 = 85 %, below 90 %).** The corpus test is red on purpose (commit `fd5ecda`, log I2-63). The three misses are paraphrases the classifier sends to `CLARIFICATION_REQUIRED`. The fixtures S1 to S4 pass in their own tests. |
 | NFR-2 Anti-fabrication | **P0** | §1 (security) | COVERED. `tests/unit/test_anti_fabrication.py`, `tests/atdd/test_story_1_4.py`. |
 | NFR-3 Citation integrity | P1 | §1 and §3 (k6 100 % cited) | COVERED. `docs/evidence/impl2/k6-12-5.log` (4000/4000 checks, cites RULE-CAT-04, policy#catalog.4.2, deepseek-coder). |
 | NFR-4 Determinism (3 runs identical) | P1 | §1 | COVERED. `tests/atdd/test_story_1_4.py::test_three_runs_on_fresh_apps_with_a_frozen_clock_are_identical`. |
 | NFR-5 Latency (p95 ≤ 3 s; p99 ≤ 8 s; assumption A-12) | P1 | §3 | COVERED on the deterministic pipeline. p95 300.66 ms and 307.93 ms, p99 368.52 ms and 367.08 ms (`k6-12-5.json`, `k6-12-5-filedb.json`). The real LLM is not in scope (AD-2, simulated prose). |
 | NFR-6 Concurrency (≥ 5 sessions) | P1 | §2 | COVERED. `tests/integration/test_sessions_concurrency.py`, `tests/atdd/test_story_1_6.py::test_fifty_operators_released_together_get_cited_answers_and_no_lock_errors`. |
-| NFR-7 Availability and robustness (99 % over 8 h; cold start ≤ 60 s) | P1 | none | **PARTIAL.** Malformed input is handled (`tests/unit/test_session_rules.py::test_nul_and_lone_surrogates_are_malformed_not_stored`). The 8-hour window and the cold-start time are not measured. |
+| NFR-7 Availability and robustness (99 % over 8 h; cold start ≤ 60 s) | P1 | nfr-evidence §4 (cold start); section 8 (waiver) | **NOT COVERED.** Cold start measured: 0.54 s ≤ 60 s, PASS (`tests/nfr/cold_start.py`, `docs/evidence/impl2/nfr7-cold-start.log`). The 8-hour 99 % window is waived (section 8, I2-63). Malformed input is handled (`tests/unit/test_session_rules.py::test_nul_and_lone_surrogates_are_malformed_not_stored`). |
 | NFR-8 Safety (0 copilot mutations, refusal, confirmation, audit) | **P0** | §1 | COVERED. `tests/atdd/test_story_2_1.py`, `tests/atdd/test_story_2_3.py`, `tests/atdd/test_story_2_4.py` (0 direct writes). |
-| NFR-9 Usability (≥ 90 % of operators in < 5 min) | P1 | §5 | **PARTIAL.** The Nadia journey is automated (`tests/e2e/copilot-console.spec.ts`). The human study with 90 % of operators is not possible from the repository. |
+| NFR-9 Usability (≥ 90 % of operators in < 5 min) | P1 | §5 | **NOT COVERED.** The Nadia journey is automated (`tests/e2e/copilot-console.spec.ts`, CI `3 passed`). The human study is waived (section 8, I2-63). |
 | NFR-10 Extensibility (new template config-only) | P1 | none listed; tests | COVERED. `tests/unit/test_runbook_fixture_rules.py`, `tests/unit/test_story_1_1_read_only.py`. |
 | NFR-11 Security and privacy (audit redaction) | P1 | §1 | COVERED. `tests/unit/test_redaction.py`, `tests/atdd/test_story_1_5.py::test_secrets_in_the_query_never_reach_the_audit_tables`. |
 
@@ -124,13 +124,14 @@ student).
 
 | Measure | Value | Rule | Result |
 |---|---|---|---|
-| P0 coverage | 7 / 7 = 100 % | must be 100 % | pass |
+| P0 coverage | 7 / 7 = 100 %; P0 tests green (2157 passed; the one failure is P1 NFR-1) | must be 100 % | pass |
 | Overall coverage | 23 / 26 = 88.5 % | ≥ 80 % | pass |
 | P1 coverage | 16 / 19 = 84.2 % | 80 to 89 % with P0 at 100 % → CONCERNS (90 % for PASS) | **CONCERNS** |
 | Live-only requirements | 0 (no live manifest) | none capped | n/a |
+| Test run | 2158 collected, 2157 passed, 1 failed (`tests/api/test_nfr1_accuracy_corpus.py`); branch coverage of src 97.6 % (`docs/evidence/impl2/final-pytest-after-gap-closure.log`) | P0 pass rate 100 % | pass |
 
-Requirements that are not COVERED in the gate count (3 of 26): NFR-1, NFR-7, NFR-9. Each is a
-PARTIAL in section 4, with the reason written there.
+Requirements that are not COVERED in the gate count (3 of 26): NFR-1, NFR-7, NFR-9. Each has its
+reason in section 4. NFR-1 is a measured miss (85 % against 90 %); NFR-7 and NFR-9 are waived parts (section 8).
 
 **Gate decision: CONCERNS.** Release is not blocked by a P0 gap. The open items are the 20-query
 accuracy corpus (NFR-1), the 8-hour availability and cold-start evidence (NFR-7), and the human

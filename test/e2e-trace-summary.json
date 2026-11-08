@@ -5,7 +5,7 @@
   "collection_mode": "contract_static",
   "collection_status": "COLLECTED",
   "inventory_basis": "acceptance_criteria",
-  "gate_basis": "local test-presence and local logs (docs/evidence/impl2/final-coverage.log, final-e2e.log)",
+  "gate_basis": "rerun after gap closure (2026-11-08): P0 7/7, overall 23/26, P1 16/19; waivers recorded and not counted",
   "source_sha": "",
   "target": {
     "type": "story",
@@ -85,11 +85,16 @@
   },
   "tests": {
     "files": "see test/traceability-matrix.md",
-    "cases": 2156,
+    "cases": 2158,
+    "passed": 2157,
+    "failed": 1,
+    "failed_ids": [
+      "tests/api/test_nfr1_accuracy_corpus.py::test_nfr1_accuracy_is_at_least_ninety_percent_over_the_corpus"
+    ],
     "skipped_cases": 0,
     "fixme_cases": 0,
     "pending_cases": 0,
-    "source": "docs/evidence/impl2/final-coverage.log (pytest), docs/evidence/impl2/final-e2e.log (playwright, 3 passed)"
+    "source": "docs/evidence/impl2/final-pytest-after-gap-closure.log (pytest); docs/evidence/impl2/final-e2e.log (playwright, 3 passed)"
   },
   "risk_summary": {
     "critical_open": 0,
