@@ -15,11 +15,13 @@ from src.dto import (
     GetAuditPageResponse,
     GetCitationResponse,
     GetSessionResponse,
+    ProposalDTO,
     SessionDTO,
 )
 from src.ports.inbound import (
     AuditUseCases,
     CanonicalOutcome,
+    ConfirmUseCases,
     DestructiveUseCases,
     DryRunOutcome,
     EvidenceUseCases,
@@ -69,6 +71,14 @@ class UnavailableDestructiveUseCases(DestructiveUseCases):
     def dry_run_request(
         self, session_id: str, request: DestructiveRequest
     ) -> Result[DryRunOutcome | CanonicalOutcome]:
+        return self._failure
+
+
+class UnavailableConfirmUseCases(ConfirmUseCases):
+    def __init__(self, reason: str) -> None:
+        self._failure = Failure("PROVIDER_UNAVAILABLE", observed=(reason,))
+
+    def post_confirm(self, proposal_id: str, gate_token: str) -> Result[ProposalDTO]:
         return self._failure
 
 
