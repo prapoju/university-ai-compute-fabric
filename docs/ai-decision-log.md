@@ -1305,3 +1305,10 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 - **What changed:** the rig now passes `reads=ParallelReads(recorder=rig.recorder)`, the same wiring as `bootstrap.py`. No assertion changed.
 - **Open hazard, recorded:** `ParallelReads()` without a recorder silently drops the reads' audit rows. The default is kept only so existing unit doubles construct. Removing the default is a separate change, not part of this fix.
 - **Reviewer:** Julio.
+
+## I2-41 - Story 1.6 review F-6: the budget test asserted only the status, so a response that waited for the hung read passed  *(AI-written test added, user approved, Reviewer: Julio)*
+- **Date / phase:** 2026-11-08, F-6 of the code review of story 1.6.
+- **What was wrong:** the ATDD budget case asserted the 503 and nothing else, so a response that waited for the hung read passed. That is how F-1 went unseen.
+- **What the AI added:** a case with no wall-clock assertion. The read blocks on a `threading.Event`, and the budget is 0.05 s. The 503 must arrive while the read has not returned (a flag the read sets when it returns). Only then does the test release the read, and the case waits, with a bound, for the read to finish. The audit must still hold no tool call for that session. No sleep and no timing check.
+- **Check:** the first draft asserted that the event was unset, and it passed on the code before F-1 too, because the old response came only after the read gave up on its own bound. The assertion now checks that the read has not returned.
+- **Reviewer:** Julio.

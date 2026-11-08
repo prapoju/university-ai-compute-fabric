@@ -357,6 +357,35 @@ def test_each_turn_takes_exactly_one_clock_read_whatever_the_completion_order(
         assert len(clock_reads) == 1, f"{order} completion took {len(clock_reads)} clock reads"
 
 
+# -- F-6 (review): a read still running at the budget is a 503, and records nothing later ------
+def test_a_read_still_running_at_the_budget_is_a_503_and_records_nothing_afterwards(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """No wall-clock assertion: the read is blocked on an event. The 503 must arrive while the read
+    has not returned, and a read that finishes afterwards must add no tool call to the audit."""
+    released = threading.Event()  # the test decides when the blocked read may return
+    finished = threading.Event()  # set by the read after it returned, so the test can wait for it
+    original = SimEventStore.query
+
+    def blocked(self, *args, **kwargs):
+        released.wait(WAIT)
+        result = original(self, *args, **kwargs)
+        finished.set()
+        return result
+
+    monkeypatch.setattr(SimEventStore, "query", blocked)
+    app = app_on(tmp_path, tool_fanout_budget_seconds="0.05")
+    client = TestClient(app, raise_server_exceptions=False)
+    sid = open_session(client)
+    response = turn(client, sid)
+    assert not finished.is_set(), "the 503 arrived only after the blocked read had returned"
+    assert response.status_code == 503, f"HTTP {response.status_code}, expected 503"
+    assert response.json()["code"] == "PROVIDER_UNAVAILABLE"
+    released.set()
+    assert finished.wait(WAIT), "the blocked read never finished"
+    assert audit_entries(client, sid) == [], "a read that outlived the turn recorded a tool call"
+
+
 # -- AC 2: a read that raises is the typed 503, never an unhandled 500 ------------------------
 def test_a_read_that_raises_is_a_typed_503_never_a_500(  # regression guard (AD-12)
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
