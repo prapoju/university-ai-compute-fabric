@@ -144,3 +144,13 @@ usability study (NFR-9).
 - The retrospective part of FR-06 (story 3-2) and the optional stories are declared out of scope
   and not built.
 - The I2-57 entry for the scope decision is in `docs/ai-decision-log.md`.
+
+## 8. Waivers (recorded by the reviewer, not computed by the rules)
+
+| Requirement | Part waived | Reason it cannot be measured in the repository | Log |
+|---|---|---|---|
+| NFR-7 Availability and robustness | ≥ 99 % over a continuous 8-hour evaluation window | an 8-hour continuous run of the service is an operational measurement, not a repository test; the cold-start part is measured (`docs/evidence/impl2/nfr7-cold-start.log`, 0.54 s against 60 s) | I2-63 |
+| NFR-9 Usability | ≥ 90 % of Nadia-class operators complete a diagnosis in < 5 min | requires a human study with operators; the repository has the automated journey (`tests/e2e/copilot-console.spec.ts`) and no operator data | I2-63 |
+
+Waivers are recorded for transparency. The skill's rules compute the gate without them: a waived part
+still counts as not covered, so the verdict in section 6 is unchanged by these waivers.

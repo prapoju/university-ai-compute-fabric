@@ -1,0 +1,6 @@
+2026-11-08 17:40:06,269 INFO src.bootstrap: container built (fixtures=/home/julio/repos/ia-proyecto/university-ai-compute-fabric/fixtures)
+command: -m uvicorn src.adapters.inbound.app:create_app --factory --host 127.0.0.1 --port 8000 --log-level warning
+M12_DB_PATH=:memory:  url=http://127.0.0.1:8000/healthz
+cold start to first 200 on /healthz: 0.54 s (budget 60 s)
+NFR-7 cold start: PASS
+exit=0

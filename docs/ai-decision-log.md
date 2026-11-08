@@ -494,6 +494,7 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 | I2-60 | Final evidence | Decision, **Correction (citation)** | NFR audit run inline without subagents; a wrong citation of the token lifetime fixed before the commit | Julio (standing pre-approval) |
 | I2-61 | Final evidence | Decision | Traceability gate computed by the skill rules: CONCERNS; FR-06 as P0 would be FAIL | Julio (standing pre-approval) |
 | I2-62 | Final evidence | **Correction (text)** | Walkthrough and README: three unsupported claims fixed before the commit; the one-command gate verified | Julio (standing pre-approval) |
+| I2-63 | Gate gaps | Decision | NFR-1 corpus (85 %, red on purpose), cold start 0.54 s, two recorded waivers (NFR-7 8-hour, NFR-9 study) | Julio |
 
 ## I2-01..I2-09 - Shift-left review of the Impl-2 plan  *(planning text)*
 - **Phase:** before any Impl-2 code, 2026-11-06. Party-mode review (Winston, architect; Murat, test architect) of `docs/impl2-rules.md`
@@ -1521,3 +1522,11 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 - **Correction (text):** the first draft had three claims that the files did not support. The sum for integration, API and ATDD (30.9 %) was 31.1 %. The sentence that the pyramid deviation was recorded in `test/test-design.md` §6 was removed, because that file says nothing about it. A test name cited for P5 was changed to the one that really covers a conflicting token (`tests/atdd/test_story_2_3.py`). Every path in the walkthrough and the README was checked with a script.
 - **Verification:** `make ci PY=.venv/bin/python` exits 0 on this commit. Its last line is the Makefile's echo `TEA gate PASS`, which only says the local recipes passed. The traceability verdict is in `test/traceability-matrix.md`.
 - **Reviewer:** Julio (standing pre-approval).
+
+## I2-63 - NFR-1 corpus, cold-start check, and two waivers (8-hour availability, human usability)  *(decision and waivers; Reviewer: Julio)*
+- **Prompt (intent):** close the gate gaps honestly: a 20-query accuracy corpus for NFR-1, a cold-start check for NFR-7, and recorded waivers for the parts that cannot be measured here.
+- **NFR-1 corpus (`tests/api/test_nfr1_accuracy_corpus.py`):** 20 queries, paraphrases and variants of S1, S2, S3, the ghost_user_99 edge case, the Annex 12.6 query and the destructive refusal. Each expectation comes from the Annex scenario and its fixture, not from the output. Result: **17 / 20 = 85 %**, below the 90 % threshold. The three misses are real app behaviour and stay in the corpus: `why cant group 4 run their fine-tuning job now`, `ws-gpu-11 cordoned ERR_THERMAL_88, what do I do?` and `What should I do about node ws-gpu-11 cordoned with ERR_THERMAL_88?` all answer `CLARIFICATION_REQUIRED`. The accuracy test is red on purpose and is not relaxed.
+- **Harness correction (AI-written code):** the first run of the corpus read the runbook from the wrong key and scored the Annex 12.6 query as a miss. It reads `recommendation.runbook`, which is where the app puts it. The app was right; the harness was wrong. Fixed before the commit; no expectation changed.
+- **Cold start (`tests/nfr/cold_start.py`, log `docs/evidence/impl2/nfr7-cold-start.log`):** uvicorn started as in `playwright.config.ts`, `M12_DB_PATH=:memory:`. The first 200 on `/healthz` came at **0.54 s**, budget 60 s, PASS. The probe uses a bounded deadline and an Event wait, with no `sleep`.
+- **Waivers (recorded in `test/traceability-matrix.md` section 8):** NFR-7 8-hour window at 99 %, and NFR-9 human study. Neither can be measured in the repository. The waivers are logged here with the reason. The rules do not count them, so the verdict does not change because of them.
+- **Reviewer:** Julio.
