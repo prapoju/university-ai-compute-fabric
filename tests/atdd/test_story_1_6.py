@@ -260,7 +260,10 @@ def test_the_fan_out_budget_defaults_to_half_a_second() -> None:
 def test_the_policy_and_events_reads_are_in_flight_at_the_same_time(
     tmp_path: Path, gate: Gate
 ) -> None:
-    client = TestClient(app_on(tmp_path), raise_server_exceptions=False)
+    # an explicit wall budget that cannot expire while the gates order the reads
+    client = TestClient(
+        app_on(tmp_path, tool_fanout_budget_seconds="5"), raise_server_exceptions=False
+    )
     gate.begin("together")
     response = copilot(client)
     assert not gate.stalls, gate.stalls
@@ -274,7 +277,10 @@ def test_the_policy_and_events_reads_are_in_flight_at_the_same_time(
 def test_the_evidence_matches_the_sequential_order_under_forward_and_reverse_completion(
     tmp_path: Path, gate: Gate
 ) -> None:
-    client = TestClient(app_on(tmp_path), raise_server_exceptions=False)
+    # an explicit wall budget that cannot expire while the gates order the reads
+    client = TestClient(
+        app_on(tmp_path, tool_fanout_budget_seconds="5"), raise_server_exceptions=False
+    )
     shapes: dict[str, dict] = {}
     for order in ("none", "forward", "reverse"):
         gate.begin(order)
@@ -295,7 +301,10 @@ def test_the_evidence_matches_the_sequential_order_under_forward_and_reverse_com
 def test_the_audit_lists_the_tool_calls_in_argument_order_whatever_the_completion_order(
     tmp_path: Path, gate: Gate
 ) -> None:
-    client = TestClient(app_on(tmp_path), raise_server_exceptions=False)
+    # an explicit wall budget that cannot expire while the gates order the reads
+    client = TestClient(
+        app_on(tmp_path, tool_fanout_budget_seconds="5"), raise_server_exceptions=False
+    )
     for order in ("forward", "reverse"):
         gate.begin(order)
         response = copilot(client)
@@ -308,7 +317,10 @@ def test_the_audit_lists_the_tool_calls_in_argument_order_whatever_the_completio
 def test_the_tool_call_ids_are_minted_in_fixed_order_under_both_completion_orders(
     tmp_path: Path, gate: Gate
 ) -> None:
-    client = TestClient(app_on(tmp_path), raise_server_exceptions=False)
+    # an explicit wall budget that cannot expire while the gates order the reads
+    client = TestClient(
+        app_on(tmp_path, tool_fanout_budget_seconds="5"), raise_server_exceptions=False
+    )
     for order in ("forward", "reverse"):
         gate.begin(order)
         response = copilot(client)
@@ -349,7 +361,10 @@ def test_a_fan_out_past_its_budget_checks_status_code_and_clock_count(
 def test_each_turn_takes_exactly_one_clock_read_whatever_the_completion_order(
     tmp_path: Path, gate: Gate, clock_reads: list[int]
 ) -> None:
-    client = TestClient(app_on(tmp_path), raise_server_exceptions=False)
+    # an explicit wall budget that cannot expire while the gates order the reads
+    client = TestClient(
+        app_on(tmp_path, tool_fanout_budget_seconds="5"), raise_server_exceptions=False
+    )
     sid = open_session(client)  # opening a session reads the clock too; only the turn is counted
     for order in ("none", "forward", "reverse"):
         gate.begin(order)
@@ -426,7 +441,10 @@ def test_a_read_that_raises_is_a_typed_503_never_a_500(  # regression guard (AD-
 def test_two_failing_reads_report_the_same_body_in_both_completion_orders(
     tmp_path: Path, gate: Gate
 ) -> None:
-    client = TestClient(app_on(tmp_path), raise_server_exceptions=False)
+    # an explicit wall budget that cannot expire while the gates order the reads
+    client = TestClient(
+        app_on(tmp_path, tool_fanout_budget_seconds="5"), raise_server_exceptions=False
+    )
     bodies = {}
     for order in ("forward", "reverse"):
         gate.begin(order)
