@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 import re
 
 import pytest
@@ -135,3 +136,37 @@ def test_health_probes_are_read_only() -> None:
 
 def test_every_route_served_in_this_story_is_declared_with_the_same_method() -> None:
     assert SERVED_IN_THIS_STORY <= _contract_operations()
+
+
+# -- story 1.6 (log I2-35): the parallel read fan-out runs asyncio.run in the worker thread ----
+# asyncio.run raises inside a running event loop, so every handler that can reach
+# ParallelReads.run must be a sync ``def``. The app has no async route today; this pins it.
+FAN_OUT_ROUTES = {
+    ("POST", "/api/v1/copilot/query"),
+    ("POST", "/api/v1/copilot/chat"),
+    ("POST", "/api/v1/sessions/{}/queries"),
+}
+
+
+def _endpoints(routes, prefix: str = ""):
+    """(method, normalised path, endpoint) for every concrete route, as in ``_flatten``."""
+    for route in routes:
+        nested = getattr(route, "original_router", None)
+        if nested is not None:
+            context_prefix = getattr(getattr(route, "include_context", None), "prefix", "") or ""
+            yield from _endpoints(nested.routes, prefix + context_prefix)
+        elif hasattr(route, "methods"):
+            for method in route.methods - {"HEAD", "OPTIONS"}:
+                yield method, _normalise(prefix + route.path), route.endpoint
+
+
+def test_every_served_handler_is_sync_so_the_read_fan_out_can_run_its_loop() -> None:
+    app = create_app(Settings.from_env({}))
+    endpoints = list(_endpoints(app.routes))
+    async_handlers = sorted(
+        (method, path) for method, path, endpoint in endpoints
+        if inspect.iscoroutinefunction(endpoint)
+    )  # fmt: skip
+    assert async_handlers == [], f"async handlers would break ParallelReads.run: {async_handlers}"
+    served = {(method, path) for method, path, _ in endpoints}
+    assert FAN_OUT_ROUTES <= served, f"fan-out routes not served: {FAN_OUT_ROUTES - served}"
