@@ -21,11 +21,13 @@ from typing import TypeVar
 from src import dependency_check
 from src.adapters.outbound.db.audit_store import SqliteAuditStore
 from src.adapters.outbound.db.migrate import MigrationError, apply_migrations
+from src.adapters.outbound.db.proposal_store import SqliteProposalStore
 from src.adapters.outbound.db.session_store import SqliteSessionStore
 from src.adapters.outbound.db.sqlite_writer import SqliteWriter
 from src.adapters.outbound.sim.fixtures_adapter import SimProviders
 from src.adapters.outbound.sim.idgen_adapter import SimIdGen
 from src.adapters.outbound.sim.prose_adapter import SimProse
+from src.adapters.outbound.token_idgen import SecureTokenIdGen
 from src.application.access_denial_handler import INTENT as ACCESS_DENIAL_INTENT
 from src.application.access_denial_handler import AccessDenialHandler
 from src.application.audit_service import AuditService
@@ -59,6 +61,7 @@ from src.ports.outbound import (
     LlmProsePort,
     NodesPort,
     PolicyPort,
+    ProposalStorePort,
     ReservationsPort,
     SessionStorePort,
     UnitOfWorkPort,
@@ -285,6 +288,7 @@ def build_container(settings: Settings) -> Container:
     if store is not None:
         container.register_port(SessionStorePort, store)
     if audit_store is not None and writer is not None:
+        container.register_port(ProposalStorePort, SqliteProposalStore(writer))
         container.register_port(AuditStorePort, audit_store)
         container.register_port(UnitOfWorkPort, writer)
     container.register_port(ToolCallRecorder, recorder)
@@ -300,19 +304,30 @@ def build_container(settings: Settings) -> Container:
 
 def _wire_sessions(
     writer: SqliteWriter | None, database_problem: str | None, retention_cap: int
-) -> tuple[SqliteSessionStore | None, SqliteAuditStore | None, SimIdGen, str | None]:
+) -> tuple[SqliteSessionStore | None, SqliteAuditStore | None, IdGenPort, str | None]:
     """The stores and a seeded id generator, plus the reason they are unusable (if any).
 
-    The generator continues above every id already stored by either store (E43), so a restart on
-    a file database never reissues a session, answer, claim, tool-call or audit id.
+    The generator continues above every id already stored by a store (E43), so a restart on a file
+    database never reissues a session, answer, claim, tool-call, audit or proposal id. Gate tokens
+    are the exception: they are unguessable, never a sequence (story 2.2, IR-06).
     """
     if writer is None or database_problem:
-        return None, None, SimIdGen(), database_problem or "database connection unavailable"
+        return None, None, _ids(), database_problem or "database connection unavailable"
     store = SqliteSessionStore(writer)
     audit_store = SqliteAuditStore(writer, retention_cap)
     counters = {}
-    for read in (store.highest_counters(), audit_store.highest_counters()):
+    proposals = SqliteProposalStore(writer)
+    for read in (
+        store.highest_counters(),
+        audit_store.highest_counters(),
+        proposals.highest_counters(),
+    ):
         if is_failure(read):  # also proves the schema is really there
-            return store, audit_store, SimIdGen(), "; ".join(read.observed) or read.code
+            return store, audit_store, _ids(), "; ".join(read.observed) or read.code
         counters.update(read.value)
-    return store, audit_store, SimIdGen.from_counters(counters), None
+    return store, audit_store, _ids(counters), None
+
+
+def _ids(counters: dict[str, int] | None = None) -> IdGenPort:
+    """Deterministic ids for everything but the gate token, which is unguessable."""
+    return SecureTokenIdGen(SimIdGen.from_counters(counters or {}))

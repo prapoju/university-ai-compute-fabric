@@ -37,6 +37,8 @@ class Settings(BaseModel):
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     # I20 / D42 / D50: audit_records retained across all sessions; the oldest rows rotate out
     audit_retention_cap: int = Field(10_000, ge=1)
+    # Annex 12.4 / impl2-rules: a gate token lives 60 s from the dry-run snapshot, configurable
+    gate_token_ttl_seconds: int = Field(60, ge=1)
 
     @field_validator("fixtures_dir", "migrations_dir", "db_path", mode="before")
     @classmethod

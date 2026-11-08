@@ -101,6 +101,19 @@ def test_audit_retention_cap_defaults_to_ten_thousand_and_is_overridable() -> No
     assert Settings.from_env({"M12_AUDIT_RETENTION_CAP": "1"}).audit_retention_cap == 1
 
 
+def test_the_gate_token_lifetime_defaults_to_sixty_seconds_and_is_overridable() -> None:
+    assert Settings.from_env({}).gate_token_ttl_seconds == 60
+    assert Settings.from_env({"M12_GATE_TOKEN_TTL_SECONDS": "5"}).gate_token_ttl_seconds == 5
+    assert Settings.from_env({"M12_GATE_TOKEN_TTL_SECONDS": "1"}).gate_token_ttl_seconds == 1
+
+
+@pytest.mark.parametrize("value", ["0", "-1", "soon", "1.5"])
+def test_a_gate_token_lifetime_below_one_second_or_not_a_number_is_rejected(value: str) -> None:
+    with pytest.raises(ConfigError) as excinfo:
+        Settings.from_env({"M12_GATE_TOKEN_TTL_SECONDS": value})
+    assert "M12_GATE_TOKEN_TTL_SECONDS" in str(excinfo.value)
+
+
 @pytest.mark.parametrize("value", ["0", "-3", "many"])
 def test_audit_retention_cap_below_one_or_not_a_number_is_rejected(value: str) -> None:
     with pytest.raises(ConfigError) as excinfo:

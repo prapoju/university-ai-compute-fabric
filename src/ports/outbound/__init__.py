@@ -14,6 +14,7 @@ from src.ports.outbound.llm_prose import LlmProsePort
 from src.ports.outbound.nodes import NodesPort
 from src.ports.outbound.policy import PolicyPort
 from src.ports.outbound.policy_content import PolicyContent, PolicyContentPort
+from src.ports.outbound.proposal_store import ProposalStorePort
 from src.ports.outbound.reservations import ReservationsPort
 from src.ports.outbound.runbook_registry import RunbookRegistryPort
 from src.ports.outbound.session_store import SessionStorePort, StoredSession
@@ -24,6 +25,7 @@ from src.ports.outbound.windows import WindowsPort
 __all__ = [
     "AuditEntry",
     "AuditStorePort",
+    "ProposalStorePort",
     "CatalogPort",
     "ClockPort",
     "EventStorePort",

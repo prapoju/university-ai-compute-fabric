@@ -157,6 +157,53 @@ def test_tool_call_and_audit_ids_continue_above_a_file_database_after_restart(tm
     second.close()
 
 
+def test_the_container_never_binds_the_deterministic_token_source() -> None:
+    from src.adapters.outbound.token_idgen import SecureTokenIdGen
+    from src.ports.outbound import IdGenPort
+
+    first, second = build_container(_settings()), build_container(_settings())
+    ids = first.port(IdGenPort)
+    assert isinstance(ids, SecureTokenIdGen)  # IR-06: a deterministic token could be predicted
+    assert ids.new_id("gate_token").value != second.port(IdGenPort).new_id("gate_token").value
+    assert ids.new_id("session").value == "sess-0000000000000001"  # the rest stays reproducible
+    first.close()
+    second.close()
+
+
+def test_proposal_ids_continue_above_a_file_database_after_restart(tmp_path) -> None:
+    from src.adapters.outbound.db.proposal_store import SqliteProposalStore
+    from src.dto import AffectedItemDTO, DryRunSnapshotDTO, ProposalDTO, SelectorDTO
+    from src.ports.inbound import SessionUseCases
+    from src.ports.outbound import IdGenPort, ProposalStorePort
+
+    database = str(tmp_path / "m12.db")
+    first = build_container(_settings(db_path=database))
+    sid = first.port(SessionUseCases).create_session("role-operations").value.session_id
+    item = AffectedItemDTO(
+        key="job#j", actionable=True, actionable_field="status", actionable_value="running"
+    )
+    snapshot = DryRunSnapshotDTO(
+        selector=SelectorDTO(method="jobs_port.select", params={}),
+        affected_items=[item],
+        snapshot_timestamp="2026-10-16T15:00:00.000Z",
+    )
+    stored = ProposalDTO(
+        proposal_id="prop-0000000000000009",
+        session_id=sid,
+        state="dry_run",
+        action="cancel_jobs",
+        dry_run_snapshot=snapshot,
+        gate_token="gt-" + "0" * 32,
+    )
+    assert isinstance(first.port(ProposalStorePort), SqliteProposalStore)
+    assert first.port(ProposalStorePort).add(stored, "2026-10-16T15:00:00.000Z").value is None
+    first.close()
+
+    second = build_container(_settings(db_path=database))
+    assert second.port(IdGenPort).new_id("proposal").value == "prop-000000000000000a"
+    second.close()
+
+
 def test_the_registered_provider_ports_are_the_audited_wrappers() -> None:
     from src.application.tool_audit import TOOL_PORT_NAMES, ToolCallRecorder
     from src.ports.outbound import AuditStorePort, ClockPort, UnitOfWorkPort, UsersPort
