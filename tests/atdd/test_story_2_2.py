@@ -448,8 +448,13 @@ def test_fifty_concurrent_dry_runs_give_fifty_unique_tokens_and_no_server_error(
         assert len(rows) == 50
         assert len({r["gate_token"] for r in rows}) == 50
         assert all(TOKEN.fullmatch(r["gate_token"]) for r in rows)
-        # the ids as a set: which request got which id is not the point (test design 6.3.2)
-        assert {r["proposal_id"] for r in rows} == {f"prop-{n:016x}" for n in range(1, 51)}
+        # the ids as a set: which request got which id is not the point (test design 6.3.2).
+        # Since story 2.4 (I2-33) a proposal id is unguessable, so the set is 50 distinct ids of
+        # the contract shape that are not the counter's sequence, instead of that sequence.
+        ids = {r["proposal_id"] for r in rows}
+        assert len(ids) == 50
+        assert all(re.fullmatch(r"prop-[0-9a-f]{16}", i) for i in ids)
+        assert ids.isdisjoint({f"prop-{n:016x}" for n in range(1, 51)})
 
 
 # -- AC 11, 12: the token source and the token lifetime ----------------------------------------

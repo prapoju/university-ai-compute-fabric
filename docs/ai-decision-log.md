@@ -1223,3 +1223,23 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
   only that the failures were missing behaviour, not that the two cases could ever pass). The red log `red-2-4.log` records the red state of the file at
   commit `db44749`; the file differs from it only by these two corrections, so its green evidence is `flow-a-2-4-atdd-x3.log`.
 - **Outcome:** 36 of 36 cases pass three times in a row. Reviewer: Juan (approved), Pending (the rest).
+
+## I2-33 - Code review of story 2.4: a readable token behind a guessable id  *(AI code corrected, user approved)*
+- **Date / phase:** 2026-11-08, `bmad-code-review` of story 2.4 (Flow A), before the D.4 trap audit.
+- **Prompt (intent):** "Si" to apply P-1 with option (a), and "Si" again to correct the one committed 2.2 case that the fix breaks (guide E.6).
+- **What the review found (probed on the real app):** `GET /destructive/proposals/{pid}` returns the proposal with its `gate_token` (the contract's
+  `Proposal` requires it) and the confirmation asks for only `{proposal_id, gate_token}` with no identity (AD-5), while proposal ids were a counter.
+  Guessing `prop-0000000000000001` read the token, a confirm with it answered 200 `executed` and the three CS-101 jobs were cancelled, by someone who had
+  never seen the chat reply. The token was random, but the new read route made the id the only secret and the id was predictable.
+- **Decision (option a):** `SecureTokenIdGen` draws the proposal id from `secrets` (`prop-` plus 16 random hex, the same `IdString` shape), as it
+  already did for the token; every other kind stays deterministic (FR-14). Options (b) a masked token and (c) a session on the GET change the contract and
+  were not taken. The restart seeding of the `proposal` counter is moot (a random id has no sequence to continue); the counter code stays for the other
+  readers of `highest_counters`.
+- **Tests changed:** the unit tests that assumed `prop-...01` (the id generator, the bootstrap restart) now assert shape, uniqueness and that no
+  sequence exists. In `tests/atdd/test_story_2_2.py` only `test_fifty_concurrent_dry_runs_give_fifty_unique_tokens_and_no_server_error` changed: the
+  last assertion compared the 50 proposal ids with the counter's sequence; it now requires 50 distinct ids of the contract shape that are disjoint from
+  that sequence. The comparison with those exact 50 values is gone, because it can only hold for sequential ids; uniqueness, shape and the row count stay.
+  Three mutants (ids sequential again, an id of the wrong width, a token of the wrong width) are killed.
+- **AI slip:** story 2.4 added a read route that returns the secret of a proposal without asking whether the identifier that unlocks it was guessable; the
+  2.2 design (D9) had chosen counter ids for reproducibility and the 2.3 review had checked token entropy only.
+- **Outcome:** fixes in `7d283cf` and the follow-up commit; D-1 and D-2 go to `deferred-work.md`. Reviewer: Juan (approved), Pending (the rest).
