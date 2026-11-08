@@ -31,7 +31,7 @@ def test_results_come_back_in_argument_order_whatever_the_completion_order() -> 
         second_done.set()
         return Ok("second")
 
-    reads = ParallelReads(budget_seconds=WAIT, pool=FanoutPool(2))
+    reads = ParallelReads(budget_seconds=5.0, pool=FanoutPool(2))  # cannot expire before the gate
     assert reads.run((first, second)) == Ok(["first", "second"])
 
 
@@ -46,7 +46,7 @@ def test_the_first_failure_in_argument_order_is_the_one_reported() -> None:
         second_done.set()
         return Failure("PROVIDER_UNAVAILABLE", observed=("second",))
 
-    reads = ParallelReads(budget_seconds=WAIT, pool=FanoutPool(2))
+    reads = ParallelReads(budget_seconds=5.0, pool=FanoutPool(2))  # cannot expire before the gate
     assert reads.run((first, second)) == Failure("PROVIDER_UNAVAILABLE", observed=("first",))
 
 
