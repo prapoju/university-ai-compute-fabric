@@ -1,0 +1,148 @@
+........................................................................ [  3%]
+........................................................................ [  6%]
+........................................................................ [ 10%]
+........................................................................ [ 13%]
+........................................................................ [ 16%]
+........................................................................ [ 20%]
+........................................................................ [ 23%]
+........................................................................ [ 26%]
+........................................................................ [ 30%]
+........................................................................ [ 33%]
+........................................................................ [ 36%]
+........................................................................ [ 40%]
+........................................................................ [ 43%]
+........................................................................ [ 46%]
+........................................................................ [ 50%]
+........................................................................ [ 53%]
+........................................................................ [ 56%]
+........................................................................ [ 60%]
+........................................................................ [ 63%]
+........................................................................ [ 66%]
+........................................................................ [ 70%]
+........................................................................ [ 73%]
+........................................................................ [ 76%]
+........................................................................ [ 80%]
+........................................................................ [ 83%]
+........................................................................ [ 86%]
+........................................................................ [ 90%]
+........................................................................ [ 93%]
+........................................................................ [ 96%]
+....................................................................     [100%]
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.11.15-final-0 _______________
+
+Name                                            Stmts   Miss Branch BrPart  Cover   Missing
+-------------------------------------------------------------------------------------------
+src/__init__.py                                     0      0      0      0   100%
+src/adapters/__init__.py                            0      0      0      0   100%
+src/adapters/inbound/__init__.py                    0      0      0      0   100%
+src/adapters/inbound/app.py                        43      0      2      0   100%
+src/adapters/inbound/audit.py                      18      0      2      0   100%
+src/adapters/inbound/copilot.py                    46      0      8      0   100%
+src/adapters/inbound/destructive.py                66      0     12      0   100%
+src/adapters/inbound/errors.py                     47      0      4      0   100%
+src/adapters/inbound/evidence.py                   23      0      4      0   100%
+src/adapters/inbound/executor.py                   32      0      6      0   100%
+src/adapters/inbound/runbooks.py                   17      0      2      0   100%
+src/adapters/inbound/sessions.py                   46      0     10      0   100%
+src/adapters/inbound/state.py                      23      0      4      0   100%
+src/adapters/outbound/__init__.py                   0      0      0      0   100%
+src/adapters/outbound/db/__init__.py                0      0      0      0   100%
+src/adapters/outbound/db/audit_store.py            68      0     10      0   100%
+src/adapters/outbound/db/migrate.py                48      2     12      0    97%   47-48
+src/adapters/outbound/db/proposal_store.py         75      0      4      0   100%
+src/adapters/outbound/db/session_store.py         101      1     12      1    98%   247
+src/adapters/outbound/db/sqlite_writer.py          82      5     12      2    93%   49-51, 85->exit, 87-88, 110->112
+src/adapters/outbound/sim/__init__.py               0      0      0      0   100%
+src/adapters/outbound/sim/clock_adapter.py         41      0      6      0   100%
+src/adapters/outbound/sim/estate_loader.py         99      3     38      3    96%   110, 137, 139
+src/adapters/outbound/sim/executor_adapter.py      85      0     34      0   100%
+src/adapters/outbound/sim/fixtures_adapter.py     227      7     56      7    95%   109, 122, 151, 249, 285, 302, 386
+src/adapters/outbound/sim/idgen_adapter.py         23      0      2      0   100%
+src/adapters/outbound/sim/prose_adapter.py         39      0      2      0   100%
+src/adapters/outbound/sim/record_store.py          58      1     12      0    99%   34
+src/adapters/outbound/token_idgen.py               13      0      2      0   100%
+src/application/__init__.py                         0      0      0      0   100%
+src/application/access_denial_handler.py           93      1     36      1    98%   107
+src/application/audit_service.py                   26      1      8      1    94%   38
+src/application/audit_writer.py                    42      1     14      1    96%   80
+src/application/chat_service.py                    31      0     12      0   100%
+src/application/confirmation_service.py           154      4     58      2    97%   251-252, 254-255
+src/application/destructive_handler.py             36      0     12      0   100%
+src/application/dry_run_service.py                171      3     64      2    98%   149, 242-243
+src/application/entity_resolver.py                137      0     60      0   100%
+src/application/evidence_assembler.py              29      0      2      0   100%
+src/application/evidence_service.py                47      0     18      0   100%
+src/application/node_triage_handler.py             63      6     24      6    86%   57, 64, 66, 78, 87, 93
+src/application/parallel_reads.py                  59      1     14      1    97%   50
+src/application/pipeline.py                        46      0      4      0   100%
+src/application/proposal_dispatcher.py             69      0     24      0   100%
+src/application/proposal_service.py                28      1     10      1    95%   29
+src/application/runbook_service.py                 25      2      8      2    88%   35, 40
+src/application/session_service.py                156      5     54      3    96%   99, 144, 198-199, 217
+src/application/state_service.py                   64      2     24      2    95%   110, 124
+src/application/tool_audit.py                      81      1     18      1    98%   124
+src/application/turn_support.py                    51      0     16      0   100%
+src/application/unavailable.py                     55      0      0      0   100%
+src/application/window_diagnosis_handler.py        59      0     22      0   100%
+src/bootstrap.py                                  195      6     36      5    95%   121, 139-141, 159->161, 178, 419
+src/config.py                                      60      2      8      1    96%   91-92
+src/dependency_check.py                            51     13     16      1    73%   76-87, 91
+src/domain/__init__.py                              0      0      0      0   100%
+src/domain/canonical_strings.py                    27      0      0      0   100%
+src/domain/citations.py                            20      0     10      0   100%
+src/domain/confirmation.py                         41      0      2      0   100%
+src/domain/diagnosis.py                            96      1      8      1    98%   134
+src/domain/dry_run.py                              64      0     18      0   100%
+src/domain/entity_key.py                           39      2     12      1    94%   32-33
+src/domain/error_catalog.py                        21      0      0      0   100%
+src/domain/execution.py                            29      0      8      0   100%
+src/domain/fanout.py                                2      0      0      0   100%
+src/domain/instants.py                             23      0      2      0   100%
+src/domain/intent.py                               65      0     20      1    99%   189->192
+src/domain/prose_guard.py                          17      1      6      1    91%   32
+src/domain/redaction.py                            30      0     10      0   100%
+src/domain/references.py                           91      1     24      2    97%   84->80, 174
+src/domain/result.py                               22      0      2      0   100%
+src/domain/rule_ids.py                              7      0      0      0   100%
+src/domain/runbook.py                              27      0      2      0   100%
+src/domain/safety.py                               99      0     40      1    99%   156->155
+src/domain/session_rules.py                        28      0      6      0   100%
+src/domain/window_diagnosis.py                     92      0     14      0   100%
+src/dto.py                                        379      6     10      3    97%   312, 319, 331, 667-669
+src/ports/__init__.py                               0      0      0      0   100%
+src/ports/inbound/__init__.py                      10      0      0      0   100%
+src/ports/inbound/audit_use_cases.py                7      0      0      0   100%
+src/ports/inbound/chat_use_cases.py                14      0      0      0   100%
+src/ports/inbound/confirm_use_cases.py              7      0      0      0   100%
+src/ports/inbound/destructive_use_cases.py         18      0      0      0   100%
+src/ports/inbound/evidence_use_cases.py             9      0      0      0   100%
+src/ports/inbound/proposal_use_cases.py            11      0      0      0   100%
+src/ports/inbound/runbook_use_cases.py              7      0      0      0   100%
+src/ports/inbound/session_use_cases.py             18      0      0      0   100%
+src/ports/inbound/state_use_cases.py                9      0      0      0   100%
+src/ports/outbound/__init__.py                     20      0      0      0   100%
+src/ports/outbound/audit_store.py                  17      0      0      0   100%
+src/ports/outbound/catalog.py                       9      0      0      0   100%
+src/ports/outbound/clock.py                         7      0      0      0   100%
+src/ports/outbound/event_store.py                  16      0      0      0   100%
+src/ports/outbound/executor_port.py                 9      0      0      0   100%
+src/ports/outbound/groups.py                        9      0      0      0   100%
+src/ports/outbound/idgen.py                         6      0      0      0   100%
+src/ports/outbound/jobs.py                         11      0      0      0   100%
+src/ports/outbound/llm_prose.py                     7      0      0      0   100%
+src/ports/outbound/nodes.py                        11      0      0      0   100%
+src/ports/outbound/policy.py                       11      0      0      0   100%
+src/ports/outbound/policy_content.py               12      0      0      0   100%
+src/ports/outbound/proposal_store.py               21      0      0      0   100%
+src/ports/outbound/reservations.py                  9      0      0      0   100%
+src/ports/outbound/runbook_registry.py              7      0      0      0   100%
+src/ports/outbound/session_store.py                28      0      0      0   100%
+src/ports/outbound/unit_of_work.py                 10      0      0      0   100%
+src/ports/outbound/users.py                        11      0      0      0   100%
+src/ports/outbound/windows.py                      11      0      0      0   100%
+-------------------------------------------------------------------------------------------
+TOTAL                                            4719     79   1012     53    98%
+Required test coverage of 90% reached. Total coverage: 97.59%
+2156 passed in 51.29s
+pytest exit=0
