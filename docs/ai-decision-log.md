@@ -1128,3 +1128,14 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 - **AI slip:** D7 chose "no audit row for a rejection" for consistency with 2.2 without weighing that a confirmation, unlike a dry-run, is a
   security-relevant attempt. The commit message of `6d70e5d` says `pytest 1932 passed`; the run was 1933 (a message slip, the code is right).
 - **Outcome:** fix in `6d70e5d`; Review Findings added to the story; the story stays in `review` until the D.4 audit and the D.5 closure. Reviewer: Juan.
+
+## I2-27 - Story 2.3 closed: trap audit and the evidence it rests on  *(AI audit, reviewer pending)*
+- **Date / phase:** 2026-11-08, D.4 and D.5 of story 2.3 (Flow A).
+- **Prompt (intent):** "Si" to continue after the review fix with the trap audit and the closure.
+- **What the AI checked:** the four traps over the 4 test files of the story. No Ice Cream Cone (50 API cases over 72 unit and integration cases), no Flaky
+  Sleeper (0 sleeps, simulated clock, a `Barrier` for the hammer, the ATDD stable in three runs), no Mocking Mirage (real app on a file database, doubles
+  only at outbound ports, unit doubles that fail one collaborator at a time against a healthy control), Blindly Green handled by 18 mutants.
+- **AI slips kept on record:** the red case that passed on a 404 and the unit rig whose recorder did not match its audited ports, both found by the AI
+  before commit; and the `1932` in the message of `6d70e5d` (the run was 1933).
+- **Outcome:** story 2.3 is `done` in the story file and in both `sprint-status.yaml` copies; the epic stays `in-progress`. Final gate: 1933 passed, branch
+  coverage 97.66%. Next: story 2-4 (the executor and the dispatch). Reviewer: Pending.

@@ -4,7 +4,7 @@ baseline_commit: 4e8f902
 
 # Story 2.3: Procedural confirmation gate and snapshot re-validation
 
-Status: review
+Status: done
 
 <!-- Impl-2 Flow A (ATDD-first), Annex 12.4, third of four stories (2-1 .. 2-4). The red phase is
      recorded BEFORE any production code. This story builds the confirmation gate: a distinct
@@ -208,3 +208,15 @@ Code review of `4e8f902..9a54b2d` (2026-11-08): Blind Hunter, Edge Case Hunter a
 Dismissed (3): the audit ids minted and unused by the losers of a race leave gaps in the sequence (described in D7, harmless); the wording `Snapshot stale: token expired: ...` comes from the fixed catalog template; the "confirm first or change first" cases are sequential, not gated, as D10 says.
 
 Mutation check of the patch: no log line, no escaping, the token logged and a success logged - four mutants, all killed (`pytest` 1933 passed, branch coverage of `src` 97.66%).
+
+#### Test-trap audit (D.4, 2026-11-08)
+
+- **Ice Cream Cone:** no. The 50 API cases (45 of the ATDD, 5 of the route) sit on 44 unit cases (the pure rules and the use case with each collaborator failing in turn) and 28 integration cases on the real `proposals` schema (memory and file databases). Every rule of the lifetime, the token, the delta and the claim is pinned by a unit or integration case; the API confirms the wiring and the contract.
+- **Flaky Sleeper:** no. 0 sleeps and 0 wall-clock reads in the 4 test files. The clock is the simulated one moved with `advance`, the 50-way hammer waits on a `Barrier(50)`, and the ATDD passes three times in a row (`flow-a-2-3-atdd-x3.log`) and again after the review fix. Concurrency cases assert the set of outcomes and the counts, never which request won.
+- **Mocking Mirage:** no. The ATDD runs the real app on a file database. Its only doubles are a switch on `SimJobs.select` (it counts, outages and changes the answer, because the estate has no write path) and a `PortFault` on `SqliteAuditStore.append`, both at outbound ports and installed before `create_app`. The unit doubles each replace one collaborator with a failing one against a healthy control, so they test how the use case fails, not that a mock was called.
+- **Blindly Green:** 18 mutants in all, the 14 of the story plus the 4 of the review patch, all killed on the first run. Two slips of mine were caught before they could mislead: the red replay-and-rejection case passed on a 404 (a 404 also writes no audit row) and now asserts the 200, the rows and the 409 first; and the unit rig first gave the service a recorder different from the one its audited ports record into, so the audit rows could not be counted.
+- **What can only fail if the code gains a write path:** `estate(client) == before` in the Annex case, and the "no audit row" comparisons for replays and rejections, pin what did not happen. The active proofs are the cases that read the `proposals` row and the audit order after a confirm.
+
+#### Closure (D.5, 2026-11-08)
+
+Final gate: `pytest` 1933 passed, branch coverage of `src` 97.66%, `ruff check .` clean, `schema_check` PASS, both `dto.py` copies and both `sprint-status.yaml` copies identical. The red-phase file and log are byte-identical to commit `f98a941`. Log: `docs/evidence/impl2/flow-a-2-3-review-coverage.log`. Status -> done.
