@@ -9,6 +9,7 @@ hands out deep copies so a caller can never corrupt the estate it reads from.
 from __future__ import annotations
 
 import copy
+import threading
 from collections.abc import Callable, Iterable
 from typing import Generic, TypeVar
 
@@ -27,6 +28,7 @@ class RecordStore(Generic[T]):  # noqa: UP046 - explicit TypeVar keeps the seam 
         self._index = {id_of(record).casefold(): record for record in self._records}
         if len(self._index) != len(self._records):
             raise ValueError("duplicate ids (compared case-folded) in RecordStore")
+        self._write_lock = threading.Lock()
 
     def __len__(self) -> int:
         return len(self._records)
@@ -47,6 +49,34 @@ class RecordStore(Generic[T]):  # noqa: UP046 - explicit TypeVar keeps the seam 
         matching = [r for r in self._records if not needle or self._matches(r, needle)]
         window = matching[(page - 1) * page_size : page * page_size]
         return Ok(copy.deepcopy(window))
+
+    # -- the write path: reached only by the simulated executor (AD-1, story 2.4 D2) -------------
+    def replace(self, key: str, record: T) -> bool:
+        """Swap the record stored under ``key``; ``False`` when there is none. Readers see the old
+        or the new tuple, never a half-built one."""
+        with self._write_lock:
+            if key.casefold() not in self._index:
+                return False
+            self._swap(
+                [
+                    record if self._id_of(r).casefold() == key.casefold() else r
+                    for r in self._records
+                ]
+            )
+            return True
+
+    def remove(self, key: str) -> bool:
+        """Drop the record stored under ``key``; ``False`` when there is none."""
+        with self._write_lock:
+            if key.casefold() not in self._index:
+                return False
+            self._swap([r for r in self._records if self._id_of(r).casefold() != key.casefold()])
+            return True
+
+    def _swap(self, records: list[T]) -> None:
+        ordered = tuple(sorted(records, key=self._id_of))
+        self._index = {self._id_of(r).casefold(): r for r in ordered}
+        self._records = ordered
 
     def all(self) -> list[T]:
         """Every record in id order, as copies (used by ``select`` and snapshots)."""

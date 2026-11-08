@@ -7,6 +7,7 @@ from src.ports.outbound.audit_store import AuditEntry, AuditStorePort
 from src.ports.outbound.catalog import CatalogPort
 from src.ports.outbound.clock import ClockPort
 from src.ports.outbound.event_store import EventStorePort, EventWindow
+from src.ports.outbound.executor_port import ExecutorPort
 from src.ports.outbound.groups import GroupsPort
 from src.ports.outbound.idgen import IdGenPort
 from src.ports.outbound.jobs import JobsPort
@@ -25,6 +26,7 @@ from src.ports.outbound.windows import WindowsPort
 __all__ = [
     "AuditEntry",
     "AuditStorePort",
+    "ExecutorPort",
     "ProposalStorePort",
     "CatalogPort",
     "ClockPort",

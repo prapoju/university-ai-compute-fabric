@@ -326,6 +326,8 @@ class SimProviders:
     clock: SimClock
     estate: Result[Estate]
     fixtures_dir: Path
+    # the stores the read ports wrap, for the simulated executor, the only writer (story 2.4 D2)
+    executor_stores: dict[str, Backing]
 
     @classmethod
     def from_fixtures(cls, fixtures_dir: Path, clock_start: str) -> SimProviders:
@@ -337,13 +339,15 @@ class SimProviders:
             return RecordStore(getattr(estate.value, attr), id_of)
 
         catalog = store("catalog", lambda r: r.id)
+        jobs_store = store("jobs", lambda r: r.id)
+        nodes_store = store("nodes", lambda r: r.id)
         return cls(
             users=SimUsers(store("users", lambda r: r.id)),
             catalog=SimCatalog(catalog),
             policy=SimPolicy(store("policy", lambda r: r.clause_id), catalog),
             groups=SimGroups(store("groups", lambda r: r.id)),
-            jobs=SimJobs(store("jobs", lambda r: r.id)),
-            nodes=SimNodes(store("nodes", lambda r: r.id)),
+            jobs=SimJobs(jobs_store),
+            nodes=SimNodes(nodes_store),
             reservations=SimReservations(store("reservations", lambda r: r.id)),
             windows=SimWindows(store("windows", lambda r: r.window_id)),
             event_store=SimEventStore(store("events", lambda r: r.event_id)),
@@ -356,6 +360,7 @@ class SimProviders:
             clock=SimClock(clock_start),
             estate=estate,
             fixtures_dir=fixtures_dir,
+            executor_stores={"jobs": jobs_store, "nodes": nodes_store},
         )
 
     def as_ports(self) -> dict[type, object]:

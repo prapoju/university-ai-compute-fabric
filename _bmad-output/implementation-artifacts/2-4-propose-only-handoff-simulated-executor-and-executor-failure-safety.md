@@ -4,7 +4,7 @@ baseline_commit: 3054c0a
 
 # Story 2.4: Propose-only handoff, simulated executor and executor-failure safety
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Impl-2 Flow A (ATDD-first), Annex 12.4, last of four stories (2-1 .. 2-4). The red phase is
      recorded BEFORE any production code. This story completes the Annex: after the confirm claim the
@@ -50,9 +50,9 @@ Source: `planning/epics.md` Story 2.4 (the console criteria of UX-DR8, the deleg
   - [ ] 1.1 Write `tests/atdd/test_story_2_4.py` against the real app on a file database, one case per row of "ATDD cases". No `skip`, no `xfail`; ruff before the official run.
   - [ ] 1.2 Run `pytest tests/atdd/test_story_2_4.py -q --tb=short 2>&1 | tee docs/evidence/impl2/red-2-4.log`, check that every failure is missing behaviour, label the cases that already pass as regression guards, show the log and **wait for the user** before committing. No production code before that commit.
   - [ ] 1.3 Write the ATDD checklist `_bmad-output/test-artifacts/atdd-checklist-2-4-propose-only-handoff-simulated-executor-and-executor-failure-safety.md`.
-- [ ] **Task 2: The executor port, the simulated executor and the effect rules** (AC: 2, 5, 6, 8, 9, 11) -> `feat(story-2.4): executor port and the simulated executor`
-  - [ ] 2.1 `src/ports/outbound/executor_port.py` (OP-15: `dispatch(request) -> Result[ExecutorResult]`, `get(proposal_id)`), `src/domain/execution.py` (the effect of each verb, the classification of a result: `applied` | `partial` | `failed`, the 5 s rule), and the adapter `src/adapters/outbound/sim/executor_adapter.py` with its controls (`down`, `delay_seconds`, `apply_only`, `calls`). `RecordStore` gains a guarded `replace`/`remove` that **only** the executor adapter reaches (it is built from the same stores the read ports use).
-  - [ ] 2.2 Unit and integration tests: every verb's effect on the stores; items applied by key and never re-enumerated; an item no longer actionable is skipped; idempotent retry and `EXECUTOR_DUPLICATE_APPLY`; the executor's own clock read; the frozen request validation; a static test that no provider port has a write method and that only the executor adapter mutates a store.
+- [x] **Task 2: The executor port, the simulated executor and the effect rules** (AC: 2, 5, 6, 8, 9, 11) -> `feat(story-2.4): executor port and the simulated executor`
+  - [x] 2.1 `src/ports/outbound/executor_port.py` (OP-15: `dispatch(request) -> Result[ExecutorResult]`, `get(proposal_id)`), `src/domain/execution.py` (the effect of each verb, the classification of a result: `applied` | `partial` | `failed`, the 5 s rule), and the adapter `src/adapters/outbound/sim/executor_adapter.py` with its controls (`down`, `delay_seconds`, `apply_only`, `calls`). `RecordStore` gains a guarded `replace`/`remove` that **only** the executor adapter reaches (it is built from the same stores the read ports use).
+  - [x] 2.2 Unit and integration tests: every verb's effect on the stores; items applied by key and never re-enumerated; an item no longer actionable is skipped; idempotent retry and `EXECUTOR_DUPLICATE_APPLY`; the executor's own clock read; the frozen request validation; a static test that no provider port has a write method and that only the executor adapter mutates a store.
 - [ ] **Task 3: Proposal store: dispatch, result, failure, supersede** (AC: 3, 7, 9, 13, 14) -> `feat(story-2.4): proposal store dispatch, result and supersede transitions`
   - [ ] 3.1 `ProposalStorePort`: `claim` becomes `dry_run -> confirmed -> dispatched` in one statement pair (contracts claim), `record_result(...)` (C6, conditional on `dispatched`, writing `executed` or `failed` and the executor columns), `mark_failed(proposal_id, ...)` (C6 without a result), `supersede(parent)` (C7, conditional on `failed`). All join the caller's transaction and answer whether this call changed the row.
   - [ ] 3.2 Integration tests on the real schema: each transition once and never twice, the state-machine trigger, the CHECKs (`confirmed_at` required, the all-or-nothing executor columns), 50 simultaneous dispatch claims with one winner, rollback with the caller.
