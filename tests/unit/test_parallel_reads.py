@@ -120,3 +120,24 @@ def test_a_slot_comes_back_before_its_read_completes() -> None:
     release.set()
     future.result(timeout=WAIT)  # the slot is released before the future completes
     assert pool.claim(1), "the slot did not come back after the read returned"
+
+
+def test_recorded_calls_settle_in_argument_order_when_the_second_read_finishes_first() -> None:
+    """Settling the lanes in completion order would put the second read's call first."""
+    recorder = ToolCallRecorder()
+    second_done = threading.Event()
+
+    def first():
+        second_done.wait(WAIT)
+        recorder.record(RecordedCall("toolcall.first", {}, "ok"))
+        return Ok("first")
+
+    def second():
+        recorder.record(RecordedCall("toolcall.second", {}, "ok"))
+        second_done.set()
+        return Ok("second")
+
+    reads = ParallelReads(budget_seconds=5.0, recorder=recorder, pool=FanoutPool(2))
+    with recorder.turn() as calls:
+        assert reads.run((first, second)) == Ok(["first", "second"])
+    assert [call.tool_name for call in calls] == ["toolcall.first", "toolcall.second"]
