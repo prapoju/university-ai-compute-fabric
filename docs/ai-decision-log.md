@@ -1086,3 +1086,31 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
   `True`, which no node value equals. The test was corrected, not the production code, and the mutant is now killed.
 - **Outcome:** story 2.2 is `done` in the story file and in both `sprint-status.yaml` copies; the epic stays `in-progress`. Final gate: 1824 passed,
   branch coverage 97.52%. Next: story 2-3 (confirmation gate). Reviewer: Pending.
+
+## I2-25 - Story 2.3: what the contract fixes, what the split with 2.4 forces, and what the user decided  *(decision, proposed by the AI)*
+- **Date / phase:** 2026-11-08, `bmad-create-story` for story 2.3 (Flow A) from baseline `4e8f902`, before any test or code. Full text in
+  `_bmad-output/implementation-artifacts/2-3-procedural-confirmation-gate-and-snapshot-re-validation.md`.
+- **Prompt (intent):** "Si" to the option offered by the AI for the token expiry, after the push of 2.1 and 2.2 (`fd87eb4..4e8f902`, CI run
+  `42433922694` green).
+- **What the AI found in the sources:**
+  - `confirm_and_dispatch` fixes the order P1 -> P5 -> P2 -> P4 -> P3 -> claim and the single conditional `UPDATE`; the epic and the plan (D-P1) put
+    the dispatch in 2-4, so this story can only reach `confirmed`, while `post_confirm` is documented to answer `dispatched | executed | failed`.
+  - The `proposals` table has `confirmed_at`, the CHECK that ties it to the later states and the state-machine trigger, but no expiry column and
+    migration 001 cannot be edited; nothing reads a proposal back yet.
+  - The test design counts `Exec = 1`; with no executor the equivalent is one `dry_run -> confirmed` transition and one set of audit rows.
+  - `CONFIRMATION_STALE` has a message template with a `{delta}` and the epics ask for the dry-run to be "re-rendered with the delta"; no schema exists for that.
+- **Decisions:**
+  - **D2 (decided by the user, "Si"):** the expiry is derived as `snapshot_timestamp + gate_token_ttl_seconds`, the setting in force, accepted while
+    `now <= expires`. Accepted limitation: changing the setting and restarting changes the lifetime of tokens already issued; the assignment never
+    changes the TTL between a dry-run and its confirm. This closes item D-1 of the 2.2 review.
+  - **Applied by the AI, waiting for the user before the red phase:** **D1** the route ends at `confirmed` until 2-4 (only the text of `openapi.yaml`
+    and `contracts.md` changes); **D6** the stale answer is the catalog 409 with the delta in the message and in `explanation.observed_values`,
+    plus a last line saying confirmation is disabled, and the proposal is not modified (no new schema).
+  - **Applied by the AI:** D3-D5 and D7-D13: the normative evaluation order; the outcomes by token and state; a set with no actionable item is
+    `DRY_RUN_EMPTY_SET` (stricter than `len >= 1`, consistent with 2.2 where confirmation is already disabled for it); a single conditional claim with
+    the audit rows in one transaction and no audit row for replays or rejections; no identity and no session context (the session row is read only for
+    `operator_role`); the port additions; the test controls (`SimClock.advance`, a switchable double on `SimJobs.select`, `Barrier`/`Event`).
+- **AI slips:** none yet. The plan sizes this story M; with the store reads, the use case, the route, the contract text and the hammer it is closer
+  to M-L but it stays one story because the gate cannot be tested without all of them.
+- **Outcome:** story 2.3 is `ready-for-dev` in both `sprint-status.yaml` copies. No test or production code yet. Next: the ATDD red phase after
+  the user confirms D1 and D6. Reviewer: Juan (D2), Pending (the rest).
