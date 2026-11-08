@@ -1,49 +1,60 @@
 # C4 diagram: AI Operations Copilot (Module 12)
 
-Levels 1 (context) and 2 (containers), in Mermaid C4 syntax. The containers follow the ports
-and adapters layout in `src/`. The domain has no adapter imports (enforced by ruff `TID251` and
+Levels 1 (context) and 2 (containers). They are drawn with plain Mermaid flowcharts in C4 style,
+because the experimental Mermaid C4 syntax does not render reliably. The containers follow the
+ports and adapters layout in `src/`. The domain imports no adapter (enforced by ruff `TID251` and
 `tests/unit/test_architecture_imports.py`).
 
 ## Level 1: System context
 
 ```mermaid
-C4Context
-    title System context: AI Operations Copilot
+flowchart TB
+    operator["👤 <b>Operator</b><br/>Helpdesk specialist who<br/>resolves student tickets"]
+    copilot["<b>AI Operations Copilot</b><br/>Answers operational questions with<br/>cited, deterministic evidence.<br/>Never executes a destructive action."]
+    estate["<b>Simulated lab estate</b><br/>External, read-only fixtures:<br/>users, jobs, nodes, policy, events"]
+    executor["<b>Executor</b><br/>External, simulated.<br/>Applies an approved proposal."]
 
-    Person(operator, "Operator", "Helpdesk specialist (Nadia) who resolves student tickets")
-    System(copilot, "AI Operations Copilot", "Answers operational questions with cited, deterministic evidence; never executes a destructive action")
-    System_Ext(executor, "Executor", "Applies an approved proposal (simulated in this prototype)")
-    System_Ext(estate, "Simulated lab estate", "Fixtures: users, groups, jobs, nodes, policy, events, runbooks (read-only)")
+    operator -->|"asks diagnostic questions,<br/>confirms job and node actions"| copilot
+    copilot -->|"reads state, policy, events"| estate
+    copilot -->|"sends the confirmed action"| executor
 
-    Rel(operator, copilot, "Asks questions, confirms proposals", "HTTPS, browser")
-    Rel(copilot, estate, "Reads state, policy, events", "in-process ports")
-    Rel(copilot, executor, "Dispatches a confirmed proposal", "port call, once")
+    classDef person fill:#08427b,stroke:#052e56,color:#fff
+    classDef system fill:#1168bd,stroke:#0b4884,color:#fff
+    classDef external fill:#999,stroke:#6b6b6b,color:#fff
+    class operator person
+    class copilot system
+    class estate,executor external
 ```
 
 ## Level 2: Containers
 
 ```mermaid
-C4Container
-    title Containers: AI Operations Copilot
+flowchart TB
+    operator["👤 <b>Operator</b><br/>Helpdesk specialist"]
 
-    Person(operator, "Operator", "Helpdesk specialist")
+    subgraph boundary [AI Operations Copilot]
+        console["<b>Console</b><br/>React 19, TypeScript, Vite<br/>chat, cited badges, runbook card<br/><i>console/</i>"]
+        api["<b>HTTP API</b><br/>FastAPI, synchronous routes<br/><i>src/adapters/inbound/</i>"]
+        app["<b>Application</b><br/>use cases: pipeline, sessions,<br/>dry-run, confirmation, dispatch<br/><i>src/application/</i>"]
+        domain["<b>Domain</b><br/>pure rules: intent, safety,<br/>diagnosis, citations<br/><i>src/domain/</i>"]
+        sim["<b>Simulated providers</b><br/>estate, prose, clock, ids, executor<br/><i>src/adapters/outbound/sim/</i>"]
+        db[("<b>SQLite</b><br/>one writer: sessions, answers,<br/>proposals, audit<br/><i>src/adapters/outbound/db/</i>")]
+    end
 
-    Container_Boundary(copilot, "AI Operations Copilot") {
-        Container(console, "Console", "React 19, TypeScript, Vite", "Chat container, cited badges, runbook card, copy action (src: console/)")
-        Container(api, "HTTP API", "FastAPI, sync routes", "Inbound adapter: /api/v1 routes, error envelope (src/adapters/inbound/)")
-        Container(app, "Application", "Python", "Use cases: pipeline, session, dry-run, confirmation, dispatch, parallel reads (src/application/)")
-        Container(domain, "Domain", "Python, pure", "Intent rules, safety, dry-run, confirmation, diagnosis, citations (src/domain/)")
-        Container(sim, "Simulated providers", "Python", "Fixture-backed ports: estate, prose, clock, ids, executor (src/adapters/outbound/sim/)")
-        ContainerDb(db, "SQLite", "SQLite, one writer", "Sessions, answers, proposals, tool-call audit (src/adapters/outbound/db/)")
-    }
+    fixtures["<b>Fixtures</b><br/>JSON: estate, policy, runbooks<br/><i>fixtures/</i>"]
 
-    System_Ext(fixtures, "Fixtures", "fixtures/: estate, policy, runbooks (JSON)")
+    operator -->|uses| console
+    console -->|"JSON over HTTP"| api
+    api -->|calls use cases| app
+    app -->|uses| domain
+    app -->|reads ports, dispatches| sim
+    app -->|"writes turns, proposals, audit"| db
+    sim -->|loads at start-up| fixtures
 
-    Rel(operator, console, "Uses", "HTTPS")
-    Rel(console, api, "Calls", "JSON over HTTP, synchronous")
-    Rel(api, app, "Calls use cases")
-    Rel(app, domain, "Uses pure rules")
-    Rel(app, sim, "Reads ports, dispatches executor")
-    Rel(app, db, "Writes turns, proposals, audit", "single writer")
-    Rel(sim, fixtures, "Loads at start-up")
+    classDef person fill:#08427b,stroke:#052e56,color:#fff
+    classDef container fill:#438dd5,stroke:#2e6295,color:#fff
+    classDef external fill:#999,stroke:#6b6b6b,color:#fff
+    class operator person
+    class console,api,app,domain,sim,db container
+    class fixtures external
 ```
