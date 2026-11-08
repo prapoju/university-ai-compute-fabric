@@ -197,6 +197,8 @@ which reports `17/20`, below the 90 % threshold. That failure reproduces locally
 other 2157 tests in that job pass. The earlier green run on `618abcc` (`42527948599`) predates the corpus test. The corpus test is red on purpose: the
 expectations were kept, and the misses are reported in section 11. The Playwright artifacts are `playwright-test-results` (traces) and `playwright-report`.
 
+**Final head.** Run `42531988473` on `7e4ef06` (the walkthrough commit) has the same result: four jobs succeed, `Ruff + pytest` fails only on the NFR-1 corpus assertion.
+
 ## 9. Testing pyramid: real counts against 70 / 20 / 10
 
 Counts from `pytest --collect-only` and the Playwright and k6 files on this commit. The total is 2163 automated cases.
