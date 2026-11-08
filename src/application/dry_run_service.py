@@ -98,13 +98,30 @@ class DryRunService(DestructiveUseCases):
     def post_dry_run(
         self, query_text: str, action: str, target_refs: list[str], session_id: str
     ) -> Result[Outcome]:
+        return self._post(query_text, action, target_refs, session_id, None)
+
+    def redispatch(
+        self, parent: ProposalDTO, query_text: str, action: str, target_refs: list[str]
+    ) -> Result[Outcome]:
+        """A new dry-run in the parent's session, linked to it (story 2.4, PD-6)."""
+        return self._post(query_text, action, target_refs, parent.session_id, parent)
+
+    def _post(
+        self,
+        query_text: str,
+        action: str,
+        target_refs: list[str],
+        session_id: str,
+        supersedes: ProposalDTO | None,
+    ) -> Result[Outcome]:
         if action not in _VERBS or not 1 <= len(target_refs) <= MAX_TARGET_REFS:  # P1
             return fail("VALIDATION_MALFORMED_BODY", schema_id="PostDryRunRequest")
         query = normalise_query(query_text)
         if is_failure(query):
             return query
         verb: ActionVerb = action  # type: ignore[assignment]  # checked against the enum above
-        return self._run(session_id, verb, query.value, lambda: self._targets(verb, target_refs))
+        aim = lambda: self._targets(verb, target_refs)  # noqa: E731
+        return self._run(session_id, verb, query.value, aim, supersedes)
 
     def dry_run_request(self, session_id: str, request: DestructiveRequest) -> Result[Outcome]:
         target = request.target
@@ -112,7 +129,12 @@ class DryRunService(DestructiveUseCases):
 
     # -- the common path ------------------------------------------------------------------------
     def _run(
-        self, session_id: str, action: ActionVerb, query: str | None, aim: Callable[[], Result]
+        self,
+        session_id: str,
+        action: ActionVerb,
+        query: str | None,
+        aim: Callable[[], Result],
+        supersedes: ProposalDTO | None = None,
     ) -> Result[Outcome]:
         found = self._sessions.get(session_id)
         if is_failure(found):
@@ -162,19 +184,29 @@ class DryRunService(DestructiveUseCases):
             session_id=session_id,
             state="dry_run",
             action=action,
+            supersedes_proposal_id=supersedes.proposal_id if supersedes else None,
             dry_run_snapshot=snapshot,
             gate_token=token.value,
         )
         head = RecordedCall(
             _HEAD,
-            {"proposal_id": proposal.proposal_id, "action": action, "targets": list(keys)},
+            {
+                "proposal_id": proposal.proposal_id,
+                "action": action,
+                "targets": list(keys),
+                **({"supersedes": supersedes.proposal_id} if supersedes else {}),
+            },
             "ok",
-            result={"state": "dry_run", "affected_count": len(items)},
+            result={
+                "state": "dry_run",
+                "affected_count": len(items),
+                **({"supersedes": supersedes.proposal_id} if supersedes else {}),
+            },
         )
         entries = self._audit.entries_for(session, now.value, head, calls)
         if is_failure(entries):
             return entries
-        written = self._store(proposal, now.value.instant, entries.value)
+        written = self._store(proposal, now.value.instant, entries.value, supersedes)
         if is_failure(written):
             return written
         return Ok(
@@ -186,14 +218,37 @@ class DryRunService(DestructiveUseCases):
             )
         )
 
-    def _store(self, proposal: ProposalDTO, instant: str, entries: list) -> Result[None]:
-        """The proposal and its audit rows in one unit of work: both commit, or neither does."""
+    def _store(
+        self,
+        proposal: ProposalDTO,
+        instant: str,
+        entries: list,
+        supersedes: ProposalDTO | None = None,
+    ) -> Result[None]:
+        """The proposal and its audit rows in one unit of work: both commit, or neither does.
+
+        A re-dispatch supersedes its parent in the same transaction (C7), unless the parent was
+        already partly applied: it then stays ``failed``, as the contract says.
+        """
         try:
             with self._uow.atomic() as tx:
                 added = self._proposals.add(proposal, instant)
                 if is_failure(added):
                     tx.abort()
                     return added
+                if supersedes is not None and not _partly_applied(supersedes):
+                    done = self._proposals.supersede(supersedes.proposal_id, instant)
+                    if is_failure(done):
+                        tx.abort()
+                        return done
+                    if not done.value:  # no longer ``failed``: another re-dispatch got there first
+                        tx.abort()
+                        return fail(
+                            "PROPOSAL_STATE_INVALID",
+                            pid=supersedes.proposal_id,
+                            state="superseded",
+                            action="re-dispatch",
+                        )
                 audited = self._audit.write(entries)
                 if is_failure(audited):
                     tx.abort()
@@ -270,6 +325,11 @@ def _aimed(
     if not all(accepts(action, target) for target in targets):
         return fail("VALIDATION_BAD_ACTION", value=f"{action} on {', '.join(keys)}")
     return Ok((targets[0].kind, keys))
+
+
+def _partly_applied(parent: ProposalDTO) -> bool:
+    """The executor already applied something of the parent: it stays ``failed`` (Q2)."""
+    return parent.executor_result is not None and parent.executor_result.applied_count > 0
 
 
 def _typed_kind(ref: str) -> TargetKind | None:

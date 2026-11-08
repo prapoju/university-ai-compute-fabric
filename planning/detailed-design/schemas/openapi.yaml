@@ -412,7 +412,7 @@ paths:
       operationId: executor_post_proposal
       tags: [executor]
       summary: executor_post_proposal — POST /executor/v1/proposals (contracts §2; AD-15 frozen contract)
-      description: Simulated executor reference adapter; applies exactly the referenced snapshot's items.
+      description: Simulated executor reference adapter; applies exactly the referenced snapshot's actionable items, and only for a `dispatched` proposal with its token (a `dry_run` or `confirmed` one is 409 PROPOSAL_STATE_INVALID), so it cannot bypass the confirmation.
       requestBody:
         required: true
         content:

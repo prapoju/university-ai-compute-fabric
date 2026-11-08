@@ -16,7 +16,12 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from src.adapters.inbound.errors import error_body, failure_response
 from src.domain.result import is_failure
-from src.ports.inbound import CanonicalOutcome, ConfirmUseCases, DestructiveUseCases
+from src.ports.inbound import (
+    CanonicalOutcome,
+    ConfirmUseCases,
+    DestructiveUseCases,
+    ProposalUseCases,
+)
 
 router = APIRouter(prefix="/api/v1", tags=["destructive"])
 
@@ -46,11 +51,28 @@ class PostConfirmBody(BaseModel):
     gate_token: str = Field(pattern=r"^gt-[0-9a-f]{32}$")
 
 
+class PostReDispatchBody(BaseModel):
+    """``post_re_dispatch``: the request of the new dry-run; the parent is the path."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    query_text: str
+    action: str
+    target_refs: list[str]
+
+
 def get_destructive_use_cases(request: Request) -> DestructiveUseCases:
     return request.app.state.container.port(DestructiveUseCases)
 
 
 Destructive = Annotated[DestructiveUseCases, Depends(get_destructive_use_cases)]
+
+
+def get_proposal_use_cases(request: Request) -> ProposalUseCases:
+    return request.app.state.container.port(ProposalUseCases)
+
+
+Proposals = Annotated[ProposalUseCases, Depends(get_proposal_use_cases)]
 
 
 def get_confirm_use_cases(request: Request) -> ConfirmUseCases:
@@ -89,3 +111,22 @@ def post_confirm(body: PostConfirmBody, use_cases: Confirm) -> JSONResponse:
     return JSONResponse(
         status_code=502 if partial else 200, content=proposal.model_dump(mode="json")
     )
+
+
+@router.get("/destructive/proposals/{pid}", response_model=None)
+def get_proposal(pid: str, use_cases: Proposals) -> JSONResponse:
+    result = use_cases.get_proposal(pid)
+    if is_failure(result):
+        return failure_response(result)
+    return JSONResponse(status_code=200, content=result.value.model_dump(mode="json"))
+
+
+@router.post("/destructive/proposals/{pid}/re-dispatches", response_model=None)
+def post_re_dispatch(pid: str, body: PostReDispatchBody, use_cases: Proposals) -> JSONResponse:
+    """A new proposal through the full gate; it applies nothing (PD-6)."""
+    result = use_cases.post_re_dispatch(pid, body.query_text, body.action, body.target_refs)
+    if is_failure(result):
+        return failure_response(result)
+    if isinstance(result.value, CanonicalOutcome):
+        return canonical_response(result.value)
+    return JSONResponse(status_code=200, content=result.value.proposal.model_dump(mode="json"))

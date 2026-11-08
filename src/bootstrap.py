@@ -43,6 +43,7 @@ from src.application.evidence_assembler import EvidenceAssembler
 from src.application.evidence_service import EvidenceService
 from src.application.pipeline import AnswerPipeline
 from src.application.proposal_dispatcher import ProposalDispatcher
+from src.application.proposal_service import ProposalService
 from src.application.session_service import SessionService
 from src.application.state_service import StateService
 from src.application.tool_audit import TOOL_PORT_NAMES, ToolCallRecorder, audited
@@ -51,6 +52,8 @@ from src.application.unavailable import (
     UnavailableConfirmUseCases,
     UnavailableDestructiveUseCases,
     UnavailableEvidenceUseCases,
+    UnavailableExecutor,
+    UnavailableProposalUseCases,
     UnavailableSessionUseCases,
 )
 from src.application.window_diagnosis_handler import INTENT as WINDOW_INTENT
@@ -63,6 +66,7 @@ from src.ports.inbound import (
     ConfirmUseCases,
     DestructiveUseCases,
     EvidenceUseCases,
+    ProposalUseCases,
     SessionUseCases,
     StateUseCases,
 )
@@ -247,13 +251,16 @@ def build_container(settings: Settings) -> Container:
     audit_pages: AuditUseCases
     destructive: DestructiveUseCases
     confirm: ConfirmUseCases
-    executor: ExecutorPort | None = None
+    proposal_uc: ProposalUseCases
+    executor: ExecutorPort
     if store is None or audit_store is None or writer is None or session_problem is not None:
         use_cases = UnavailableSessionUseCases(session_problem or "session store unavailable")
         evidence = UnavailableEvidenceUseCases(session_problem or "session store unavailable")
         audit_pages = UnavailableAuditUseCases(session_problem or "session store unavailable")
         destructive = UnavailableDestructiveUseCases(session_problem or "session store unavailable")
         confirm = UnavailableConfirmUseCases(session_problem or "session store unavailable")
+        proposal_uc = UnavailableProposalUseCases(session_problem or "session store unavailable")
+        executor = UnavailableExecutor(session_problem or "session store unavailable")
     else:
         use_cases = SessionService(
             store=store,
@@ -318,6 +325,7 @@ def build_container(settings: Settings) -> Container:
             ),
             token_ttl_seconds=settings.gate_token_ttl_seconds,
         )
+        proposal_uc = ProposalService(proposals=proposal_store, dry_run=destructive)
 
     def sessions() -> str | None:
         if store is None or session_problem is not None:
@@ -360,8 +368,8 @@ def build_container(settings: Settings) -> Container:
     container.register_port(AuditUseCases, audit_pages)
     container.register_port(DestructiveUseCases, destructive)
     container.register_port(ConfirmUseCases, confirm)
-    if executor is not None:
-        container.register_port(ExecutorPort, executor)
+    container.register_port(ExecutorPort, executor)
+    container.register_port(ProposalUseCases, proposal_uc)
     container.register_port(ChatUseCases, ChatService(sessions=use_cases, destructive=destructive))
     container.register_port(StateUseCases, state)
     return container

@@ -11,6 +11,8 @@ from src.domain.result import Failure, Result
 from src.domain.safety import DestructiveRequest
 from src.dto import (
     AnswerEnvelopeDTO,
+    ExecutorRequestDTO,
+    ExecutorResultDTO,
     GetAnswerEvidenceResponse,
     GetAuditPageResponse,
     GetCitationResponse,
@@ -25,8 +27,10 @@ from src.ports.inbound import (
     DestructiveUseCases,
     DryRunOutcome,
     EvidenceUseCases,
+    ProposalUseCases,
     SessionUseCases,
 )
+from src.ports.outbound import ExecutorPort
 
 
 class UnavailableSessionUseCases(SessionUseCases):
@@ -79,6 +83,32 @@ class UnavailableConfirmUseCases(ConfirmUseCases):
         self._failure = Failure("PROVIDER_UNAVAILABLE", observed=(reason,))
 
     def post_confirm(self, proposal_id: str, gate_token: str) -> Result[ProposalDTO]:
+        return self._failure
+
+
+class UnavailableProposalUseCases(ProposalUseCases):
+    def __init__(self, reason: str) -> None:
+        self._failure = Failure("PROVIDER_UNAVAILABLE", observed=(reason,))
+
+    def get_proposal(self, proposal_id: str) -> Result[ProposalDTO]:
+        return self._failure
+
+    def post_re_dispatch(
+        self, parent_proposal_id: str, query_text: str, action: str, target_refs: list[str]
+    ) -> Result[DryRunOutcome | CanonicalOutcome]:
+        return self._failure
+
+
+class UnavailableExecutor(ExecutorPort):
+    """The executor of a service whose database cannot open: a typed failure, never a crash."""
+
+    def __init__(self, reason: str) -> None:
+        self._failure = Failure("EXECUTOR_UNAVAILABLE", observed=(reason,))
+
+    def dispatch(self, request: ExecutorRequestDTO) -> Result[ExecutorResultDTO]:
+        return self._failure
+
+    def get(self, proposal_id: str) -> Result[ExecutorResultDTO | None]:
         return self._failure
 
 
