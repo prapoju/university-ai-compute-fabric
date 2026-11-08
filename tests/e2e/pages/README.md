@@ -5,4 +5,4 @@ constructor, exposes locators by role or `data-testid`, and exposes intent-level
 (`ask(question)`, `confirm(token)`). Page objects never assert: specs do, with web-first
 assertions (`await expect(locator).toBeVisible()`). No `waitForTimeout`.
 
-It is empty until the React console lands (story 1-7).
+The Copilot console page object lives in `CopilotConsolePage.ts` (story 1-7).
