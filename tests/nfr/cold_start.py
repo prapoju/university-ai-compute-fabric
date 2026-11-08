@@ -65,7 +65,8 @@ def main() -> int:
     verdict = "PASS" if cold_start <= BUDGET_SECONDS else "FAIL"
     print(f"command: {' '.join(command[1:])}")
     print(f"M12_DB_PATH=:memory:  url={URL}")
-    print(f"cold start to first 200 on /healthz: {cold_start:.2f} s (budget {BUDGET_SECONDS:.0f} s)")
+    print(f"cold start to first 200 on /healthz: {cold_start:.2f} s")
+    print(f"budget: {BUDGET_SECONDS:.0f} s")
     print(f"NFR-7 cold start: {verdict}")
     return 0 if cold_start <= BUDGET_SECONDS else 1
 
