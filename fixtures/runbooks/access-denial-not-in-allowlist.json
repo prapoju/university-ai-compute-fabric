@@ -1,0 +1,16 @@
+{
+  "template_id": "rb-access-denial-not-in-allowlist",
+  "error_code": "access_denial_not_in_allowlist",
+  "steps": [
+    "Confirm the denial event cites policy#catalog.4.2 (RULE-CAT-04) and that the requested model is not in the user's allowlist.",
+    "Tell the user that the model is not available for their role under policy clause catalog 4.2.",
+    "Offer an alternative model that is in the user's allowlist for the current task.",
+    "If the model is required for coursework, ask the course instructor to file an allowlist exception request with the platform owner.",
+    "Record the request reference in the help-desk ticket and close it only after the platform owner answers."
+  ],
+  "required_tools": ["help-desk ticket system", "policy catalog"],
+  "safety_warnings": ["Never change an allowlist or a credential yourself; only the platform owner applies policy changes."],
+  "physical_intervention": false,
+  "approved_source": "Course fixture: help-desk access procedure (Impl-2)",
+  "version": "1.0"
+}

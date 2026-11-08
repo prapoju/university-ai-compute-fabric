@@ -12,7 +12,7 @@ from dataclasses import dataclass
 
 import pytest
 
-from src.adapters.outbound.sim.fixtures_adapter import SimCatalog, SimUsers
+from src.adapters.outbound.sim.fixtures_adapter import SimCatalog, SimRunbookRegistry, SimUsers
 from src.adapters.outbound.sim.idgen_adapter import SimIdGen
 from src.adapters.outbound.sim.prose_adapter import SimProse
 from src.adapters.outbound.sim.record_store import RecordStore
@@ -53,6 +53,7 @@ def make_rig(providers, *, users=None, catalog=None, events=None, idgen=None) ->
         ),
         prose=prose,
         idgen=idgen or SimIdGen(),
+        runbooks=SimRunbookRegistry(()),
     )
     return Rig(handler, prose, providers)
 

@@ -17,7 +17,7 @@ from src.adapters.outbound.db.migrate import apply_migrations
 from src.adapters.outbound.db.session_store import SqliteSessionStore
 from src.adapters.outbound.db.sqlite_writer import SqliteWriter
 from src.adapters.outbound.sim.clock_adapter import SimClock
-from src.adapters.outbound.sim.fixtures_adapter import SimProviders
+from src.adapters.outbound.sim.fixtures_adapter import SimProviders, SimRunbookRegistry
 from src.adapters.outbound.sim.idgen_adapter import SimIdGen
 from src.adapters.outbound.sim.prose_adapter import SimProse
 from src.application.access_denial_handler import AccessDenialHandler
@@ -627,6 +627,7 @@ def audited_rig(database: str = ":memory:", *, users: UsersPort | None = None) -
             ),
             prose=SimProse(),
             idgen=rig.idgen,
+            runbooks=SimRunbookRegistry(()),
         ),
     )
     return rig

@@ -14,6 +14,7 @@ import pytest
 from src.adapters.outbound.db.migrate import apply_migrations
 from src.adapters.outbound.db.session_store import SqliteSessionStore
 from src.adapters.outbound.db.sqlite_writer import SqliteWriter
+from src.adapters.outbound.sim.fixtures_adapter import SimRunbookRegistry
 from src.adapters.outbound.sim.idgen_adapter import SimIdGen
 from src.adapters.outbound.sim.prose_adapter import SimProse
 from src.application import access_denial_handler, window_diagnosis_handler
@@ -66,6 +67,7 @@ def access_denial(providers, prose: SimProse, idgen: SimIdGen) -> AccessDenialHa
         assembler=EvidenceAssembler(policy=providers.policy, events=providers.event_store),
         prose=prose,
         idgen=idgen,
+        runbooks=SimRunbookRegistry(()),
     )
 
 

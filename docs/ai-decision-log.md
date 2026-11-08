@@ -1366,3 +1366,13 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 - **Served routes:** `SERVED_IN_THIS_STORY` gains `GET /api/v1/runbooks/{}`, in the same commit as the route.
 - **Status:** dev of story 3-3 in progress; the review and closing entries follow.
 - **Reviewer:** Julio.
+
+## I2-48 - Story 3.3: the access-denial runbook is keyed by the diagnosis class and attached only when asked for; contract amended  *(AI-written code, contract amendment and tests, user approved, Reviewer: Julio)*
+- **Date / phase:** 2026-11-08, dev of story 3-3, after decisions D-1 and D-2 were approved.
+- **Key choice:** the template `fixtures/runbooks/access-denial-not-in-allowlist.json` has `error_code = access_denial_not_in_allowlist`, the diagnosis class of the answer. The registry is keyed by exact `error_code` (contracts.md `lookup_runbook` Q4), so the class string is the key and no lookup rule changes. The alternative, a separate access-denial code, would have needed a new code and a second mapping.
+- **Contract amendment (same commit as the code):** `planning/detailed-design/contracts.md`, operation `diagnose_access_denial`, Q1. `recommendation` is `null` unless the query explicitly asks for a runbook (contains the word `runbook`) and a renderable template is registered for the class. Then it has the `diagnose_node_triage` Q1 shape. `openapi.yaml` needed no change: the `Answer.recommendation` schema is already `object | null`.
+- **Attachment rule:** the diagnosis, claims, evidence and class are unchanged. The answer chain gains `recommendation` only when a runbook is attached. A registry failure aborts the turn (AD-12). A physical template without an approved source is not attached.
+- **Regression:** S1, S2 and `ghost_user_99` are compared byte for byte with bodies captured at HEAD before the change (`tests/api/golden/copilot_query_at_head.json`, read through `POST /api/v1/copilot/query`). The annex 12.6 query gets the registered steps verbatim, and its claims and evidence equal those of S1.
+- **Test changes (existing tests, mechanical):** the four unit-test constructions of `AccessDenialHandler` (`test_access_denial_handler.py`, `test_citation_binding_handlers.py`, `test_anti_fabrication.py`, `test_session_service.py`) pass the new required collaborator `runbooks=SimRunbookRegistry(())`. Their assertions are unchanged.
+- **Status:** the NFR-10 template test and the loader rejection tests follow in their own commits.
+- **Reviewer:** Julio.

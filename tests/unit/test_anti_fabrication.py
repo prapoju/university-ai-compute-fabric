@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from src.adapters.outbound.sim.fixtures_adapter import SimProviders
+from src.adapters.outbound.sim.fixtures_adapter import SimProviders, SimRunbookRegistry
 from src.adapters.outbound.sim.idgen_adapter import SimIdGen
 from src.adapters.outbound.sim.prose_adapter import SimProse
 from src.application.access_denial_handler import AccessDenialHandler
@@ -48,6 +48,7 @@ def handlers(providers, policy=None):
             assembler=EvidenceAssembler(policy=providers.policy, events=providers.event_store),
             prose=prose,
             idgen=ids,
+            runbooks=SimRunbookRegistry(()),
         ),
         "diagnose_schedule_window": WindowDiagnosisHandler(
             resolver=resolver,

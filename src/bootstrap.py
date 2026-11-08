@@ -221,6 +221,7 @@ def build_container(settings: Settings) -> Container:
             assembler=EvidenceAssembler(policy=policy, events=event_store, reads=reads),
             prose=prose,
             idgen=idgen,
+            runbooks=runbooks,
         ),
     )
     pipeline.register(
