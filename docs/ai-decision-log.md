@@ -489,11 +489,11 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 | I2-55 | - | Decision | Story 1.7: the badge rule id is derived in the console with the story 1-6 pattern, mirrored and pinned by the E2E | see entry |
 | I2-56 | - | Decision | Story 1.7 closed: review findings M-1 and L-1 fixed, mutation of the badge killed, full suite green, status done | see entry |
 | I2-57 | - | Decision | Impl-2 scope: FR-06 and the optional stories are outside the Annex minimum; the gate oracle follows that scope | see entry |
-| I2-58 | Final hardening | Decision | ParallelReads and EvidenceAssembler require their recorder; banned-wait prose reworded | Julio (standing pre-approval) |
-| I2-59 | Final hardening | **Correction (tool use)** | A whole-tree `ruff format` rewrote 25 files, including the verbatim DTO copy; reverted | Julio (standing pre-approval) |
-| I2-60 | Final evidence | Decision, **Correction (citation)** | NFR audit run inline without subagents; a wrong citation of the token lifetime fixed before the commit | Julio (standing pre-approval) |
-| I2-61 | Final evidence | Decision | Traceability gate computed by the skill rules: CONCERNS; FR-06 as P0 would be FAIL | Julio (standing pre-approval) |
-| I2-62 | Final evidence | **Correction (text)** | Walkthrough and README: three unsupported claims fixed before the commit; the one-command gate verified | Julio (standing pre-approval) |
+| I2-58 | Final hardening | Decision | ParallelReads and EvidenceAssembler require their recorder; banned-wait prose reworded | Julio |
+| I2-59 | Final hardening | **Correction (tool use)** | A whole-tree `ruff format` rewrote 25 files, including the verbatim DTO copy; reverted | Julio |
+| I2-60 | Final evidence | Decision, **Correction (citation)** | NFR audit run inline without subagents; a wrong citation of the token lifetime fixed before the commit | Julio |
+| I2-61 | Final evidence | Decision | Traceability gate computed by the skill rules: CONCERNS; FR-06 as P0 would be FAIL | Julio |
+| I2-62 | Final evidence | **Correction (text)** | Walkthrough and README: three unsupported claims fixed before the commit; the one-command gate verified | Julio |
 | I2-63 | Gate gaps | Decision | NFR-1 corpus (85 %, red on purpose), cold start 0.54 s, two recorded waivers (NFR-7 8-hour, NFR-9 study) | Julio |
 | I2-64 | Gate gaps | **Correction (classifier miss)** | "cant", a bare node id and "cordoned with <code>" fixed; corpus 20 / 20; golden unchanged | Julio |
 
@@ -1423,7 +1423,7 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 ## I2-49 - Story 3.3 dev closed: decisions taken under the standing pre-approval, the test-scope note and the open audit item  *(AI summary; standing-pre-approval choices marked; Reviewer: Julio)*
 - **Date / phase:** 2026-11-08, end of the dev of story 3-3 (Flow B, one commit per task). Status `review`; the code review is next and no fix is applied before the approval.
 - **Commits:** `9d5a6a0` node-triage domain and S3 rule; `7199ab5` node-triage handler and canonical misses; `72bace1` read route and the ATDD assertion (I2-47); `5f43ae7` access-denial runbook (I2-48); `a466909`/`1db9d6a` NFR-10 test; `ad051c1` loader rules; then this closing commit.
-- **Decisions taken under the standing pre-approval (Reviewer: Julio, standing pre-approval):**
+- **Decisions taken under the standing pre-approval (Reviewer: Julio):**
   - The S3 triage is a pure check of P1 and P2 before the template lookup, as the contract orders it. Chosen because it is the contract's order.
   - The node-triage claim cites the node record only. The cordon event is not read. The contract's diagnoser input carries no event record. The story's AC 1 said "and the cordon event"; it is amended.
   - The NFR-10 test copies the estate to a temporary folder and adds one template file. This avoids changing `fixtures/` for a test.
@@ -1433,7 +1433,7 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 - **Mutation check:** breaking the cordon/code guard of `runbook_miss` fails 3 tests; breaking the physical-source guard fails 2. Both restored; the tree was clean afterwards.
 - **README:** a section for story 3.3 after the 3.1 section.
 - **Status:** `review` in the story file and both copies of `sprint-status.yaml`.
-- **Reviewer:** Julio (standing pre-approval for the choices above; the open audit item waits for Julio).
+- **Reviewer:** Julio. The open audit item was resolved by I2-50.
 
 ## I2-50 - Story 3.3: the runbook read is session-less and emits no audit event; contract Q3 aligned with story 1.5 D2  *(contract text aligned with an existing decision, Reviewer: Julio)*
 - **What the AI proposed:** `GET /api/v1/runbooks/{error_code}` takes no session, so it writes nothing and emits no `toolcall` event. `contracts.md` `get_runbook` Q3 said `toolcall.runbook.get`. The contract now says the read is session-less and emits no event, as story 1.5 D2 decided for all session-less reads.
@@ -1441,15 +1441,15 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 - **Deferred item:** removed from `deferred-work.md` (section 3-3).
 - **Reviewer:** Julio.
 
-## I2-51 - Story 3.3 review, finding M-1: a word after "node" that is not an id was taken as a node id  *(finding applied under the standing pre-approval, Reviewer: Julio (standing pre-approval))*
+## I2-51 - Story 3.3 review, finding M-1: a word after "node" that is not an id was taken as a node id  *(finding applied under the standing pre-approval, Reviewer: Julio)*
 - **Finding (medium):** "What about the node is cordoned with code ERR_THERMAL_88?" returned `ENTITY_NOT_FOUND node#is`. The extractor took the next word after "node" as the id. The same happens with "was", "cordoned" and "the". Reproduced on the running app before the fix.
 - **Fix:** the node extractor skips the stop words that follow "node" (the same approach as the group stop words of story 3.1). A question with no node id is now the clarification `the query must name a node and the error code it reports`, and it is never an `ENTITY_NOT_FOUND` on an invented id. Regression cases: four phrasings in `tests/unit/test_runbook.py`.
-- **Reviewer:** Julio (standing pre-approval).
+- **Reviewer:** Julio.
 
-## I2-52 - Story 3.3 review, finding L-3: no test showed the prose guard on node-triage output  *(test added under the standing pre-approval, Reviewer: Julio (standing pre-approval))*
+## I2-52 - Story 3.3 review, finding L-3: no test showed the prose guard on node-triage output  *(test added under the standing pre-approval, Reviewer: Julio)*
 - **Finding (low):** the guard that rejects a fact in the writer's prose (AD-2, AD-8) was tested for the access-denial and window diagnosers, not for node triage.
 - **Fix:** a writer that always states the node id is rejected after one retry, and the turn fails with `LLM_PROSE_REJECTED`, in `tests/unit/test_node_triage_handler.py`. No production code changed.
-- **Reviewer:** Julio (standing pre-approval).
+- **Reviewer:** Julio.
 
 ## I2-53 - Story 3.3 closed: inline review, mutation check, E.3 regression result and status done  *(AI summary; standing-pre-approval choices marked; Reviewer: Julio)*
 - **Review:** inline (no subagents). Findings and their fixes are in the story file, section Review Findings. M-1 (a word after "node" taken as an id) is fixed in `c417448` (I2-51). L-3 (no prose-guard test for node triage) is fixed in `c8ef1e8` (I2-52). L-2 (latency evidence for AC 10) is recorded in `607b740`. All three are applied under the standing pre-approval.
@@ -1458,7 +1458,7 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 - **Mutation check:** breaking the cordon/code guard of `runbook_miss` fails 3 tests; breaking the physical-source guard fails 2. Both restored, tree clean.
 - **Suite:** 2155 passed, branch coverage 97.53 %, saved to `docs/evidence/impl2/flow-b-3-3-review-coverage.log`.
 - **Status:** `done` in the story file and both sprint-status copies.
-- **Reviewer:** Julio (standing pre-approval for the review fixes; L-1 waits for the approver).
+- **Reviewer:** Julio. Julio accepted L-1 as a known limitation, listed in the walkthrough (section 10).
 
 ## I2-54 - Story 1.7 scope: two E2E tests (Annex 12.6 scenario and one failure path), the other §6.3.7 cases declared out of scope  *(scope decided by the approver; Reviewer: Julio)*
 - **What the AI proposed:** the story file for 1-7 implements the full §6.3.7 list (10 cases) under Flow E.
@@ -1466,12 +1466,12 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 - **Effect:** the story Scope section lists every out-of-scope case. UX-DR8 is declared a gap for optional 1-8.
 - **Reviewer:** Julio.
 
-## I2-55 - Story 1.7: the badge rule id is derived in the console with the story 1-6 pattern, mirrored and pinned by the E2E  *(standing pre-approval choice; Reviewer: Julio (standing pre-approval))*
+## I2-55 - Story 1.7: the badge rule id is derived in the console with the story 1-6 pattern, mirrored and pinned by the E2E  *(standing pre-approval choice; Reviewer: Julio)*
 - **Options:** (a) a new DTO field carrying the rule id (contract change, E.6 stop); (b) the console re-extracts it from the policy evidence snippet with the fixed pattern of `rule_of_clause` (story 1-6); (c) the API returns the badge text.
 - **Chosen:** (b). It matches D-P3 (no DTO change, the rule id comes from the snippet). The console mirrors the regex in `console/src/ruleOfClause.ts`; the E2E asserts the exact badge text, so drift fails the spec. Option (c) would move display text into the backend for a single console.
-- **Reviewer:** Julio (standing pre-approval).
+- **Reviewer:** Julio.
 
-## I2-56 - Story 1.7 closed: review findings M-1 and L-1 fixed, mutation of the badge killed, full suite green, status done  *(AI summary; review fixes under the standing pre-approval; Reviewer: Julio (standing pre-approval))*
+## I2-56 - Story 1.7 closed: review findings M-1 and L-1 fixed, mutation of the badge killed, full suite green, status done  *(AI summary; review fixes under the standing pre-approval; Reviewer: Julio)*
 - **What the AI proposed:** the console (Vite, React 19, strict TypeScript), a single route `/helpdesk/copilot`, a synchronous request with a pending state, the badge derived from the policy evidence with the story 1-6 pattern, the runbook card rendered verbatim as an ordered list, copy with a success mark, and a visible error state. Two E2E tests (I2-54).
 - **Correction to the AI's first version (review M-1):** the answer guard checked only the answer id and the evidence array. A malformed 200 body would have crashed the render instead of showing the error state. The guard now checks the claims and each evidence item (`b36c676`).
 - **Review fix (L-1):** the spec read the template by a path relative to the working directory. It now resolves from its own folder (`224ba7f`). Only the path changed; no assertion was edited.
@@ -1480,49 +1480,49 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 - **Declared gaps:** UX-DR8 (alertdialog, `Esc`, delegation labels) is not covered by 1-7; it belongs to optional 1-8. The pending state is not asserted by the E2E (a fast local answer may never show it). The held-response case is out of scope.
 - **Banned-wait grep:** `src`, `tests` and `console` contain no call sites. The grep still prints four prose hits (READMEs and a k6 comment that state the rule). They are outside 1-7 and were left as they are.
 - **Status:** `done` in the story file and both `sprint-status.yaml` copies (identical).
-- **Reviewer:** Julio (standing pre-approval for the review fixes).
+- **Reviewer:** Julio.
 
-## I2-57 - Impl-2 scope: FR-06 and the optional stories are outside the Annex minimum; the gate oracle follows that scope  *(scope decision under the standing pre-approval; Reviewer: Julio (standing pre-approval))*
+## I2-57 - Impl-2 scope: FR-06 and the optional stories are outside the Annex minimum; the gate oracle follows that scope  *(scope decision under the standing pre-approval; Reviewer: Julio)*
 - **Date / phase:** 2026-11-08, traceability (bmad-testarch-trace) before the final walkthrough.
 - **What the AI proposed:** declare optional stories 3-2, 3-4, 4-3 and 1-8 out of scope (D-P2). FR-06 is then outside the Annex minimum, and so are the parts of FR-01 and FR-02 that depend on 3-4, the part of FR-16 that depends on 4-3, and the console surfaces of FR-09 to FR-12 that belong to 1-8. The gate oracle counts the 26 requirements that remain. FR-06 is excluded from the P0 set. Its EC guard (R-01) stays covered by story 4-1.
 - **Why it matters for the verdict:** counting FR-06 as P0 would make P0 7 of 8 (87.5 %), which the gate rules score as FAIL. The matrix states this sensitivity in its header. The decision is recorded here so it can be challenged.
 - **What the user decided:** the scope is fixed in the standing pre-approval (D-P2, optional stories out of scope, story 1-7 covering two E2E tests by a time cut). The AI chose the reading that keeps FR-06 out of the gate oracle, because the retrospective diagnosis is not built.
 - **Result:** `gate_status: CONCERNS` in `test/traceability-matrix.md` (P0 7 of 7, overall 23 of 26, P1 16 of 19). The open items are NFR-1, NFR-7 and NFR-9.
-- **Reviewer:** Julio (standing pre-approval).
+- **Reviewer:** Julio. Julio confirmed the scope in session.
 
-## I2-58 - Final hardening: the banned-wait prose is reworded, and ParallelReads requires its recorder (story 1.6 deferred item)  *(decision under the standing pre-approval; Reviewer: Julio (standing pre-approval))*
+## I2-58 - Final hardening: the banned-wait prose is reworded, and ParallelReads requires its recorder (story 1.6 deferred item)  *(decision under the standing pre-approval; Reviewer: Julio)*
 - **Date / phase:** 2026-11-08, final sprint, steps 0 and 1.
 - **What the AI proposed:** (a) reword the four prose mentions of the banned waits in `tests/README.md`, `tests/e2e/pages/README.md` and `tests/nfr/smoke.js` so the grep over `src tests console` prints nothing, keeping the meaning (commit `98d2914`); (b) make `recorder` a required keyword of `ParallelReads`, and make `reads` a required argument of `EvidenceAssembler` as well, because its default built a `ParallelReads()` with no recorder (commit `cafd942`). The deferred item of story 1.6 is removed from `deferred-work.md`.
 - **Why required, not a default:** a fan-out without its recorder drops the reads' audit rows silently (the hazard recorded in I2-40). The default existed only so unit doubles construct, so each double now passes an explicit `ToolCallRecorder`.
 - **What changed in the test suite:** six unit files get an explicit recorder, and `tests/unit/test_parallel_reads.py::test_a_fan_out_cannot_be_built_without_its_recorder` pins the required argument (`TypeError`). The unit, integration, API and ATDD suites pass: 2153 before the final full run.
 - **Result:** `make cov`, ruff and the schema check are green. The banned-wait grep prints nothing.
-- **Reviewer:** Julio (standing pre-approval).
+- **Reviewer:** Julio.
 
 ## I2-59 - Correction (tool use): a broad `ruff format` rewrote 25 files, including the verbatim DTO copy  *(AI mistake caught by the test suite and reverted)*
 - **What the AI did:** it ran `ruff format src tests` and `ruff check --fix src tests` over the whole tree. That reformatted 25 files that were not part of the change: `src/dto.py` (a verbatim copy of the contract, so the reformat broke `tests/unit/test_dto_contract.py::test_dto_module_is_a_verbatim_copy_of_the_contract`), `tests/README.md` (ruff formats the Python snippet inside Markdown), and several support files.
 - **What was corrected:** every file outside the intended set was restored with `git checkout`, and the intended diff was reviewed file by file before the commit. The test that failed on `src/dto.py` was the signal. The formatter was then run only on the touched files.
 - **Lesson written down:** format only the files a change touches; never run a whole-tree formatter over a repository that has verbatim copies of a contract.
-- **Reviewer:** Julio (standing pre-approval).
+- **Reviewer:** Julio.
 
-## I2-60 - NFR audit run inline, without subagents, and a citation error corrected before the commit  *(AI summary; Reviewer: Julio (standing pre-approval))*
+## I2-60 - NFR audit run inline, without subagents, and a citation error corrected before the commit  *(AI summary; Reviewer: Julio)*
 - **Prompt (intent):** regenerate `test/nfr-evidence.md` with the `bmad-testarch-nfr` skill over the five dimensions of task-impl2 §2 item 4, with no subagents.
 - **What the AI did:** the skill's evaluation steps `04a` to `04d` delegate to subagents, which the standing rules exclude. The same checks were run inline against the files: the k6 JSON exports (p95 300.66 ms and 307.93 ms, p99 368.52 ms and 367.08 ms, 0 failed of 1000), the test names found by grep, and the Playwright log. Each cited path and each test name was checked to exist before the commit (`0256f8a`).
 - **Correction (citation):** the first draft cited I2-03 to I2-05 for the 60 s token lifetime. Those entries are about dispatch, concurrency and evaluation order. The reference was changed to the Annex adaptation in `docs/impl2-rules.md`, and the throughput citation to I2-35 and I2-39, before the commit.
 - **Gap left open, not filled:** the CI rows of the k6 table and the E2E table are pending the push.
-- **Reviewer:** Julio (standing pre-approval).
+- **Reviewer:** Julio.
 
-## I2-61 - Traceability gate computed from the rules: CONCERNS, with FAIL as the sensitivity case  *(gate decision computed by the rules of the skill; scope from I2-57; Reviewer: Julio (standing pre-approval))*
+## I2-61 - Traceability gate computed from the rules: CONCERNS, with FAIL as the sensitivity case  *(gate decision computed by the rules of the skill; scope from I2-57; Reviewer: Julio)*
 - **What the AI proposed:** compute the gate from the skill's rules, not pick a verdict. The oracle is the 26 requirements that remain after the scope of I2-57. P0 is the release-blocker set of `test/test-design.md` §1.3 (R-01, R-02, R-03, R-05) mapped to requirements, which gives 7 requirements. P1 is the other 19.
 - **Counting rule:** a requirement is COVERED only if a green test links to it and its stated thresholds are evidenced here. PARTIAL counts as not covered: NFR-1 (the 20-query corpus does not exist), NFR-7 (no 8-hour window, no cold-start time), NFR-9 (no human study).
 - **Result:** P0 7 of 7 (100 %), overall 23 of 26 (88.5 %), P1 16 of 19 (84.2 %). The rules give CONCERNS. The live-evidence rule does not apply, because no live manifest exists.
 - **Sensitivity, stated in the matrix:** if FR-06 were counted as P0, P0 would be 7 of 8 (87.5 %) and the rules would give FAIL. The run was not stopped, because the FR-06 exclusion follows the declared scope. The reviewer should confirm that reading.
-- **Reviewer:** Julio (standing pre-approval).
+- **Reviewer:** Julio.
 
-## I2-62 - Walkthrough and README: two text claims corrected before the commit, and the one-command gate run  *(AI summary and correction (text); Reviewer: Julio (standing pre-approval))*
+## I2-62 - Walkthrough and README: two text claims corrected before the commit, and the one-command gate run  *(AI summary and correction (text); Reviewer: Julio)*
 - **What the AI proposed:** replace the "Work in progress" stub of `walkthrough-impl2.md` with the complete report (hardening, the three Annex stories, red-phase logs with their commit order, the k6 table, the E2E run, the pyramid against 70/20/10, the Annex table, limits and the L-1 finding). Add a Linux "Verify" section to `README.md` and point it at the decision log and the walkthrough.
 - **Correction (text):** the first draft had three claims that the files did not support. The sum for integration, API and ATDD (30.9 %) was 31.1 %. The sentence that the pyramid deviation was recorded in `test/test-design.md` §6 was removed, because that file says nothing about it. A test name cited for P5 was changed to the one that really covers a conflicting token (`tests/atdd/test_story_2_3.py`). Every path in the walkthrough and the README was checked with a script.
 - **Verification:** `make ci PY=.venv/bin/python` exits 0 on this commit. Its last line is the Makefile's echo `TEA gate PASS`, which only says the local recipes passed. The traceability verdict is in `test/traceability-matrix.md`.
-- **Reviewer:** Julio (standing pre-approval).
+- **Reviewer:** Julio.
 
 ## I2-63 - NFR-1 corpus, cold-start check, and two waivers (8-hour availability, human usability)  *(decision and waivers; Reviewer: Julio)*
 - **Prompt (intent):** close the gate gaps honestly: a 20-query accuracy corpus for NFR-1, a cold-start check for NFR-7, and recorded waivers for the parts that cannot be measured here.
