@@ -108,7 +108,8 @@ Claude (Impl-2 dev agent), claude-haiku-5-5
 - Read route `GET /api/v1/runbooks/{error_code}` (`RunbookService`, `src/adapters/inbound/runbooks.py`), in `SERVED_IN_THIS_STORY`. The committed ATDD assertion of story 2.4 is now `test_every_contract_operation_is_served` (I2-47).
 - Access-denial runbook (annex 12.6): template `access_denial_not_in_allowlist`, attached only when the query asks for a runbook; `contracts.md` access-denial Q1 amended (I2-48). S1, S2 and `ghost_user_99` are byte-identical to HEAD (`tests/api/golden/copilot_query_at_head.json`).
 - NFR-10 (config-only template served) and the loader registration rules are tested.
-- Deferred (D-4): `toolcall.diagnose_node_triage` audit event; and `toolcall.runbook.get` (contracts `get_runbook` Q3), see `deferred-work.md`, section 3-3.
+- Latency (AC 10, review L-2): in-process `TestClient` measurement on this machine, 200 calls each: `GET /api/v1/runbooks/ERR_THERMAL_88` p95 4.3 ms, median 3.1 ms; S3 query p95 6.5 ms. Within NFR-5 (p95 <= 5 s) with a wide margin. This is not a load test; the k6 gate is story 1-6's, unchanged.
+- Deferred (D-4): `toolcall.diagnose_node_triage` audit event, see `deferred-work.md`, section 3-3. The read route is session-less and emits no audit event (I2-50).
 
 ### File List
 
