@@ -1329,3 +1329,10 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 - **Unit-test changes, in their own commits (not ATDD):** the two ordering unit tests set a 5 s budget and assert the gate opened; a new unit test asserts that the recorded calls settle in argument order when the second read finishes first.
 - **Known limit, recorded:** the ATDD test for the 50 operators still runs under the default budget, and it is not an ordering test. The red-phase evidence file `docs/evidence/impl2/red-1-6.log` still shows the old name of the budget case. It is evidence and is not edited.
 - **Reviewer:** Julio.
+
+## I2-44 - Story 1.6 trap audit: the settle-order unit test was racy, and now waits for the second read's completion  *(AI-written test corrected, user approved, Reviewer: Julio)*
+- **Date / phase:** 2026-11-08, after the mutation check of M2 (completion-order settle) with the new unit test of I2-43.
+- **What was wrong:** the new unit test gated the first read on the second read's return. Under M2 the first read could finish before the second's completion callback ran, so M2 survived the first run.
+- **What changed:** the first read now waits for the second read's future to complete. A test-only pool subclass sets the flag from a done callback added before ParallelReads adds its own. The assertion on the gate was added, so a gate that never opens fails the test.
+- **Check:** on the correct code the test passed 10 of 10 runs. Under M2 it failed 10 of 10 runs. The ATDD audit-order test also failed 10 of 10 runs under M2.
+- **Reviewer:** Julio.

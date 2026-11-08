@@ -122,22 +122,43 @@ def test_a_slot_comes_back_before_its_read_completes() -> None:
     assert pool.claim(1), "the slot did not come back after the read returned"
 
 
+class _SecondCompletesFirst(FanoutPool):
+    """Sets ``second_completed`` when the second submitted call's future is done.
+
+    The callback is added before ParallelReads adds its own, so the flag is set before any
+    completion bookkeeping of the second read runs.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(2)
+        self.second_completed = threading.Event()
+        self._submitted = 0
+
+    def submit(self, call):
+        future = super().submit(call)
+        if self._submitted == 1:
+            future.add_done_callback(lambda _finished: self.second_completed.set())
+        self._submitted += 1
+        return future
+
+
 def test_recorded_calls_settle_in_argument_order_when_the_second_read_finishes_first() -> None:
     """Settling the lanes in completion order would put the second read's call first."""
     recorder = ToolCallRecorder()
-    second_done = threading.Event()
+    pool = _SecondCompletesFirst()
+    gate_opened: list[bool] = []
 
     def first():
-        second_done.wait(WAIT)
+        gate_opened.append(pool.second_completed.wait(WAIT))  # the first finishes after the second
         recorder.record(RecordedCall("toolcall.first", {}, "ok"))
         return Ok("first")
 
     def second():
         recorder.record(RecordedCall("toolcall.second", {}, "ok"))
-        second_done.set()
         return Ok("second")
 
-    reads = ParallelReads(budget_seconds=5.0, recorder=recorder, pool=FanoutPool(2))
+    reads = ParallelReads(budget_seconds=5.0, recorder=recorder, pool=pool)
     with recorder.turn() as calls:
         assert reads.run((first, second)) == Ok(["first", "second"])
+    assert gate_opened == [True], "the second read did not complete while the first was waiting"
     assert [call.tool_name for call in calls] == ["toolcall.first", "toolcall.second"]
