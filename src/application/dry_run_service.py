@@ -17,7 +17,7 @@ from collections.abc import Callable, Sequence
 from typing import get_args
 
 from src.application.audit_writer import AuditWriter
-from src.application.entity_resolver import EntityResolver, Unresolved
+from src.application.entity_resolver import EntityResolver, ResolvedTarget, Unresolved
 from src.application.session_service import session_usable
 from src.application.tool_audit import RecordedCall, ToolCallRecorder
 from src.domain import canonical_strings as cs
@@ -59,6 +59,9 @@ from src.ports.outbound import (
 _KINDS: tuple[str, ...] = ("group", "job", "node")
 _VERBS: frozenset[str] = frozenset(get_args(ActionVerb))
 _HEAD = f"toolcall.{INTENT_CODE}"
+MAX_TARGET_REFS = 50  # one request, one bounded set of provider reads and audit rows (review P-1)
+
+Aim = tuple[TargetKind | None, list[str]] | CanonicalOutcome
 
 Outcome = DryRunOutcome | CanonicalOutcome
 
@@ -95,7 +98,7 @@ class DryRunService(DestructiveUseCases):
     def post_dry_run(
         self, query_text: str, action: str, target_refs: list[str], session_id: str
     ) -> Result[Outcome]:
-        if action not in _VERBS or not target_refs:  # P1
+        if action not in _VERBS or not 1 <= len(target_refs) <= MAX_TARGET_REFS:  # P1
             return fail("VALIDATION_MALFORMED_BODY", schema_id="PostDryRunRequest")
         query = normalise_query(query_text)
         if is_failure(query):
@@ -200,63 +203,73 @@ class DryRunService(DestructiveUseCases):
         return Ok(None)
 
     # -- aiming: which kind of target, and which resolved keys ----------------------------------
-    def _parsed(
-        self, action: ActionVerb, target: Target | Fleet
-    ) -> Result[tuple[TargetKind | None, list[str]] | CanonicalOutcome]:
+    def _parsed(self, action: ActionVerb, target: Target | Fleet) -> Result[Aim]:
         if isinstance(target, Fleet):
             if not accepts(action, target):
                 return fail("VALIDATION_BAD_ACTION", value=f"{action} on the whole fleet")
             return Ok((None, []))
-        return self._resolved(action, [target])
+        found = self._resolver.resolve_target(target.kind, target.token)
+        if is_failure(found):
+            return found
+        return _aimed(action, [(target, found.value)])
 
-    def _targets(
-        self, action: ActionVerb, refs: Sequence[str]
-    ) -> Result[tuple[TargetKind | None, list[str]] | CanonicalOutcome]:
-        """Typed refs (``group#x``) keep their kind; a bare ref takes the kind of its action."""
-        targets: list[Target] = []
-        for ref in refs:
-            kind = _typed_kind(ref)
-            if kind is None:
-                kind = self._bare_kind(action, ref)
-                if is_failure(kind):
-                    return kind
-                kind = kind.value
-            targets.append(Target(kind, ref))
-        return self._resolved(action, targets)
+    def _targets(self, action: ActionVerb, refs: Sequence[str]) -> Result[Aim]:
+        """Typed refs (``group#x``) keep their kind; a bare ref takes the kind of its action.
 
-    def _bare_kind(self, action: ActionVerb, ref: str) -> Result[TargetKind]:
-        """A bare ref: node verbs act on nodes; job verbs try a group first, then a job (D11)."""
-        if action not in JOB_VERBS:
-            return Ok("node")
-        for kind in ("group", "job"):
-            found = self._resolver.resolve_target(kind, ref)
+        A repeated ref is read once, and every ref is resolved once: the dry-run's reads are audit
+        rows, so the audit of a request grows with its distinct refs only (review P-1).
+        """
+        distinct = list(dict.fromkeys(refs))
+        kinds = [_typed_kind(ref) for ref in distinct]
+        if None not in kinds and len(set(kinds)) > 1:  # decided before any read
+            return Ok(_clarify(cs.R_MIXED_TARGETS))
+        resolved: list[tuple[Target, ResolvedTarget | Unresolved]] = []
+        for ref, kind in zip(distinct, kinds, strict=True):
+            found = self._resolve(action, ref, kind)
+            if is_failure(found):
+                return found
+            resolved.append(found.value)
+        return _aimed(action, resolved)
+
+    def _resolve(
+        self, action: ActionVerb, ref: str, kind: TargetKind | None
+    ) -> Result[tuple[Target, ResolvedTarget | Unresolved]]:
+        """One lookup per candidate kind: node verbs act on nodes, job verbs try group then job."""
+        candidates: tuple[TargetKind, ...] = (
+            (kind,) if kind else ("group", "job") if action in JOB_VERBS else ("node",)
+        )
+        first_miss: tuple[Target, Unresolved] | None = None
+        for candidate in candidates:
+            found = self._resolver.resolve_target(candidate, ref)
             if is_failure(found):
                 return found
             if not isinstance(found.value, Unresolved):
-                return Ok(kind)
-        return Ok("group")  # neither exists: resolving it later reports it as not found
+                return Ok((Target(candidate, ref), found.value))
+            first_miss = first_miss or (Target(candidate, ref), found.value)
+        assert first_miss is not None  # candidates is never empty
+        return Ok(first_miss)
 
-    def _resolved(
-        self, action: ActionVerb, targets: list[Target]
-    ) -> Result[tuple[TargetKind | None, list[str]] | CanonicalOutcome]:
-        if len({t.kind for t in targets}) > 1:
-            return Ok(_clarify(cs.R_MIXED_TARGETS))
-        keys: list[str] = []
-        missing: list[str] = []
-        for target in targets:
-            resolution = self._resolver.resolve_target(target.kind, target.token)
-            if is_failure(resolution):
-                return resolution
-            found = resolution.value
-            if isinstance(found, Unresolved):
-                missing.extend(found.refs)
-                continue
-            keys.append(found.key)
-        if missing:
-            return Ok(CanonicalOutcome("ENTITY_NOT_FOUND", cs.entity_not_found(missing)))
-        if not all(accepts(action, t) for t in targets):
-            return fail("VALIDATION_BAD_ACTION", value=f"{action} on {', '.join(keys)}")
-        return Ok((targets[0].kind, keys))
+
+def _aimed(
+    action: ActionVerb, resolved: list[tuple[Target, ResolvedTarget | Unresolved]]
+) -> Result[Aim]:
+    """The kind and the distinct keys of resolved targets, or the reason there is none."""
+    if len({target.kind for target, _ in resolved}) > 1:
+        return Ok(_clarify(cs.R_MIXED_TARGETS))
+    missing = list(
+        dict.fromkeys(
+            ref for _, found in resolved if isinstance(found, Unresolved) for ref in found.refs
+        )
+    )
+    if missing:
+        return Ok(CanonicalOutcome("ENTITY_NOT_FOUND", cs.entity_not_found(missing)))
+    targets = [target for target, _ in resolved]
+    keys = list(
+        dict.fromkeys(found.key for _, found in resolved if isinstance(found, ResolvedTarget))
+    )
+    if not all(accepts(action, target) for target in targets):
+        return fail("VALIDATION_BAD_ACTION", value=f"{action} on {', '.join(keys)}")
+    return Ok((targets[0].kind, keys))
 
 
 def _typed_kind(ref: str) -> TargetKind | None:

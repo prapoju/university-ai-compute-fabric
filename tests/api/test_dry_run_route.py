@@ -100,6 +100,57 @@ def test_an_unknown_kind_prefix_is_not_a_target(client) -> None:
     assert response.json()["code"] == "ENTITY_NOT_FOUND"
 
 
+# -- review P-1, P-2: a request reads and audits each distinct ref once ---------------------------
+def audit_tools(client: TestClient, sid: str) -> list[str]:
+    entries = client.get(f"{SESSIONS}/{sid}/audit", params={"page_size": 100}).json()["entries"]
+    return [e["result_summary"]["tool_name"] for e in entries]
+
+
+def test_a_repeated_ref_is_one_target_and_one_read(client) -> None:
+    sid = open_session(client)
+    response = post(client, sid, "cordon_node", ["node#ws-gpu-02", "node#ws-gpu-02", "ws-gpu-02"])
+    assert selector(response)["params"] == {"node_ids": ["node#ws-gpu-02"]}
+    assert audit_tools(client, sid).count("toolcall.nodes_port.get") == 2  # typed once, bare once
+
+
+def test_a_bare_group_ref_is_looked_up_once(client) -> None:
+    sid = open_session(client)
+    post(client, sid, "cancel_jobs", ["CS-101"])
+    assert audit_tools(client, sid) == [
+        "toolcall.propose_destructive_action",
+        "toolcall.groups_port.get",
+        "toolcall.jobs_port.select",
+    ]
+
+
+def test_a_bare_job_ref_costs_one_group_miss_and_one_job_hit(client) -> None:
+    sid = open_session(client)
+    post(client, sid, "cancel_jobs", ["job-8830"])
+    assert audit_tools(client, sid) == [
+        "toolcall.propose_destructive_action",
+        "toolcall.groups_port.get",
+        "toolcall.jobs_port.get",
+        "toolcall.jobs_port.select",
+    ]
+
+
+def test_a_request_may_name_fifty_refs_and_not_fifty_one(client) -> None:
+    sid = open_session(client)
+    refs = [f"node#ws-gpu-{n:02d}" for n in range(1, 33)] + [f"node#x{n}" for n in range(18)]
+    assert len(refs) == 50
+    assert post(client, sid, "cordon_node", refs).json()["code"] == "ENTITY_NOT_FOUND"
+    too_many = post(client, sid, "cordon_node", [*refs, "node#one-more"])
+    assert too_many.status_code == 400 and too_many.json()["code"] == "VALIDATION_MALFORMED_BODY"
+    assert audit_tools(client, sid) == []  # nothing is read for a request that is too large
+
+
+def test_the_audit_of_a_huge_request_cannot_grow_with_its_repeats(client) -> None:
+    sid = open_session(client)
+    refs = [f"node#ws-gpu-{n:02d}" for n in range(1, 6)] * 10  # 50 refs, 5 distinct
+    assert post(client, sid, "cordon_node", refs).status_code == 200
+    assert len(audit_tools(client, sid)) == 1 + 5 + 1  # head, 5 gets, 1 select
+
+
 # -- the request and the session ------------------------------
 def test_a_blank_query_text_is_the_empty_query_error(client) -> None:
     response = post(client, open_session(client), "cancel_jobs", ["group#CS-101"], text="   ")
