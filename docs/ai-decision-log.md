@@ -1438,3 +1438,11 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 - **Banned-wait grep:** `src`, `tests` and `console` contain no call sites. The grep still prints four prose hits (READMEs and a k6 comment that state the rule). They are outside 1-7 and were left as they are.
 - **Status:** `done` in the story file and both `sprint-status.yaml` copies (identical).
 - **Reviewer:** Julio (standing pre-approval for the review fixes).
+
+## I2-57 - Impl-2 scope: FR-06 and the optional stories are outside the Annex minimum; the gate oracle follows that scope  *(scope decision under the standing pre-approval; Reviewer: Julio (standing pre-approval))*
+- **Date / phase:** 2026-11-08, traceability (bmad-testarch-trace) before the final walkthrough.
+- **What the AI proposed:** declare optional stories 3-2, 3-4, 4-3 and 1-8 out of scope (D-P2). FR-06 is then outside the Annex minimum, and so are the parts of FR-01 and FR-02 that depend on 3-4, the part of FR-16 that depends on 4-3, and the console surfaces of FR-09 to FR-12 that belong to 1-8. The gate oracle counts the 26 requirements that remain. FR-06 is excluded from the P0 set. Its EC guard (R-01) stays covered by story 4-1.
+- **Why it matters for the verdict:** counting FR-06 as P0 would make P0 7 of 8 (87.5 %), which the gate rules score as FAIL. The matrix states this sensitivity in its header. The decision is recorded here so it can be challenged.
+- **What the user decided:** the scope is fixed in the standing pre-approval (D-P2, optional stories out of scope, story 1-7 covering two E2E tests by a time cut). The AI chose the reading that keeps FR-06 out of the gate oracle, because the retrospective diagnosis is not built.
+- **Result:** `gate_status: CONCERNS` in `test/traceability-matrix.md` (P0 7 of 7, overall 23 of 26, P1 16 of 19). The open items are NFR-1, NFR-7 and NFR-9.
+- **Reviewer:** Julio (standing pre-approval).
