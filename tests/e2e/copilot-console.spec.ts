@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
 
 import { CopilotConsolePage } from './pages/CopilotConsolePage';
@@ -6,7 +7,7 @@ import { CopilotConsolePage } from './pages/CopilotConsolePage';
 // Annex 12.6 (docs/task-impl2.md): Nadia diagnoses an access denial and copies the verified runbook.
 // The expected runbook is the committed registry template, not a copy typed into this spec.
 const runbook = JSON.parse(
-  readFileSync('fixtures/runbooks/access-denial-not-in-allowlist.json', 'utf-8'),
+  readFileSync(join(__dirname, '../../fixtures/runbooks/access-denial-not-in-allowlist.json'), 'utf-8'),
 ) as { steps: string[] };
 
 test.use({ permissions: ['clipboard-read', 'clipboard-write'] });
