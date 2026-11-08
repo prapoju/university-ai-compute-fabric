@@ -1139,3 +1139,32 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
   before commit; and the `1932` in the message of `6d70e5d` (the run was 1933).
 - **Outcome:** story 2.3 is `done` in the story file and in both `sprint-status.yaml` copies; the epic stays `in-progress`. Final gate: 1933 passed, branch
   coverage 97.66%. Next: story 2-4 (the executor and the dispatch). Reviewer: Pending.
+
+## I2-28 - Story 2.4: the executor changes what the earlier stories could assume  *(decision, proposed by the AI)*
+- **Date / phase:** 2026-11-08, `bmad-create-story` for story 2.4 (Flow A) from baseline `3054c0a`, before any test or code. Full text in
+  `_bmad-output/implementation-artifacts/2-4-propose-only-handoff-simulated-executor-and-executor-failure-safety.md`.
+- **Prompt (intent):** "si" to push and start 2-4. The push was done (`4e8f902..3054c0a`, 10 commits); the user asked for the contract-touching
+  decisions to be presented before the red phase.
+- **What the AI found in the sources:**
+  - Declared and not served are four operations of this story (`GET /destructive/proposals/{pid}`, `POST /destructive/proposals/{pid}/re-dispatches`,
+    `POST /executor/v1/proposals`, `GET /executor/v1/proposals/{pid}`) and `GET /runbooks/{id}` (3-3); the plan and the epics say "7 missing
+    operations" because they were written before 2.1-2.3 served the rest.
+  - The simulated estate is immutable and no provider port can write, so the executor needs a write path that nothing else has.
+  - The contract dispatches inside the confirm, so once the dispatcher exists a confirm ends in `executed`; the frozen 2.3 ATDD asserts `confirmed`
+    in 14 places (and 9 more in its unit and API tests). The plan wrote 2.3 as "up to `confirmed`" without noting that 2.4 would change those tests.
+  - `POST /executor/v1/proposals` validates the token against the stored proposal, but nothing says the proposal must be `dispatched`: a client with a
+    `dry_run` proposal's token could call the executor route and apply it with no confirmation (AD-3).
+  - The contract leaves open how a partial or late result is recorded and what each verb does to the simulated state.
+- **Decisions applied by the AI, waiting for the user before the red phase:** **D1** the confirm dispatches and the 2.3 assertions change as listed
+  (guide E.6; the alternative is a setting that disables dispatch by default); **D2** the executor is the only writer and each verb's effect
+  (`cancel_jobs` -> `cancelled`, `delete_jobs` removes the record, `cordon_node` -> `cordoned`, `drain_node` -> `cordoned` and `health = draining`);
+  **D5** a partial apply is `failed` and the confirm answers 502 with the `Proposal` as the body; **D7** the executor accepts only a `dispatched`
+  proposal with its token; **D9** the executor audit row is the `executor.dispatch` event.
+- **Applied by the AI:** D3-D4, D6, D8, D10-D14: one claim `dry_run -> confirmed -> dispatched` and a second transaction for the result; a 5 s
+  limit measured on the shared fake clock with a late result kept only by the executor; the routes as a facade over the same sim adapter; re-dispatch
+  as a new dry-run with `supersedes`; replays answer the persisted proposal; the executor applies the snapshot's keys and skips an item no longer
+  actionable (the deferred window of 2.3); the console criteria stay with 1-7 and 1-8.
+- **AI slips:** none yet. The plan sizes this story M; it is L (a port and an adapter, a mutable estate, a dispatcher, four routes, the re-dispatch and
+  a change to 2.3), but it stays one story because the Annex scenario cannot reach `executed` without all of it.
+- **Outcome:** story 2.4 is `ready-for-dev` in both `sprint-status.yaml` copies. No test or production code yet. Next: the ATDD red phase after the
+  user confirms D1, D2, D5, D7 and D9. Reviewer: Pending.
