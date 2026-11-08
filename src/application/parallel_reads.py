@@ -52,10 +52,15 @@ class FanoutPool:
         return True
 
     def submit(self, call: Callable[[], Result[Any]]) -> Future[Result[Any]]:
-        """Run ``call`` on a worker; the slot taken by ``claim`` comes back when it returns."""
-        future = self._executor.submit(call)
-        future.add_done_callback(lambda _finished: self._slots.release())
-        return future
+        """Run ``call`` on a worker; the slot taken by ``claim`` comes back before it completes."""
+
+        def run_and_release() -> Result[Any]:
+            try:
+                return call()
+            finally:
+                self._slots.release()
+
+        return self._executor.submit(run_and_release)
 
 
 SHARED_POOL = FanoutPool(FANOUT_SLOTS)
