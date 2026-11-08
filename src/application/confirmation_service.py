@@ -15,6 +15,7 @@ here (story 2.4); the executor does not exist yet. A failure before the claim wr
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Sequence
 
 from src.application.audit_writer import AuditWriter
@@ -48,6 +49,18 @@ from src.ports.outbound import (
 )
 
 _HEAD = "toolcall.confirm_and_dispatch"
+logger = logging.getLogger(__name__)
+# the refusals worth a trace: they say someone asked to confirm what could not be confirmed
+_REJECTIONS = frozenset(
+    {
+        "PROPOSAL_NOT_FOUND",
+        "GATE_TOKEN_INVALID",
+        "CONFIRMATION_CONFLICT",
+        "CONFIRMATION_STALE",
+        "DRY_RUN_EMPTY_SET",
+        "PROPOSAL_STATE_INVALID",
+    }
+)
 _ATTEMPTS = 3  # the first read plus two re-reads after a lost claim; the second always settles
 
 
@@ -78,6 +91,16 @@ class ConfirmationService(ConfirmUseCases):
         self._ttl = token_ttl_seconds
 
     def post_confirm(self, proposal_id: str, gate_token: str) -> Result[ProposalDTO]:
+        result = self._confirm(proposal_id, gate_token)
+        if isinstance(result, Failure) and result.code in _REJECTIONS:
+            # a rejected attempt writes no audit row (D7); this line is its only trace, and it never
+            # holds the token. ``%r`` escapes anything a caller put in the id (review P-1)
+            logger.warning(
+                "confirmation rejected: proposal=%.64r code=%s", proposal_id, result.code
+            )
+        return result
+
+    def _confirm(self, proposal_id: str, gate_token: str) -> Result[ProposalDTO]:
         read: ClockReadDTO | None = None  # one clock read per request, once the proposal exists
         for _ in range(_ATTEMPTS):
             found = self._proposals.get(proposal_id)  # P1

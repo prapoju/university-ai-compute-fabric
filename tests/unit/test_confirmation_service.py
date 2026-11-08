@@ -334,3 +334,61 @@ def test_a_claim_that_keeps_losing_without_a_confirmation_is_a_failure_not_a_loo
     result = rig.service(proposals=store).post_confirm(proposal.proposal_id, proposal.gate_token)
     assert code(result) == "PROVIDER_UNAVAILABLE"
     assert rig.state(proposal.proposal_id) == "dry_run"
+
+
+# -- review P-1: a rejected attempt leaves a trace in the log, never the token --------------------
+LOGGER = "src.application.confirmation_service"
+
+
+@pytest.mark.parametrize(
+    ("make", "expected"),
+    [
+        (lambda p: (p.proposal_id, OTHER), "GATE_TOKEN_INVALID"),
+        (lambda p: ("prop-00000000000000ff", OTHER), "PROPOSAL_NOT_FOUND"),
+    ],
+    ids=["wrong-token", "unknown-proposal"],
+)
+def test_a_rejected_confirmation_logs_its_id_and_code_and_never_a_token(
+    rig: Rig, caplog: pytest.LogCaptureFixture, make, expected: str
+) -> None:
+    proposal = rig.dry_run()
+    pid, token = make(proposal)
+    with caplog.at_level("WARNING", logger=LOGGER):
+        assert code(rig.service().post_confirm(pid, token)) == expected
+    [record] = [r for r in caplog.records if r.name == LOGGER]
+    assert record.levelname == "WARNING"
+    assert pid in record.getMessage() and expected in record.getMessage()
+    assert proposal.gate_token not in caplog.text and token not in caplog.text
+
+
+def test_every_rejection_code_is_logged_and_a_success_or_a_replay_is_not(
+    rig: Rig, caplog: pytest.LogCaptureFixture
+) -> None:
+    proposal = rig.dry_run()
+    service = rig.service()
+    with caplog.at_level("WARNING", logger=LOGGER):
+        service.post_confirm(proposal.proposal_id, proposal.gate_token)  # success
+        service.post_confirm(proposal.proposal_id, proposal.gate_token)  # replay
+        assert [r for r in caplog.records if r.name == LOGGER] == []
+        service.post_confirm(proposal.proposal_id, OTHER)  # conflict
+    assert "CONFIRMATION_CONFLICT" in caplog.text
+
+
+def test_a_rejected_id_with_control_characters_cannot_forge_a_log_line(
+    rig: Rig, caplog: pytest.LogCaptureFixture
+) -> None:
+    forged = "prop-x\nWARNING forged line code=NOTHING"
+    with caplog.at_level("WARNING", logger=LOGGER):
+        rig.service().post_confirm(forged, OTHER)
+    message = caplog.records[-1].getMessage()
+    assert "\n" not in message and "\\n" in message  # the newline is escaped, not written
+
+
+def test_a_provider_failure_is_not_logged_as_a_rejection(
+    rig: Rig, caplog: pytest.LogCaptureFixture
+) -> None:
+    proposal = rig.dry_run()
+    jobs = Jobs(rig.container.port(JobsPort), lambda inner, sel: DOWN)
+    with caplog.at_level("WARNING", logger=LOGGER):
+        rig.service(jobs=jobs).post_confirm(proposal.proposal_id, proposal.gate_token)
+    assert [r for r in caplog.records if r.name == LOGGER] == []
