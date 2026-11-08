@@ -25,17 +25,32 @@ export const options = {
   },
 };
 
+// The first answer of the response, or undefined when the body is not an answer.
+function answerOf(res) {
+  try {
+    return res.json().answers[0];
+  } catch (e) {
+    return undefined;
+  }
+}
+
+// True when a claim of the answer cites the id. The query text echoed in the body is not a citation.
+function cites(answer, citation) {
+  return answer !== undefined && (answer.claims || []).some((c) => c.claim_citations.includes(citation));
+}
+
 export default function () {
   const res = http.post(
     `${BASE_URL}/api/v1/copilot/query`,
     JSON.stringify({ query: QUERY }),
     { headers: { 'Content-Type': 'application/json' } },
   );
-  const body = res.body || '';
+  const answer = answerOf(res);
+  const claimText = answer !== undefined ? (answer.claims || []).map((c) => c.text).join(' ') : '';
   check(res, {
     'status is 200': (r) => r.status === 200,
-    'cites RULE-CAT-04': () => body.includes('RULE-CAT-04'),
-    'cites policy#catalog.4.2': () => body.includes('policy#catalog.4.2'),
-    'cites deepseek-coder': () => body.includes('deepseek-coder'),
+    'cites RULE-CAT-04': () => claimText.includes('RULE-CAT-04'),
+    'cites policy#catalog.4.2': () => cites(answer, 'policy#catalog.4.2'),
+    'cites deepseek-coder': () => cites(answer, 'model#deepseek-coder'),
   });
 }
