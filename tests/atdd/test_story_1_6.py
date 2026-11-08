@@ -234,7 +234,7 @@ def tool_names(client: TestClient, sid: str) -> list[str]:
 
 
 def ordinal(tool_call_id: str) -> int:
-    return int(tool_call_id.rsplit("-", 1)[1])
+    return int(tool_call_id.rsplit("-", 1)[1], 16)  # the ids are hexadecimal (tc-000000000000000a)
 
 
 def raw_count(database: Path, table: str) -> int:

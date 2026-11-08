@@ -1265,3 +1265,10 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 - **Why 0.5 s:** the fan-out is only one part of the turn. The 800 ms p95 must also absorb the single-writer queue, prose, and the audit transaction. A 0.5 s ceiling leaves about 300 ms for those. The number is a guess until measured under k6.
 - **Risk recorded:** when the budget fires, the answer is HTTP 503 (`PROVIDER_UNAVAILABLE`), not a slow 200. Under load, a 503 would break the 100% HTTP 200 gate, so the k6 run will show it as an error, not as latency. A timeout at 0.5 s is therefore a load-test failure to investigate, not a setting to raise without evidence.
 - **Outcome:** the story is `ready-for-dev` in both `sprint-status.yaml` copies. Code, ATDD red phase and k6 run are next. Reviewer: Julio.
+
+## I2-36 - Story 1.6 ATDD: the tool-call ids are hexadecimal, the test parsed them as decimal  *(AI-written test corrected, user approved, Reviewer: Julio)*
+- **Date / phase:** 2026-11-08, dev step of story 1.6 (Flow D), after the red phase and the first green run of the dispatcher.
+- **What was wrong:** the helper `ordinal()` in `tests/atdd/test_story_1_6.py` parsed `tool_call_id` with base 10. The ids are `tc-` followed by 16 hexadecimal digits (`tc-000000000000000a`). The case was red for the wrong reason (`ValueError`), and the red-phase run never reached it, because the reverse-order stall failed first.
+- **What the AI proposed:** parse the suffix with base 16. A scratch run of both completion orders against the real app gave `[0, 1, 2, 3]` for each, status 200, and no gate stalls.
+- **What the user decided:** approved. Changed in its own commit, with this entry. No assertion was weakened: the expected consecutive order is the same.
+- **Reviewer:** Julio.
