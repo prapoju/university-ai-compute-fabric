@@ -14,9 +14,9 @@ gate_basis: local test-presence and local logs; CI run 42527948599 on 618abcc (a
 p0_requirements: 7
 p0_covered: 7
 p1_requirements: 19
-p1_covered: 16
+p1_covered: 17
 overall_requirements_in_gate: 26
-overall_covered: 23
+overall_covered: 24
 out_of_scope_declared: [FR-06 retrospective part, story 3-2, 3-4, 4-3, 1-8]
 updated: 2026-11-08
 sources:
@@ -99,7 +99,7 @@ student).
 
 | NFR | Priority | Evidence section | Verdict and reason |
 |---|---|---|---|
-| NFR-1 Diagnosis accuracy (100 % on 4 mandatory fixtures; ≥ 90 % on a 20-query corpus) | P1 | §1 of nfr-evidence does not cover it; see `tests/api/test_nfr1_accuracy_corpus.py` | **NOT COVERED (measured 17 / 20 = 85 %, below 90 %).** The corpus test is red on purpose (commit `fd5ecda`, log I2-63). The three misses are paraphrases the classifier sends to `CLARIFICATION_REQUIRED`. The fixtures S1 to S4 pass in their own tests. |
+| NFR-1 Diagnosis accuracy (100 % on 4 mandatory fixtures; ≥ 90 % on a 20-query corpus) | P1 | corpus: `tests/api/test_nfr1_accuracy_corpus.py`; fixtures: `tests/api/test_copilot_query.py`, `tests/unit/test_node_triage_intent.py` | **COVERED.** Corpus **20 / 20 = 100 %** (`docs/evidence/impl2/final-pytest-classifier-fix.log`, after the fix in commit `66084c4`, log I2-64). The fixtures S1 to S4 pass in their own tests. The first run scored 17 / 20; the three misses were classifier phrasings, fixed in story 3.3 scope. |
 | NFR-2 Anti-fabrication | **P0** | §1 (security) | COVERED. `tests/unit/test_anti_fabrication.py`, `tests/atdd/test_story_1_4.py`. |
 | NFR-3 Citation integrity | P1 | §1 and §3 (k6 100 % cited) | COVERED. `docs/evidence/impl2/k6-12-5.log` (4000/4000 checks, cites RULE-CAT-04, policy#catalog.4.2, deepseek-coder). |
 | NFR-4 Determinism (3 runs identical) | P1 | §1 | COVERED. `tests/atdd/test_story_1_4.py::test_three_runs_on_fresh_apps_with_a_frozen_clock_are_identical`. |
@@ -125,17 +125,19 @@ student).
 | Measure | Value | Rule | Result |
 |---|---|---|---|
 | P0 coverage | 7 / 7 = 100 %; P0 tests green (2157 passed; the one failure is P1 NFR-1) | must be 100 % | pass |
-| Overall coverage | 23 / 26 = 88.5 % | ≥ 80 % | pass |
-| P1 coverage | 16 / 19 = 84.2 % | 80 to 89 % with P0 at 100 % → CONCERNS (90 % for PASS) | **CONCERNS** |
+| Overall coverage | 24 / 26 = 92.3 % | ≥ 80 % | pass |
+| P1 coverage | 17 / 19 = 89.5 % | below 90 % for PASS; at or above 80 % with P0 at 100 % → CONCERNS | **CONCERNS** |
 | Live-only requirements | 0 (no live manifest) | none capped | n/a |
 | Test run | 2158 collected, 2157 passed, 1 failed (`tests/api/test_nfr1_accuracy_corpus.py`); branch coverage of src 97.6 % (`docs/evidence/impl2/final-pytest-after-gap-closure.log`) | P0 pass rate 100 % | pass |
 
-Requirements that are not COVERED in the gate count (3 of 26): NFR-1, NFR-7, NFR-9. Each has its
-reason in section 4. NFR-1 is a measured miss (85 % against 90 %); NFR-7 and NFR-9 are waived parts (section 8).
+Requirements that are not COVERED in the gate count (2 of 26): NFR-7 and NFR-9. Both are waived in
+part (section 8, I2-63): the 8-hour availability window and the human usability study cannot be measured in
+the repository. NFR-1 is now COVERED with a measured 20 / 20. The cold start of NFR-7 is measured (0.54 s).
 
-**Gate decision: CONCERNS.** Release is not blocked by a P0 gap. The open items are the 20-query
-accuracy corpus (NFR-1), the 8-hour availability and cold-start evidence (NFR-7), and the human
-usability study (NFR-9).
+**Gate decision: CONCERNS.** Release is not blocked by a P0 gap: P0 is 7 of 7, overall is 24 of 26, and
+P1 is 17 of 19 (89.5 %), one point short of the 90 % that PASS needs. The two P1 requirements that stay
+open are NFR-7 (8-hour window) and NFR-9 (human study). Both are waived because the repository cannot
+measure them, so the verdict is CONCERNS and not PASS. Sensitivity (section 3): counting FR-06 as P0 would give FAIL.
 
 ## 7. Open items
 

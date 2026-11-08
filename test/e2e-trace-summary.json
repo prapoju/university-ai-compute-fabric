@@ -5,7 +5,7 @@
   "collection_mode": "contract_static",
   "collection_status": "COLLECTED",
   "inventory_basis": "acceptance_criteria",
-  "gate_basis": "rerun after gap closure (2026-11-08): P0 7/7, overall 23/26, P1 16/19; waivers recorded and not counted",
+  "gate_basis": "rerun after the classifier fix (commit 66084c4): P0 7/7, overall 24/26, P1 17/19 (89.47 %, below 90 % for PASS); NFR-7 and NFR-9 waived in part, waivers not counted",
   "source_sha": "",
   "target": {
     "type": "story",
@@ -30,9 +30,9 @@
   },
   "coverage": {
     "inventory": {
-      "covered": 23,
+      "covered": 24,
       "total": 26,
-      "pct": 88.46
+      "pct": 92.31
     },
     "priority_breakdown": {
       "P0": {
@@ -42,8 +42,8 @@
       },
       "P1": {
         "total": 19,
-        "covered": 16,
-        "pct": 84.21
+        "covered": 17,
+        "pct": 89.47
       },
       "P2": {
         "total": 0,
@@ -85,16 +85,13 @@
   },
   "tests": {
     "files": "see test/traceability-matrix.md",
-    "cases": 2158,
-    "passed": 2157,
-    "failed": 1,
-    "failed_ids": [
-      "tests/api/test_nfr1_accuracy_corpus.py::test_nfr1_accuracy_is_at_least_ninety_percent_over_the_corpus"
-    ],
+    "cases": 2164,
+    "passed": 2164,
+    "failed": 0,
     "skipped_cases": 0,
     "fixme_cases": 0,
     "pending_cases": 0,
-    "source": "docs/evidence/impl2/final-pytest-after-gap-closure.log (pytest); docs/evidence/impl2/final-e2e.log (playwright, 3 passed)"
+    "source": "docs/evidence/impl2/final-pytest-classifier-fix.log (pytest, 2164 passed); docs/evidence/impl2/final-e2e.log (playwright, 3 passed)"
   },
   "risk_summary": {
     "critical_open": 0,
@@ -131,30 +128,9 @@
   "recommendations": [
     {
       "priority": "P1",
-      "action": "Build the 20-query extension corpus so NFR-1 (>= 90 %) is evidenced.",
+      "action": "NFR-7 8-hour availability window and NFR-9 human study remain waived; they need an operational run and a user study outside the repository.",
       "requirements": [
-        "NFR-1"
-      ]
-    },
-    {
-      "priority": "P1",
-      "action": "Measure the 8-hour availability window and the cold-start time for NFR-7.",
-      "requirements": [
-        "NFR-7"
-      ]
-    },
-    {
-      "priority": "P1",
-      "action": "NFR-9 needs a human usability study; it cannot be automated here.",
-      "requirements": [
-        "NFR-9"
-      ]
-    },
-    {
-      "priority": "P1",
-      "action": "Record the CI run id of the pushed commit for the k6 and Playwright rows.",
-      "requirements": [
-        "NFR-5",
+        "NFR-7",
         "NFR-9"
       ]
     }
