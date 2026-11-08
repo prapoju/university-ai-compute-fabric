@@ -60,6 +60,8 @@ INTENT_RULES: tuple[IntentRule, ...] = (
             _rx(r"\bwhy\b.*\b(?:can't|cannot|can not|unable to|not allowed to)\b.*\baccess\b"),
             # "alex was denied access to deepseek-coder"
             _rx(r"\b(?:denied|blocked|refused)\b.*\baccess\b"),
+            # "alex was denied deepseek-coder. diagnose and provide runbook" (annex 12.6)
+            _rx(r"\b(?:denied|blocked|refused)\b.*\bdiagnose\b"),
         ),
     ),
     IntentRule(
@@ -78,6 +80,14 @@ INTENT_RULES: tuple[IntentRule, ...] = (
             # "when can group 4 run their job" / "when does the next window open"
             _rx(r"\bwhen\b.*\b(?:can|will|could)\b.*\b(?:run|start|launch)\b"),
             _rx(r"\bwhen\b.*\bnext\b.*\bwindow\b"),
+        ),
+    ),
+    IntentRule(
+        intent_code="diagnose_node_triage",
+        rule_id="RULE-INTENT-NODE-TRIAGE",
+        patterns=(
+            # "node ws-gpu-11 is cordoned with code ERR_THERMAL_88. what should i do?" (S3)
+            _rx(r"\bnode\b.*\bcordoned\b.*\bcode\b"),
         ),
     ),
 )

@@ -140,3 +140,34 @@ def in_input_order(query: str, names: Sequence[str]) -> tuple[str, ...]:
     for name in names:
         unique.setdefault(name.casefold(), name)
     return tuple(sorted(unique.values(), key=lambda name: _typed_at(text, name)))
+
+
+@dataclass(frozen=True)
+class NodeTriageReferences:
+    """The raw node token and the error code of a node-triage question, case as typed."""
+
+    node: str
+    code: str
+
+
+_NODE_REF = re.compile(rf"\bnode(?:#|\s+)(?P<node>{_TOKEN})", re.I)
+_NODE_CODE = re.compile(rf"\bcode\s+(?P<code>{_TOKEN})", re.I)
+_RUNBOOK_WORD = re.compile(r"\brunbooks?\b", re.I)
+
+
+def extract_node_triage_references(query: str) -> NodeTriageReferences | None:
+    """The node and the code of ``Node <node> is cordoned with code <code>`` (and variants)."""
+    text = _clean(query)
+    node = _NODE_REF.search(text)
+    code = _NODE_CODE.search(text)
+    if node is None or code is None:
+        return None
+    node_token, code_token = _strip(node["node"]), _strip(code["code"])
+    if node_token and code_token:
+        return NodeTriageReferences(node_token, code_token)
+    return None
+
+
+def asks_for_runbook(query: str) -> bool:
+    """Whether the operator explicitly asks for a runbook (the word ``runbook``, any case)."""
+    return _RUNBOOK_WORD.search(_clean(query)) is not None

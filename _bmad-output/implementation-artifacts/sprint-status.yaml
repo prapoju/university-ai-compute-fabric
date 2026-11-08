@@ -89,7 +89,7 @@ development_status:
   epic-3: in-progress
   3-1-schedule-and-window-diagnosis: done
   3-2-retrospective-event-log-diagnosis: backlog
-  3-3-runbook-registry-and-node-triage-runbook: ready-for-dev
+  3-3-runbook-registry-and-node-triage-runbook: in-progress
   3-4-intent-taxonomy-extension-and-session-follow-up-references: backlog
   epic-3-retrospective: optional
 
