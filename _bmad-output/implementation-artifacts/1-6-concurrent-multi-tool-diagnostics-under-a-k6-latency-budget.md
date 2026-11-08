@@ -1,6 +1,6 @@
 # Story 1.6: Concurrent multi-tool diagnostics under a k6 latency budget
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -27,34 +27,34 @@ Source: `planning/epics.md` Story 1.6. Requirements: FR-04, FR-13, NFR-3, NFR-5,
 ## Tasks / Subtasks
 
 - [ ] Task 1: Parallel read dispatcher in the application ring (AC: 1, 2)
-  - [ ] 1.1 Add `ParallelReads` in `src/application/` (stdlib only). Input: an ordered sequence of read thunks. It runs `asyncio.run(asyncio.gather(*(asyncio.to_thread(call) for call in calls)))` inside the worker thread, under `asyncio.timeout(budget)`.
-  - [ ] 1.2 Reserve the recorder slots in argument order **before** the gather (story 1.5 D4). `ToolCallRecorder` appends in completion order otherwise. Mint tool-call ids before the gather as well (review D-2.3).
-  - [ ] 1.3 Each thunk converts an unexpected exception to `Failure`. After the gather, report the first failure in **argument** order, never completion order (review D-2.4).
-  - [ ] 1.4 Timeout → `Failure("PROVIDER_UNAVAILABLE")`. Cancellation reaches every child and the dispatcher awaits them, so no orphan tasks remain.
-  - [ ] 1.5 Only independent reads fan out: `policy.for_model` and `event_store.query` (both need only the resolved user/model). Keep user and model resolution and `missing_policies` sequential, because they can end the turn (review §2).
-  - [ ] 1.6 Budget is a setting (`M12_TOOL_FANOUT_BUDGET_SECONDS`, default chosen and recorded in the Dev Agent Record). It reads no clock.
-  - [ ] 1.7 Docstring note on `ToolCallRecorder` that parallel fan-out must reserve slots in argument order (story 1.5 forward constraint).
+  - [x] 1.1 Add `ParallelReads` in `src/application/` (stdlib only). Input: an ordered sequence of read thunks. It runs `asyncio.run(asyncio.gather(*(asyncio.to_thread(call) for call in calls)))` inside the worker thread, under `asyncio.timeout(budget)`.
+  - [x] 1.2 Reserve the recorder slots in argument order **before** the gather (story 1.5 D4). `ToolCallRecorder` appends in completion order otherwise. Mint tool-call ids before the gather as well (review D-2.3).
+  - [x] 1.3 Each thunk converts an unexpected exception to `Failure`. After the gather, report the first failure in **argument** order, never completion order (review D-2.4).
+  - [x] 1.4 Timeout → `Failure("PROVIDER_UNAVAILABLE")`. Cancellation reaches every child and the dispatcher awaits them, so no orphan tasks remain.
+  - [x] 1.5 Only independent reads fan out: `policy.for_model` and `event_store.query` (both need only the resolved user/model). Keep user and model resolution and `missing_policies` sequential, because they can end the turn (review §2).
+  - [x] 1.6 Budget is a setting (`M12_TOOL_FANOUT_BUDGET_SECONDS`, default chosen and recorded in the Dev Agent Record). It reads no clock.
+  - [x] 1.7 Docstring note on `ToolCallRecorder` that parallel fan-out must reserve slots in argument order (story 1.5 forward constraint).
 
 - [ ] Task 2: Route stays synchronous (AC: 1)
-  - [ ] 2.1 `ParallelReads` is called from inside the existing sync request path (`def` route on FastAPI's thread pool). `asyncio.run` inside a running loop raises, so the route must stay `def`. Add a route-audit assertion that `/copilot/query` and `/copilot/chat` are not `async def` (review §2, D-2.6).
-  - [ ] 2.2 Do not change the ports (OP-1..OP-15) to async.
+  - [x] 2.1 `ParallelReads` is called from inside the existing sync request path (`def` route on FastAPI's thread pool). `asyncio.run` inside a running loop raises, so the route must stay `def`. Add a route-audit assertion that `/copilot/query` and `/copilot/chat` are not `async def` (review §2, D-2.6).
+  - [x] 2.2 Do not change the ports (OP-1..OP-15) to async.
 
 - [ ] Task 3: ATDD suite against the real app (AC: 1–3, test design §6.3.5)
-  - [ ] 3.1 `tests/atdd/test_story_1_6.py`. Gates forced with `asyncio.Event` / `threading.Barrier`. No `sleep`, no `waitForTimeout`.
-  - [ ] 3.2 Permutation cases: sequential baseline, forward, reverse and 3 seeded permutations. `EvidenceSet` membership, positions, citation ids and claim set are byte-identical to the sequential path. Repeat each 3×.
-  - [ ] 3.3 Deterministic idgen: `answer_id`, `claim_id` and `tool_call_id` identical across permutations.
-  - [ ] 3.4 Gate that never opens with budget 0 → `PROVIDER_UNAVAILABLE` 503, no partial evidence. One clock read per turn.
-  - [ ] 3.5 One slow tool of N: remaining tasks cancelled and awaited; run under `-W error`; no "Task was destroyed but it is pending".
-  - [ ] 3.6 Two tools fail completing in both orders → identical body (first failure in argument order). One tool raises, all tools raise → typed 503, never 500, no traceback.
-  - [ ] 3.7 Every tool port records 0 mutating calls (AD-1, I18).
-  - [ ] 3.8 Concurrency on a real SQLite file: 50 in-process requests across 50 sessions released by `Barrier(50)` → 50 × HTTP 200, 50 distinct `answer_id`s, audit rows = 50 × tool calls per query, 0 `database is locked`, 0 HTTP 500, `PRAGMA journal_mode` = `wal`.
-  - [ ] 3.9 (integration, `tests/integration/`, not the ATDD file) Cross-store interleaving on the shared connection: store A fails mid-transaction (injected at the port) while store B commits. A's rows absent, B's present.
+  - [x] 3.1 `tests/atdd/test_story_1_6.py`. Gates forced with `asyncio.Event` / `threading.Barrier`. No `sleep`, no `waitForTimeout`.
+  - [x] 3.2 Permutation cases: sequential baseline, forward, reverse and 3 seeded permutations. `EvidenceSet` membership, positions, citation ids and claim set are byte-identical to the sequential path. Repeat each 3×.
+  - [x] 3.3 Deterministic idgen: `answer_id`, `claim_id` and `tool_call_id` identical across permutations.
+  - [x] 3.4 Gate that never opens with budget 0 → `PROVIDER_UNAVAILABLE` 503, no partial evidence. One clock read per turn.
+  - [x] 3.5 One slow tool of N: remaining tasks cancelled and awaited; run under `-W error`; no "Task was destroyed but it is pending".
+  - [x] 3.6 Two tools fail completing in both orders → identical body (first failure in argument order). One tool raises, all tools raise → typed 503, never 500, no traceback.
+  - [x] 3.7 Every tool port records 0 mutating calls (AD-1, I18).
+  - [x] 3.8 Concurrency on a real SQLite file: 50 in-process requests across 50 sessions released by `Barrier(50)` → 50 × HTTP 200, 50 distinct `answer_id`s, audit rows = 50 × tool calls per query, 0 `database is locked`, 0 HTTP 500, `PRAGMA journal_mode` = `wal`.
+  - [x] 3.9 (covered by the existing integration test, no duplicate) `tests/integration/test_sqlite_writer.py::test_a_failing_transaction_is_never_committed_by_another_stores_write` (IR-05 row of test-design 6.3.5). Cross-store interleaving on the shared connection: store A fails mid-transaction (injected at the port) while store B commits. A's rows absent, B's present.
 
 - [ ] Task 4: k6 load script (AC: 3, 5)
-  - [ ] 4.1 `tests/nfr/copilot-load.js`: `constant-vus`, 50 VUs, 20 iterations each (1 000 requests). Each request opens its own session via `/copilot/query`.
-  - [ ] 4.2 Thresholds: `http_req_failed` rate == 0, `checks` rate == 1.0 (status 200 **and** body cites `RULE-CAT-04`, `policy#catalog.4.2`, `deepseek-coder`), `http_req_duration` p(95) < 800. p99 and error rate recorded.
-  - [ ] 4.3 No `sleep(` anywhere in the script. Follow the header style of `tests/nfr/smoke.js`.
-  - [ ] 4.4 Extraction of `RULE-CAT-04` from the policy evidence `snippet` is a fixed pattern pinned by a unit test. Do not add a DTO field (contract unchanged).
+  - [x] 4.1 `tests/nfr/copilot-load.js`: `constant-vus`, 50 VUs, 20 iterations each (1 000 requests). Each request opens its own session via `/copilot/query`.
+  - [x] 4.2 Thresholds: `http_req_failed` rate == 0, `checks` rate == 1.0 (status 200 **and** body cites `RULE-CAT-04`, `policy#catalog.4.2`, `deepseek-coder`), `http_req_duration` p(95) < 800. p99 and error rate recorded.
+  - [x] 4.3 No `sleep(` anywhere in the script. Follow the header style of `tests/nfr/smoke.js`.
+  - [x] 4.4 Extraction of `RULE-CAT-04` from the policy evidence `snippet` is a fixed pattern pinned by a unit test. Do not add a DTO field (contract unchanged).
 
 - [ ] Task 5: Run and archive evidence (AC: 3, 4, 5)
   - [ ] 5.1 Uvicorn with one worker, `M12_DB_PATH=:memory:`: `python -m uvicorn src.adapters.inbound.app:create_app --factory --host 127.0.0.1 --port 8000 --workers 1 --log-level warning`. Wait with `curl --retry` on `/healthz`, not with a sleep.
@@ -67,9 +67,9 @@ Source: `planning/epics.md` Story 1.6. Requirements: FR-04, FR-13, NFR-3, NFR-5,
   - [ ] 6.1 `make nfr` currently runs only `smoke.js`. Either extend that recipe with `copilot-load.js` in the same commit or record in the Dev Agent Record that it is run by hand. The CI job already runs every `tests/nfr/*.js`.
 
 - [ ] Task 7: Regression and gates
-  - [ ] 7.1 Before and after the change, run these queries through `POST /api/v1/copilot/query` and compare the output: S1 `Why was student Alex denied access to model deepseek-coder?`, S2 `Why can't Group 4 run their fine-tuning job right now?`, edge `Why was ghost_user_99 denied access to model deepseek-coder?`, S3 `Node ws-gpu-11 is cordoned with code ERR_THERMAL_88. What should I do?`, and 12.6 `Student Alex was denied model deepseek-coder. Diagnose and provide runbook.` Output must not change for any of them that already worked.
+  - [x] 7.1 Before and after the change, run these queries through `POST /api/v1/copilot/query` and compare the output: S1 `Why was student Alex denied access to model deepseek-coder?`, S2 `Why can't Group 4 run their fine-tuning job right now?`, edge `Why was ghost_user_99 denied access to model deepseek-coder?`, S3 `Node ws-gpu-11 is cordoned with code ERR_THERMAL_88. What should I do?`, and 12.6 `Student Alex was denied model deepseek-coder. Diagnose and provide runbook.` Output must not change for any of them that already worked.
   - [ ] 7.2 `ruff check .`, `test/ci/schema_check.py`, `cmp src/dto.py planning/detailed-design/schemas/dto.py`, `diff` of both `sprint-status.yaml` copies, pytest with `--cov-fail-under=90`.
-  - [ ] 7.3 Route audit (`tests/api/test_contract_routes.py`): no route added, so `SERVED_IN_THIS_STORY` and `openapi.yaml` stay as they are.
+  - [x] 7.3 Route audit (`tests/api/test_contract_routes.py`): no route added, so `SERVED_IN_THIS_STORY` and `openapi.yaml` stay as they are.
 
 ## Dev Notes
 
@@ -151,6 +151,13 @@ Source: `planning/epics.md` Story 1.6. Requirements: FR-04, FR-13, NFR-3, NFR-5,
 
 ### Completion Notes List
 
+- Dev notes (dev step, not yet reviewed):
+  - Fan-out: `ParallelReads` (src/application/parallel_reads.py) runs the policy and events reads concurrently with `asyncio.run` inside the worker thread (I2-35). Each read records into its own lane, and the lanes settle into the turn in argument order. The recorder change is in tool_audit.py.
+  - Budget: `M12_TOOL_FANOUT_BUDGET_SECONDS` defaults to 0.5 s (src/domain/fanout.py, I2-35). It is a wall-time `asyncio.timeout`; no clock read.
+  - Window check now runs before the policy read. A window failure returns without any read. The S1, S2, ghost, S3, 12.6 and delete query bodies are byte-identical to HEAD (checked by running them before and after).
+  - Test corrections: tool-call ids parsed as hex (I2-36). The policy-outage unit case now asserts the failure body and no event evidence, not that events are never read (I2-37).
+  - k6 (`tests/nfr/copilot-load.js`) is written and NOT run. AC 3 and AC 5 stay open until the k6 run.
+  - Open for review: `asyncio.run` builds a loop and a thread pool per turn. Measure its cost in the k6 run.
 - Story created in ready-for-dev state. Open decision for the dev run: the Task 2 route shape (sync `def` per review D-2.6). Any different route shape changes the review decision and must be logged before code.
 
 ### File List
