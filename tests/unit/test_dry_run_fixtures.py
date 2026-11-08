@@ -83,10 +83,11 @@ def test_a_list_value_means_one_of(providers) -> None:
     assert keys(providers.jobs.select(select(id=[]))) == []  # one of nothing is nothing
 
 
-def test_a_list_does_not_let_a_boolean_match_an_integer(providers) -> None:
-    assert (
-        keys(providers.nodes.select(select(gpu_memory_gb=[True]))) == []
-    )  # exact type per element
+def test_a_list_matches_the_exact_type_of_each_element(providers) -> None:
+    """``24.0 == 24`` in Python, but a float is not the integer a node reports (D4)."""
+    assert keys(providers.nodes.select(select(gpu_memory_gb=[24]))) != []  # the control
+    assert keys(providers.nodes.select(select(gpu_memory_gb=[24.0]))) == []
+    assert keys(providers.nodes.select(select(gpu_memory_gb=[True]))) == []
 
 
 def test_node_ids_selects_the_named_nodes(providers) -> None:

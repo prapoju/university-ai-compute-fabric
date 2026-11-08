@@ -4,7 +4,7 @@ baseline_commit: 01f74d5
 
 # Story 2.2: Dry-run snapshot with selector predicate and affected items
 
-Status: in-progress
+Status: review
 
 <!-- Impl-2 Flow A (ATDD-first), Annex 12.4, second of four stories (2-1 .. 2-4). The red phase is
      recorded BEFORE any production code. This story builds the dry-run: the selector, the affected
@@ -69,9 +69,9 @@ Flow A. Task 1 is the **red phase** and it ends at a hard stop: nothing in `src/
 - [x] **Task 6: The Annex reply of `/copilot/chat`** (AC: 1, 6, 13, 14, 16) -> `feat(story-2.2): chat answers refusal, dry-run summary and token in one reply`
   - [x] 6.1 `ChatRefusalResponse` in both `dto.py` copies and `openapi.yaml` (`/copilot/chat` 200 becomes `oneOf` AnswerEnvelope, ErrorBody, ChatRefusalResponse), D1.
   - [x] 6.2 `src/ports/inbound/chat_use_cases.py` and `src/application/chat_service.py`: open the session, submit the query (the story 2.1 refusal turn), and when the outcome is `ACTION_REFUSED` call `post_dry_run` with the verb and target the domain parser read (the same `parse_destructive` the handler used). Every other outcome is returned untouched. `copilot_chat` calls it; `copilot_query` does not change.
-- [ ] **Task 7: Gate, mutation check and evidence** (AC: 17) -> `test(story-2.2): green phase evidence`
-  - [ ] 7.1 The tests of Task 1 pass **without having been edited** (`git diff <red commit> -- tests/atdd/test_story_2_2.py docs/evidence/impl2/red-2-2.log` is empty). If one must change, stop and ask.
-  - [ ] 7.2 Mutation check (see Testing standards), then the full `pytest`, branch coverage, `ruff check .`, `schema_check`, the three `diff` checks. Save the coverage run to `docs/evidence/impl2/flow-a-2-2-coverage.log`.
+- [x] **Task 7: Gate, mutation check and evidence** (AC: 17) -> `test(story-2.2): green phase evidence`
+  - [x] 7.1 The tests of Task 1 pass **without having been edited** (`git diff <red commit> -- tests/atdd/test_story_2_2.py docs/evidence/impl2/red-2-2.log` is empty). If one must change, stop and ask.
+  - [x] 7.2 Mutation check (see Testing standards), then the full `pytest`, branch coverage, `ruff check .`, `schema_check`, the three `diff` checks. Save the coverage run to `docs/evidence/impl2/flow-a-2-2-coverage.log`.
 
 ## Dev Notes
 
@@ -192,20 +192,31 @@ Pure rules in `src/domain`, use cases in `src/application`, ports in `src/ports`
 
 ### Agent Model Used
 
-Claude Sonnet 5.5 (`claude-sonnet-5-5`), Claude Code, `bmad-create-story`.
+Claude Sonnet 5.5 (`claude-sonnet-5-5`), Claude Code, `bmad-create-story`, `bmad-testarch-atdd`, `bmad-dev-story`.
 
 ### Debug Log References
 
 - Baseline at `01f74d5`: `pytest` 1666 passed, branch coverage of `src` 97.24%. CI of the pushed history: success.
 - Audit probes (2026-11-07, real app and code): `POST /api/v1/destructive/dry-runs` answers 404 though it is declared; the `proposals` table allowlists the selector method to `jobs_port.select` / `nodes_port.select` while the sim providers accept only `filter`; `NodesPort.select` rejects `node_ids` as an unknown field; there is no `group#CS-101`; `JobRecordDTO` has no `node`.
 
-### Completion Notes List
+- Green phase (2026-11-07): `tests/atdd/test_story_2_2.py` (40 cases) passes without having been edited; `git diff 0407109 -- tests/atdd/test_story_2_2.py docs/evidence/impl2/red-2-2.log` is empty. Full run: `pytest` 1819 passed, branch coverage of `src` 97.52% (`docs/evidence/impl2/flow-a-2-2-coverage.log`), `ruff check .` clean, `schema_check` PASS, both `dto.py` copies and both `sprint-status.yaml` copies identical.
+- Mutation check, restored with a `finally` after each: 12 mutants of the green phase and the 5 of the Testing standards list that were not already covered, 17 in all. All killed. One survived the first run (M8, the list filter ignoring exact types): my test used `[True]`, which no node value equals, so it could not tell the two filters apart. It now uses `[24.0]`, equal to `24` by `==` but not the same type, with `[24]` as the control; it kills M8. Mutants run: cancel selecting `pending`; a pending job not actionable; a fault node actionable; unsorted nodes in the summary; token lifetime plus one second; a provider outage read as an empty set; a counter instead of a random token; the list filter without exact types; chat dry-running every outcome; the audit head written after the reads; confirmation always enabled; the proposal stored in the wrong state; the proposal stored without its selector; the group branch removed; the group selector widened; `/copilot/query` building a proposal; the proposal counter lost on restart.
+- Commits: `0407109` red, `57a062b` fixtures and `node`, `03f06ea` pure rules, `0cba76c` store, tokens and TTL, `bcc1b1a` the route, `1adb60b` the chat reply.
+- One committed 2.1 case had to change (`test_a_destructive_request_is_refused_on_every_inbound_route[copilot_chat]`): guide E.6, asked and approved by the user, logged as I2-22.
+- Known leftover: `dry_run_service.py` line 124 (the stored-timestamp failure of `session_usable`) is covered only through `SessionService`; it is a defensive branch shared with 2.1.
 
 - Story context created 2026-11-07, scoped against `src/`, `tests/`, `fixtures/` and `planning/` at `01f74d5`. Ultimate context engine analysis completed - comprehensive developer guide created.
 
 ### File List
 
+- New: `src/domain/dry_run.py`, `src/ports/outbound/proposal_store.py`, `src/adapters/outbound/db/proposal_store.py`, `src/adapters/outbound/token_idgen.py`, `src/ports/inbound/destructive_use_cases.py`, `src/ports/inbound/chat_use_cases.py`, `src/application/dry_run_service.py`, `src/application/chat_service.py`, `src/adapters/inbound/destructive.py`.
+- Changed: `src/dto.py` and `planning/detailed-design/schemas/dto.py` (`JobRecordDTO.node`, `ChatRefusalResponse`), `planning/detailed-design/schemas/openapi.yaml`, `planning/detailed-design/contracts.md`, `fixtures/estate/groups.json`, `fixtures/estate/jobs.json`, `src/adapters/outbound/sim/estate_loader.py`, `src/adapters/outbound/sim/fixtures_adapter.py`, `src/bootstrap.py`, `src/config.py`, `src/application/session_service.py`, `src/application/unavailable.py`, `src/domain/canonical_strings.py`, `src/adapters/inbound/app.py`, `src/adapters/inbound/copilot.py`, `src/ports/inbound/__init__.py`, `src/ports/outbound/__init__.py`.
+- Tests: `tests/atdd/test_story_2_2.py` (frozen), `tests/unit/test_dry_run.py`, `test_dry_run_fixtures.py`, `test_dry_run_service.py`, `test_token_idgen.py`, `test_chat_service.py`, `tests/integration/test_proposal_store.py`, `tests/api/test_dry_run_route.py`; adjusted `tests/api/test_state_api.py`, `test_contract_routes.py`, `tests/unit/test_config.py`, `test_bootstrap.py`, `test_ports_query_only.py`, and the chat branch of `tests/atdd/test_story_2_1.py` (I2-22).
+- Evidence: `docs/evidence/impl2/red-2-2.log`, `docs/evidence/impl2/flow-a-2-2-coverage.log`.
+
 ### Change Log
+
+- 2026-11-07: Dev story complete. Tasks 1-7 done, Status -> review.
 
 - 2026-11-07: Story created (`bmad-create-story`). Status -> ready-for-dev.
 - 2026-11-07: The user confirmed D1 (the `ChatRefusalResponse` schema) and D4 (the select vocabulary) and left the other decisions as written. The red phase may start.
