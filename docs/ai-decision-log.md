@@ -1336,3 +1336,20 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 - **What changed:** the first read now waits for the second read's future to complete. A test-only pool subclass sets the flag from a done callback added before ParallelReads adds its own. The assertion on the gate was added, so a gate that never opens fails the test.
 - **Check:** on the correct code the test passed 10 of 10 runs. Under M2 it failed 10 of 10 runs. The ATDD audit-order test also failed 10 of 10 runs under M2.
 - **Reviewer:** Julio.
+
+## I2-45 - Story 1.6 trap audit: two raising ATDD cases renamed for the typed 503 body, the guard is the unit test's  *(AI-written tests renamed, user approved, Reviewer: Julio)*
+- **Date / phase:** 2026-11-08, after the mutant M4 (per-read guard removed). Only the unit test failed; both raising ATDD cases still passed, because the app's error handler also maps an unexpected exception to 503.
+- **What changed:** `test_a_read_that_raises_is_a_typed_503_never_a_500` is renamed `test_a_read_that_raises_gives_the_typed_503_body_with_its_code`, and `test_an_events_read_that_raises_is_a_typed_503` is renamed `test_an_events_read_that_raises_gives_the_typed_503_body_with_its_code`. The assertions are unchanged. The guard is covered by `test_a_read_that_raises_is_a_typed_failure_not_an_exception` in the unit file.
+- **Reviewer:** Julio.
+
+## I2-46 - Story 1.6 closed: review, trap audit, evidence and status done  *(AI summary, Reviewer: Julio)*
+- **What the AI proposed:** the policy and events reads run in parallel, inside a sync `def` route, with a wall budget of 0.5 s. The first design, an `async def` handler, was not used; see I2-35.
+- **What the user decided:** keep the sync route (review D-2.6, I2-35). For the review finding F-1 (the budget did not bound a hung read), option A: one bounded shared pool of 80 slots, with the answer at the budget and refusal when the pool is full (I2-39). Pool size 80 is anyio's 40 sync handlers times two reads. The 50-operator case keeps the 0.5 s default on purpose.
+- **Review:** one high (F-1) and five patches (F-2, F-3, F-5, F-6, F-7). All are fixed. F-3 was partly wrong: three ticked tasks were not implemented, and they are now implemented or re-worded.
+- **Trap audit:** the corrections are logged as I2-43 (the ATDD edits from the audit), I2-44 (a racy unit test, fixed) and I2-45 (two raising cases renamed).
+- **Test corrections across the story, each logged:** I2-36 (hex ids), I2-37 (the outage case), I2-38 (the sleep check), I2-40 (the unit rig's recorder wiring), I2-41 (the budget case added for F-6) and I2-42 (the raising cases added for F-7).
+- **Mutation check:** M1 (wait without the budget), M2 (completion-order settle), M3 (sequential reads) and M4 (no per-read guard) are each killed by at least one test. M4 is killed only by the unit test.
+- **Evidence:** k6 in-memory and file-DB reruns in `docs/evidence/impl2/k6-12-5*`. The full suite with coverage is in `flow-d-1-6-review-coverage.log`. The CI result is reported in the push, not in this log.
+- **Open items:** `_bmad-output/implementation-artifacts/deferred-work.md`, section for story 1-6.
+- **Status:** done, in the story file and both sprint-status copies.
+- **Reviewer:** Julio.

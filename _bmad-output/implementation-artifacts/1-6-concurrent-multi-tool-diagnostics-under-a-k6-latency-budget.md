@@ -155,6 +155,13 @@ Review of the story diff (`468a3ff..HEAD`), in line, with three layers (blind re
 - [x] [Review][Patch] F-7 (low): test-design 6.3.5 row "one tool raises / all tools raise" is only half covered. Only the policy read is tested to raise. Fix: add the events-raises and both-raise cases. Needs the same ATDD approval as F-6 if it goes in that file. [tests/atdd/test_story_1_6.py] **Resolved:** fixed in `40da95b` (I2-42).
 - Dismissed: the window check now runs before the policy read. Approved, and the six regression queries are byte-identical to HEAD.
 
+### Trap audit and closure
+
+- Traps: no end-to-end cases added; no mocked unit under test (doubles only at outbound ports); no sleep calls, only bounded waits; the gates of the ordering cases use an explicit 5 s budget. The 50-operator case keeps the 0.5 s production default on purpose; its flake risk is in deferred work.
+- Mutation check on the committed code: M1 (wait without the budget) is killed by the budget-named cases; M2 (completion-order settle) by the audit-order case, the ids case and the settle-order unit test; M3 (sequential reads) by 11 tests; M4 (no per-read guard) by the unit test only. The ATDD raising cases are named for the typed 503 body (I2-45).
+- Open items: `deferred-work.md`, section 1-6.
+- Status: done (story file and both sprint-status copies).
+
 ## Dev Agent Record
 
 ### Agent Model Used
