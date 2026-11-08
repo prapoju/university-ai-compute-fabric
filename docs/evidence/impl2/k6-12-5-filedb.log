@@ -1,0 +1,79 @@
+
+         /\      Grafana   /‾‾/  
+    /\  /  \     |\  __   /  /   
+   /  \/    \    | |/ /  /   ‾‾\ 
+  /          \   |   (  |  (‾)  |
+ / __________ \  |_|\_\  \_____/ 
+
+
+     execution: local
+        script: tests/nfr/copilot-load.js
+        output: -
+
+     scenarios: (100.00%) 1 scenario, 50 max VUs, 10m30s max duration (incl. graceful stop):
+              * operators: 20 iterations for each of 50 VUs (maxDuration: 10m0s, gracefulStop: 30s)
+
+
+running (00m01.0s), 50/50 VUs, 116 complete and 0 interrupted iterations
+operators   [  12% ] 50 VUs  00m01.0s/10m0s  0116/1000 iters, 20 per VU
+
+running (00m02.0s), 50/50 VUs, 271 complete and 0 interrupted iterations
+operators   [  27% ] 50 VUs  00m02.0s/10m0s  0271/1000 iters, 20 per VU
+
+running (00m03.0s), 50/50 VUs, 446 complete and 0 interrupted iterations
+operators   [  45% ] 50 VUs  00m03.0s/10m0s  0446/1000 iters, 20 per VU
+
+running (00m04.0s), 50/50 VUs, 618 complete and 0 interrupted iterations
+operators   [  62% ] 50 VUs  00m04.0s/10m0s  0618/1000 iters, 20 per VU
+
+running (00m05.0s), 50/50 VUs, 788 complete and 0 interrupted iterations
+operators   [  79% ] 50 VUs  00m05.0s/10m0s  0788/1000 iters, 20 per VU
+
+running (00m06.0s), 32/50 VUs, 959 complete and 0 interrupted iterations
+operators   [  96% ] 50 VUs  00m06.0s/10m0s  0959/1000 iters, 20 per VU
+
+
+  █ THRESHOLDS 
+
+    checks
+    ✓ 'rate==1' rate=100.00%
+
+    http_req_duration
+    ✓ 'p(95)<800' p(95)=401.75ms
+
+    http_req_failed
+    ✓ 'rate==0' rate=0.00%
+
+
+  █ TOTAL RESULTS 
+
+    checks_total.......: 4000    649.682953/s
+    checks_succeeded...: 100.00% 4000 out of 4000
+    checks_failed......: 0.00%   0 out of 4000
+
+    ✓ status is 200
+    ✓ cites RULE-CAT-04
+    ✓ cites policy#catalog.4.2
+    ✓ cites deepseek-coder
+
+    HTTP
+    http_req_duration..............: avg=299.62ms min=32.04ms med=295.07ms max=635.06ms p(90)=375.67ms p(95)=401.75ms p(99)=509.63ms
+      { expected_response:true }...: avg=299.62ms min=32.04ms med=295.07ms max=635.06ms p(90)=375.67ms p(95)=401.75ms p(99)=509.63ms
+    http_req_failed................: 0.00%  0 out of 1000
+    http_reqs......................: 1000   162.420738/s
+
+    EXECUTION
+    iteration_duration.............: avg=299.93ms min=32.19ms med=295.45ms max=636ms    p(90)=375.98ms p(95)=402.27ms p(99)=509.85ms
+    iterations.....................: 1000   162.420738/s
+    vus............................: 32     min=32        max=50
+    vus_max........................: 50     min=50        max=50
+
+    NETWORK
+    data_received..................: 2.4 MB 394 kB/s
+    data_sent......................: 214 kB 35 kB/s
+
+
+
+
+running (00m06.2s), 00/50 VUs, 1000 complete and 0 interrupted iterations
+operators ✓ [ 100% ] 50 VUs  00m06.2s/10m0s  1000/1000 iters, 20 per VU
