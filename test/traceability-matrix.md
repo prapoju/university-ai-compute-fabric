@@ -10,7 +10,7 @@ oracle_confidence: high
 gate_type: story
 decision_mode: deterministic
 gate_status: CONCERNS
-gate_basis: local test-presence and local logs; CI run id pending the push
+gate_basis: local test-presence and local logs; CI run 42527948599 on 618abcc (all jobs green)
 p0_requirements: 7
 p0_covered: 7
 p1_requirements: 19
@@ -42,8 +42,7 @@ P0 would be 7 of 8 (87.5 %) and the rule would give **FAIL**. The guard of FR-06
 release-blocker R-01 needs (the event that never occurred, `Cannot confirm`) is covered by
 story 4-1; the retrospective diagnosis itself (story 3-2) is not built.
 
-**CI evidence.** The verdict uses local evidence. The CI run of the pushed commit is not in
-this file yet; it is recorded after the push (sprint plan step 8).
+**CI evidence.** Run `42527948599` on `618abcc` is green for all five jobs (`Schema checks`, `Ruff + pytest`, `k6 load thresholds`, `No sleep / waitForTimeout`, `Playwright E2E`). The verdict also uses the local logs.
 
 ## 1. Status legend
 
@@ -139,8 +138,7 @@ usability study (NFR-9).
 
 ## 7. Open items
 
-- The CI run of the pushed commit is recorded after the push: the run id, the five jobs and the
-  k6 and Playwright artifacts.
+- The CI run `42527948599` is recorded in the header and in the CI evidence paragraph. CI p99 is not exported by the CI k6 summary.
 - The retrospective part of FR-06 (story 3-2) and the optional stories are declared out of scope
   and not built.
 - The I2-57 entry for the scope decision is in `docs/ai-decision-log.md`.

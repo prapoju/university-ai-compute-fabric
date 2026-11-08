@@ -29,16 +29,15 @@ performance, resilience, usability.
 |---|---|---|
 | 1. Security (tokens, redaction, fabrication guards) | PASS | §1 |
 | 2. Concurrency (atomic claim, 50 operators) | PASS | §2 |
-| 3. Performance (k6 p95 < 800 ms, 50 VUs) | PASS (local); CI k6 run pending push | §3 |
+| 3. Performance (k6 p95 < 800 ms, 50 VUs) | PASS (local and CI run 42527948599) | §3 |
 | 4. Resilience (typed 503, executor failures) | PASS | §4 |
-| 5. Usability (Playwright E2E with POM and trace) | PASS (local); CI E2E run pending push | §5 |
+| 5. Usability (Playwright E2E with POM and trace) | PASS (local and CI run 42527948599) | §5 |
 
 **Full suite on the same commit family:** 2156 passed (`final-coverage.log`), branch coverage of
 `src` 97.59 % against a 90 % floor, ruff clean, schema check `GATE PASS`, no banned waits
 (`final-banned-waits.log` is empty).
 
-**Open:** the CI rows for performance and usability are not yet evidenced. They are filled after
-the push and the workflow run, from the run id, not from this file.
+**CI:** run `42527948599` on `618abcc` is green for all five jobs. Its k6 and Playwright rows are in §3 and §5.
 
 ---
 
@@ -113,7 +112,7 @@ policy#catalog.4.2, deepseek-coder).
 |---|---|---:|---:|---:|---:|---:|---:|---|
 | Local, in-memory | `:memory:` | 1000 | 50 | 300.66 ms | 368.52 ms | 0 / 1000 (0.00 %) | 4000 / 4000 (100 %) | `docs/evidence/impl2/k6-12-5.json`, `k6-12-5.log` |
 | Local, file DB | temporary file | 1000 | 50 | 307.93 ms | 367.08 ms | 0 / 1000 (0.00 %) | 4000 / 4000 (100 %) | `docs/evidence/impl2/k6-12-5-filedb.json`, `k6-12-5-filedb.log` |
-| CI | GitHub runner | pending | 50 | pending | pending | pending | pending | pending the workflow run |
+| CI | Run `42527948599`, job `k6 load thresholds`, `copilot-load-summary.json` | 1000 | 50 | 181.23 ms | not exported by the CI summary (p(90) = 172.70 ms) | value 0 (0 failed) | 4000 / 4000 (100 %) | CI artifact `k6-summary` |
 
 Reading the table. Every check passes (`status is 200`, cites `RULE-CAT-04`, cites
 `policy#catalog.4.2`, cites `deepseek-coder`). The k6 log shows `1000/1000 iters` and
@@ -124,7 +123,7 @@ verdict here rests on the measured values and the absence of `✗` in the log, n
 Tests guarding the script itself: `tests/atdd/test_story_1_6.py::test_the_load_script_declares_the_story_thresholds_and_never_sleeps`,
 `tests/atdd/test_story_1_6.py::test_the_fan_out_budget_defaults_to_half_a_second`.
 
-**Status: PASS (local).** The CI row is filled after the push, from the run id.
+**Status: PASS (local and CI).** The CI row is run `42527948599`.
 
 ## 4. Resilience (typed failures, no crash)
 
@@ -153,6 +152,10 @@ answer.
 
 **Status: PASS.** Each failure path returns a catalog code and leaves no partial write.
 
+**Cold start (NFR-7 part).** `tests/nfr/cold_start.py` starts uvicorn as `playwright.config.ts`
+does and polls `/healthz` with a bounded deadline. The first 200 came at **0.54 s**, budget 60 s
+(`docs/evidence/impl2/nfr7-cold-start.log`). The 8-hour 99 % window is waived (traceability section 8).
+
 ## 5. Usability (interactive console, E2E)
 
 Journey: Nadia submits the Annex 12.6 inquiry, sees the cited badge
@@ -168,12 +171,12 @@ Journey: Nadia submits the Annex 12.6 inquiry, sees the cited badge
 - **Forensic trace.** `docs/evidence/impl2/trace-1-7-annex-12-6.zip`.
 - **No fixed waits.** `docs/evidence/impl2/final-banned-waits.log` is empty.
 
-**Status: PASS (local).** The CI row is filled after the push, from the run id and the uploaded trace.
+**Status: PASS (local and CI).** Run `42527948599`: `3 passed (4.4s)`. The trace is in the CI artifact `playwright-test-results`.
 
 ---
 
 ## Not evidenced in this file
 
-- The CI k6 and CI Playwright results. They exist only after the push (step 8 of the sprint plan).
+- The CI p99 of k6: the CI export carries p(90) and p(95) only.
 - Maintainability and reliability dimensions outside the five of task-impl2 §2 item 4 are not
   assessed here; see `test/test-review.md` and `test/test-design.md` for the earlier audit.
