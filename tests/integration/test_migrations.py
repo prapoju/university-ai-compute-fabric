@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import sqlite3
 from pathlib import Path
 
 import pytest
@@ -39,7 +41,10 @@ def test_applies_every_module12_owned_table_and_nothing_about_the_estate() -> No
     writer = SqliteWriter.open(":memory:")
     applied = apply_migrations(writer, MIGRATIONS)
     tables = _tables(writer)
-    assert applied == ["001_module12_copilot_schema.sql"]
+    assert applied == [
+        "001_module12_copilot_schema.sql",
+        "002_proposals_failed_to_superseded.sql",  # story 2.4: a failed proposal can be superseded
+    ]
     assert OWNED_TABLES <= tables
     # AD-1/AD-13: the operational estate never lives in this database
     assert not {"users", "nodes", "jobs", "catalog", "groups"} & tables
@@ -114,7 +119,10 @@ def test_migrations_apply_to_a_file_database_and_enable_wal(tmp_path: Path) -> N
     # WAL cannot be switched on inside a transaction, so PRAGMAs must run outside the atomic part
     database = tmp_path / "m12.db"
     writer = SqliteWriter.open(str(database))
-    assert apply_migrations(writer, MIGRATIONS) == ["001_module12_copilot_schema.sql"]
+    assert apply_migrations(writer, MIGRATIONS) == [
+        "001_module12_copilot_schema.sql",
+        "002_proposals_failed_to_superseded.sql",
+    ]
     assert _scalar(writer, "pragma journal_mode") == ("wal",)
     assert OWNED_TABLES <= _tables(writer)
     writer.close()
@@ -146,3 +154,48 @@ def test_pragma_lines_are_split_off_with_unix_and_windows_line_endings(
     writer = SqliteWriter.open(str(tmp_path / "x.db"))
     assert apply_migrations(writer, tmp_path) == ["001_a.sql"]
     assert _scalar(writer, "pragma journal_mode") == ("wal",)
+
+
+def test_migration_002_makes_superseded_reachable_and_changes_nothing_else(tmp_path) -> None:
+    """001 is untouched (checksum recorded); 002 only adds the step ``failed -> superseded``."""
+    box = SqliteWriter.open(":memory:")
+    apply_migrations(box, MIGRATIONS)
+    with box.read() as db:
+        sha = dict(db.execute("SELECT filename, sha256 FROM schema_migrations"))
+    first = (MIGRATIONS / "001_module12_copilot_schema.sql").read_bytes()
+    assert sha["001_module12_copilot_schema.sql"] == hashlib.sha256(first).hexdigest()
+    legal = {
+        ("refused", "dry_run"), ("dry_run", "confirmed"), ("confirmed", "dispatched"),
+        ("dispatched", "executed"), ("dispatched", "failed"), ("failed", "superseded"),
+    }  # fmt: skip
+    states = ("refused", "dry_run", "confirmed", "dispatched", "executed", "failed", "superseded")
+    for old in states:
+        for new in states:
+            if old == new:
+                continue
+            with box.transaction() as db:
+                db.execute("PRAGMA foreign_keys = OFF")
+                db.execute("DELETE FROM proposals")
+                db.execute(
+                    "INSERT INTO sessions (session_id, created_at, updated_at, operator_role,"
+                    " status)"
+                    " VALUES ('sess-0000000000000001', '2026-10-16T15:00:00.000Z',"
+                    " '2026-10-16T15:00:00.000Z', 'role-operations', 'active')"
+                    " ON CONFLICT DO NOTHING"
+                )
+                db.execute(
+                    "INSERT INTO proposals (proposal_id, session_id, state, action, selector,"
+                    " affected_items, snapshot_timestamp, gate_token, confirmed_at, created_at,"
+                    " updated_at) VALUES ('prop-0000000000000001', 'sess-0000000000000001', ?,"
+                    " 'cancel_jobs', '{\"method\": \"jobs_port.select\", \"params\": {}}', '[]',"
+                    " '2026-10-16T15:00:00.000Z', ?, '2026-10-16T15:00:00.000Z',"
+                    " '2026-10-16T15:00:00.000Z', '2026-10-16T15:00:00.000Z')",
+                    (old, "gt-" + "0" * 32),
+                )
+                try:
+                    db.execute("UPDATE proposals SET state = ?", (new,))
+                    allowed = True
+                except sqlite3.IntegrityError:
+                    allowed = False
+            assert allowed == ((old, new) in legal), (old, new)
+    box.close()

@@ -48,7 +48,10 @@ OWNED_PORT_METHODS: dict[str, set[str]] = {
     },
     "UnitOfWorkPort": {"atomic"},
     "AuditStorePort": {"append", "page", "highest_counters"},  # story 1.5: append-only (AD-10)
-    "ProposalStorePort": {"add", "get", "claim", "highest_counters"},  # stories 2.2, 2.3 (AD-4)
+    "ProposalStorePort": {
+        "add", "get", "claim", "begin_dispatch", "record_result", "mark_failed", "supersede",
+        "highest_counters",
+    },  # stories 2.2-2.4 (AD-4)
     "ExecutorPort": {"dispatch", "get"},  # story 2.4: OP-15, the only writer of state (AD-15)
 }  # fmt: skip
 ALL_PORTS = {*CONTRACT_METHODS, *OWNED_PORT_METHODS}

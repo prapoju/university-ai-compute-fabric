@@ -12,7 +12,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 from src.domain.result import Result
-from src.dto import ProposalDTO
+from src.dto import ExecutorResultDTO, ProposalDTO
 
 
 class ProposalStorePort(ABC):
@@ -32,6 +32,28 @@ class ProposalStorePort(ABC):
         or the token differs (another confirm won, or the token is wrong). It never raises for a
         lost race; the caller re-reads the proposal and decides.
         """
+
+    @abstractmethod
+    def begin_dispatch(self, proposal_id: str, at: str) -> Result[bool]:
+        """The one conditional ``confirmed -> dispatched`` transition (contracts claim, C5).
+
+        Run in the same transaction as ``claim``: together they are the contract's single commit
+        of ``dry_run -> confirmed -> dispatched``. ``True`` when this call changed the row.
+        """
+
+    @abstractmethod
+    def record_result(
+        self, proposal_id: str, state: str, result: ExecutorResultDTO, at: str
+    ) -> Result[bool]:
+        """``dispatched -> executed | failed`` with the executor result (C6); ``True`` if changed"""
+
+    @abstractmethod
+    def mark_failed(self, proposal_id: str, at: str) -> Result[bool]:
+        """``dispatched -> failed`` with no executor result (no answer in time)."""
+
+    @abstractmethod
+    def supersede(self, proposal_id: str, at: str) -> Result[bool]:
+        """``failed -> superseded`` (C7); ``False`` when the proposal is not ``failed``."""
 
     @abstractmethod
     def highest_counters(self) -> Result[dict[str, int]]:

@@ -241,3 +241,136 @@ def test_a_closed_connection_makes_get_and_claim_typed_failures(tmp_path: Path) 
     box.close()
     assert isinstance(store.get("prop-0000000000000001"), Failure)
     assert isinstance(store.claim("prop-0000000000000001", "gt-" + "0" * 32, T1), Failure)
+
+
+# -- story 2.4: dispatch, result, failure and supersede -------------------------------------------
+T2 = "2026-10-16T15:00:43.000Z"
+
+
+def result(status: str = "applied", records=None, count=None):
+    from src.dto import ExecutorResultDTO
+
+    records = ["job#job-8901"] if records is None else records
+    return ExecutorResultDTO(
+        status=status, applied_records=records,
+        applied_count=len(records) if count is None else count, timestamp=T2, source="executor",
+    )  # fmt: skip
+
+
+def confirmed(store: SqliteProposalStore, n: int = 1) -> ProposalDTO:
+    stored = proposal(n)
+    assert is_ok(store.add(stored, T0))
+    assert store.claim(stored.proposal_id, stored.gate_token, T1).value is True
+    return stored
+
+
+def test_begin_dispatch_moves_a_confirmed_proposal_once(writer: SqliteWriter) -> None:
+    store = SqliteProposalStore(writer)
+    fresh = proposal()
+    assert is_ok(store.add(fresh, T0))
+    assert store.begin_dispatch(fresh.proposal_id, T1).value is False  # not confirmed yet
+    store.claim(fresh.proposal_id, fresh.gate_token, T1)
+    assert store.begin_dispatch(fresh.proposal_id, T1).value is True
+    assert store.begin_dispatch(fresh.proposal_id, T1).value is False
+    assert store.get(fresh.proposal_id).value.state == "dispatched"
+
+
+def test_claim_and_begin_dispatch_commit_together_or_not_at_all(writer: SqliteWriter) -> None:
+    store = SqliteProposalStore(writer)
+    stored = proposal()
+    assert is_ok(store.add(stored, T0))
+    with pytest.raises(RuntimeError), writer.transaction():
+        assert store.claim(stored.proposal_id, stored.gate_token, T1).value is True
+        assert store.begin_dispatch(stored.proposal_id, T1).value is True
+        raise RuntimeError("the audit write failed")
+    assert store.get(stored.proposal_id).value.state == "dry_run"
+    with writer.transaction():
+        store.claim(stored.proposal_id, stored.gate_token, T1)
+        store.begin_dispatch(stored.proposal_id, T1)
+    assert store.get(stored.proposal_id).value.state == "dispatched"
+
+
+def test_a_result_is_recorded_once_from_dispatched(writer: SqliteWriter) -> None:
+    store = SqliteProposalStore(writer)
+    stored = confirmed(store)
+    assert store.record_result(stored.proposal_id, "executed", result(), T2).value is False
+    store.begin_dispatch(stored.proposal_id, T1)
+    assert store.record_result(stored.proposal_id, "executed", result(), T2).value is True
+    assert store.record_result(stored.proposal_id, "failed", result("partial"), T2).value is False
+    done = store.get(stored.proposal_id).value
+    assert done.state == "executed"
+    assert done.executor_result.model_dump() == {
+        "status": "applied", "applied_records": ["job#job-8901"], "applied_count": 1,
+        "timestamp": T2, "source": "executor",
+    }  # fmt: skip
+
+
+def test_a_partial_result_makes_a_failed_proposal_with_its_records(writer: SqliteWriter) -> None:
+    store = SqliteProposalStore(writer)
+    stored = confirmed(store)
+    store.begin_dispatch(stored.proposal_id, T1)
+    partial = result("partial", ["job#job-8901", "job#job-8902"])
+    assert store.record_result(stored.proposal_id, "failed", partial, T2).value is True
+    failed = store.get(stored.proposal_id).value
+    assert failed.state == "failed" and failed.executor_result.status == "partial"
+    assert failed.executor_result.applied_count == 2
+
+
+def test_mark_failed_keeps_the_proposal_line_and_has_no_result(writer: SqliteWriter) -> None:
+    store = SqliteProposalStore(writer)
+    stored = confirmed(store)
+    assert store.mark_failed(stored.proposal_id, T2).value is False  # only from dispatched
+    store.begin_dispatch(stored.proposal_id, T1)
+    assert store.mark_failed(stored.proposal_id, T2).value is True
+    failed = store.get(stored.proposal_id).value
+    assert failed.state == "failed" and failed.executor_result is None
+    assert (
+        failed.confirmation.confirmed_at == T1
+        and failed.dry_run_snapshot == stored.dry_run_snapshot
+    )
+
+
+def test_only_a_failed_proposal_is_superseded_once(writer: SqliteWriter) -> None:
+    store = SqliteProposalStore(writer)
+    stored = confirmed(store)
+    assert store.supersede(stored.proposal_id, T2).value is False
+    store.begin_dispatch(stored.proposal_id, T1)
+    store.mark_failed(stored.proposal_id, T1)
+    assert store.supersede(stored.proposal_id, T2).value is True
+    assert store.supersede(stored.proposal_id, T2).value is False
+    assert store.get(stored.proposal_id).value.state == "superseded"
+
+
+def test_fifty_simultaneous_dispatch_claims_have_one_winner(writer: SqliteWriter) -> None:
+    store = SqliteProposalStore(writer)
+    stored = confirmed(store)
+    barrier = threading.Barrier(50)
+
+    def run(_: int) -> bool:
+        barrier.wait(timeout=60)
+        return store.begin_dispatch(stored.proposal_id, T1).value
+
+    with ThreadPoolExecutor(max_workers=50) as pool:
+        wins = list(pool.map(run, range(50)))
+    assert wins.count(True) == 1
+
+
+def test_a_child_proposal_keeps_its_parent(writer: SqliteWriter) -> None:
+    store = SqliteProposalStore(writer)
+    parent = confirmed(store, 1)
+    child = proposal(2).model_copy(update={"supersedes_proposal_id": parent.proposal_id})
+    assert is_ok(store.add(child, T0))
+    assert store.get(child.proposal_id).value.supersedes_proposal_id == parent.proposal_id
+
+
+def test_the_new_transitions_are_typed_failures_on_a_closed_connection(tmp_path: Path) -> None:
+    box = SqliteWriter.open(str(tmp_path / "z.db"))
+    apply_migrations(box, PROJECT_ROOT / "migrations")
+    store = SqliteProposalStore(box)
+    box.close()
+    pid = "prop-0000000000000001"
+    for outcome in (
+        store.begin_dispatch(pid, T1), store.mark_failed(pid, T1), store.supersede(pid, T1),
+        store.record_result(pid, "executed", result(), T1),
+    ):  # fmt: skip
+        assert isinstance(outcome, Failure)

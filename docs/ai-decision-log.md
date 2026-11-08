@@ -1181,3 +1181,16 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
   imports; all were rewritten or deleted before the official run. The first official run also showed 14 chained `ImportError`s in the log; the helper now
   fails with `pytrace=False` so the log holds only the assertion that states the missing behaviour.
 - **Outcome:** red committed. Next: Tasks 2 to 6 of the story. Reviewer: Juan (the confirmations and the waiver), Pending (the rest).
+
+## I2-30 - Story 2.4: the delivered schema could not reach `superseded`  *(AI finding, schema fixed with a new migration)*
+- **Date / phase:** 2026-11-08, `bmad-dev-story` Task 3 of story 2.4, when the store test for `supersede` first ran on the real schema.
+- **Prompt (intent):** none new; the user asked to continue story 2.4 without being shown intermediate output.
+- **What the AI found:** `trg_proposals_state_machine` in migration 001 lets `failed` only stay `failed`, while the same file states the contended write
+  C7 (`UPDATE ... SET state = 'superseded' ... WHERE state = 'failed'`) and the contract (`post_re_dispatch` Q2) says the parent becomes `superseded`.
+  So `superseded` could never be reached and the re-dispatch could not be built as specified.
+- **Decision:** a new migration `002_proposals_failed_to_superseded.sql` replaces the trigger with the same rules plus `failed -> superseded`; migration
+  001 is not edited (its checksum is recorded and a test pins it). A new test walks all 42 ordered pairs of states and asserts that exactly the seven legal
+  ones pass. Two Impl-1 tests that listed the applied migrations as only `001` (`test_migrations.py`) now list both; they encoded a state of the schema that
+  the contract itself does not allow to stay.
+- **AI slip:** the story (and the plan) said "do not touch the migration" without checking that the contract's own transitions were all reachable under it.
+- **Outcome:** Task 3 commit carries the migration and the two adjusted tests. Reviewer: Pending.

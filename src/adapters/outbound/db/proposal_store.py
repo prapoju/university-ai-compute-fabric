@@ -48,6 +48,26 @@ _CLAIM = (
 )
 
 
+# each statement re-checks the state it leaves, so a lost race changes no row (C5-C7)
+_DISPATCH = (
+    "UPDATE proposals SET state = 'dispatched', updated_at = ?"
+    " WHERE proposal_id = ? AND state = 'confirmed'"
+)
+_RESULT = (
+    "UPDATE proposals SET state = ?, executor_status = ?, applied_records = ?, applied_count = ?,"
+    " executor_timestamp = ?, executor_source = 'executor', updated_at = ?"
+    " WHERE proposal_id = ? AND state = 'dispatched'"
+)
+_FAILED = (
+    "UPDATE proposals SET state = 'failed', updated_at = ?"
+    " WHERE proposal_id = ? AND state = 'dispatched'"
+)
+_SUPERSEDE = (
+    "UPDATE proposals SET state = 'superseded', updated_at = ?"
+    " WHERE proposal_id = ? AND state = 'failed'"
+)
+
+
 def _proposal(row: dict) -> ProposalDTO:
     """Rebuild the contract ``Proposal`` from a stored row (with its confirmation and result)."""
     selector = json.loads(row["selector"])
@@ -130,6 +150,30 @@ class SqliteProposalStore(ProposalStorePort):
         def work(db: sqlite3.Connection) -> bool:
             changed = db.execute(_CLAIM, (confirmed_at, confirmed_at, proposal_id, gate_token))
             return changed.rowcount == 1
+
+        return self._run(work, write=True)
+
+    def begin_dispatch(self, proposal_id: str, at: str) -> Result[bool]:
+        return self._transition(_DISPATCH, (at, proposal_id))
+
+    def record_result(
+        self, proposal_id: str, state: str, result: ExecutorResultDTO, at: str
+    ) -> Result[bool]:
+        params = (
+            state, result.status, json.dumps(result.applied_records), result.applied_count,
+            result.timestamp, at, proposal_id,
+        )  # fmt: skip
+        return self._transition(_RESULT, params)
+
+    def mark_failed(self, proposal_id: str, at: str) -> Result[bool]:
+        return self._transition(_FAILED, (at, proposal_id))
+
+    def supersede(self, proposal_id: str, at: str) -> Result[bool]:
+        return self._transition(_SUPERSEDE, (at, proposal_id))
+
+    def _transition(self, sql: str, params: tuple) -> Result[bool]:
+        def work(db: sqlite3.Connection) -> bool:
+            return db.execute(sql, params).rowcount == 1
 
         return self._run(work, write=True)
 
