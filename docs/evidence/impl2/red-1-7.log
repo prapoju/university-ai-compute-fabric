@@ -1,0 +1,127 @@
+[WebServer] 2026-11-08 16:14:36,240 INFO src.bootstrap: container built (fixtures=/home/julio/repos/ia-proyecto/university-ai-compute-fabric/fixtures)
+[WebServer] INFO:     Started server process [1406213]
+[WebServer] INFO:     Waiting for application startup.
+[WebServer] INFO:     Application startup complete.
+[WebServer] INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+
+Running 3 tests using 2 workers
+
+  ✓  1 tests/e2e/smoke.spec.ts:4:1 › GET /healthz reports the process is up (35ms)
+  ✘  2 tests/e2e/copilot-console.spec.ts:15:3 › Helpdesk specialist investigates an access denial › diagnoses the denial, shows the verified runbook and copies it (30.0s)
+  ✘  3 tests/e2e/copilot-console.spec.ts:15:3 › Helpdesk specialist investigates an access denial › diagnoses the denial, shows the verified runbook and copies it (retry #1) (30.1s)
+  ✘  4 tests/e2e/copilot-console.spec.ts:32:3 › Helpdesk specialist investigates an access denial › shows a visible error and no runbook when the inquiry names an unknown student (30.0s)
+  ✘  5 tests/e2e/copilot-console.spec.ts:32:3 › Helpdesk specialist investigates an access denial › shows a visible error and no runbook when the inquiry names an unknown student (retry #1) (30.1s)
+
+
+  1) tests/e2e/copilot-console.spec.ts:15:3 › Helpdesk specialist investigates an access denial › diagnoses the denial, shows the verified runbook and copies it 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.fill: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('textbox', { name: 'Inquiry' })
+
+
+       at pages/CopilotConsolePage.ts:37
+
+      35 |
+      36 |   async ask(inquiry: string): Promise<void> {
+    > 37 |     await this.prompt.fill(inquiry);
+         |                       ^
+      38 |     await this.submit.click();
+      39 |   }
+      40 |
+        at CopilotConsolePage.ask (/home/julio/repos/ia-proyecto/university-ai-compute-fabric/tests/e2e/pages/CopilotConsolePage.ts:37:23)
+        at /home/julio/repos/ia-proyecto/university-ai-compute-fabric/tests/e2e/copilot-console.spec.ts:19:19
+
+    Error Context: test-results/copilot-console-Helpdesk-s-e2135-ified-runbook-and-copies-it/error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.fill: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('textbox', { name: 'Inquiry' })
+
+
+       at pages/CopilotConsolePage.ts:37
+
+      35 |
+      36 |   async ask(inquiry: string): Promise<void> {
+    > 37 |     await this.prompt.fill(inquiry);
+         |                       ^
+      38 |     await this.submit.click();
+      39 |   }
+      40 |
+        at CopilotConsolePage.ask (/home/julio/repos/ia-proyecto/university-ai-compute-fabric/tests/e2e/pages/CopilotConsolePage.ts:37:23)
+        at /home/julio/repos/ia-proyecto/university-ai-compute-fabric/tests/e2e/copilot-console.spec.ts:19:19
+
+    Error Context: test-results/copilot-console-Helpdesk-s-e2135-ified-runbook-and-copies-it-retry1/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/copilot-console-Helpdesk-s-e2135-ified-runbook-and-copies-it-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/copilot-console-Helpdesk-s-e2135-ified-runbook-and-copies-it-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) tests/e2e/copilot-console.spec.ts:32:3 › Helpdesk specialist investigates an access denial › shows a visible error and no runbook when the inquiry names an unknown student 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.fill: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('textbox', { name: 'Inquiry' })
+
+
+       at pages/CopilotConsolePage.ts:37
+
+      35 |
+      36 |   async ask(inquiry: string): Promise<void> {
+    > 37 |     await this.prompt.fill(inquiry);
+         |                       ^
+      38 |     await this.submit.click();
+      39 |   }
+      40 |
+        at CopilotConsolePage.ask (/home/julio/repos/ia-proyecto/university-ai-compute-fabric/tests/e2e/pages/CopilotConsolePage.ts:37:23)
+        at /home/julio/repos/ia-proyecto/university-ai-compute-fabric/tests/e2e/copilot-console.spec.ts:38:19
+
+    Error Context: test-results/copilot-console-Helpdesk-s-1145b-ry-names-an-unknown-student/error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.fill: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('textbox', { name: 'Inquiry' })
+
+
+       at pages/CopilotConsolePage.ts:37
+
+      35 |
+      36 |   async ask(inquiry: string): Promise<void> {
+    > 37 |     await this.prompt.fill(inquiry);
+         |                       ^
+      38 |     await this.submit.click();
+      39 |   }
+      40 |
+        at CopilotConsolePage.ask (/home/julio/repos/ia-proyecto/university-ai-compute-fabric/tests/e2e/pages/CopilotConsolePage.ts:37:23)
+        at /home/julio/repos/ia-proyecto/university-ai-compute-fabric/tests/e2e/copilot-console.spec.ts:38:19
+
+    Error Context: test-results/copilot-console-Helpdesk-s-1145b-ry-names-an-unknown-student-retry1/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/copilot-console-Helpdesk-s-1145b-ry-names-an-unknown-student-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/copilot-console-Helpdesk-s-1145b-ry-names-an-unknown-student-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    tests/e2e/copilot-console.spec.ts:15:3 › Helpdesk specialist investigates an access denial › diagnoses the denial, shows the verified runbook and copies it 
+    tests/e2e/copilot-console.spec.ts:32:3 › Helpdesk specialist investigates an access denial › shows a visible error and no runbook when the inquiry names an unknown student 
+  1 passed (2.1m)
