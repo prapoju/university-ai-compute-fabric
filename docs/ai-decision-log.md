@@ -1312,3 +1312,9 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 - **What the AI added:** a case with no wall-clock assertion. The read blocks on a `threading.Event`, and the budget is 0.05 s. The 503 must arrive while the read has not returned (a flag the read sets when it returns). Only then does the test release the read, and the case waits, with a bound, for the read to finish. The audit must still hold no tool call for that session. No sleep and no timing check.
 - **Check:** the first draft asserted that the event was unset, and it passed on the code before F-1 too, because the old response came only after the read gave up on its own bound. The assertion now checks that the read has not returned.
 - **Reviewer:** Julio.
+
+## I2-42 - Story 1.6 review F-7: the failure table had only one raising read; the events-only and both-raise cases are added  *(AI-written test added, user approved, Reviewer: Julio)*
+- **Date / phase:** 2026-11-08, F-7 of the code review of story 1.6.
+- **What was missing:** the test-design row "one tool raises / all tools raise" (6.3.5) was covered only for the policy read.
+- **What the AI added:** two cases. An events read that raises alone gives a typed 503. Both reads raising give one typed 503 with the same code. Both pass on the current code, so they are regression guards on the new fan-out, not red-phase cases.
+- **Reviewer:** Julio.

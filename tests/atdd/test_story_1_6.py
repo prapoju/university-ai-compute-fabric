@@ -386,6 +386,28 @@ def test_a_read_still_running_at_the_budget_is_a_503_and_records_nothing_afterwa
     assert audit_entries(client, sid) == [], "a read that outlived the turn recorded a tool call"
 
 
+# -- F-7 (review): each read raising alone, and both raising, is one typed 503 -----------------
+def test_an_events_read_that_raises_is_a_typed_503(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    install(monkeypatch, SimEventStore, "query", PortFault(mode="raises", active=True))
+    client = TestClient(app_on(tmp_path), raise_server_exceptions=False)
+    response = copilot(client)
+    assert response.status_code == 503, f"HTTP {response.status_code}, expected 503"
+    assert response.json()["code"] == "PROVIDER_UNAVAILABLE"
+
+
+def test_both_reads_that_raise_are_one_typed_503(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    install(monkeypatch, SimPolicy, "for_model", PortFault(mode="raises", active=True))
+    install(monkeypatch, SimEventStore, "query", PortFault(mode="raises", active=True))
+    client = TestClient(app_on(tmp_path), raise_server_exceptions=False)
+    response = copilot(client)
+    assert response.status_code == 503, f"HTTP {response.status_code}, expected 503"
+    assert response.json()["code"] == "PROVIDER_UNAVAILABLE"
+
+
 # -- AC 2: a read that raises is the typed 503, never an unhandled 500 ------------------------
 def test_a_read_that_raises_is_a_typed_503_never_a_500(  # regression guard (AD-12)
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
