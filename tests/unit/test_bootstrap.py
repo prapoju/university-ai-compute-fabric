@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from pathlib import Path
 
 import pytest
@@ -170,7 +171,7 @@ def test_the_container_never_binds_the_deterministic_token_source() -> None:
     second.close()
 
 
-def test_proposal_ids_continue_above_a_file_database_after_restart(tmp_path) -> None:
+def test_proposal_ids_are_unguessable_and_never_collide_after_a_restart(tmp_path) -> None:
     from src.adapters.outbound.db.proposal_store import SqliteProposalStore
     from src.dto import AffectedItemDTO, DryRunSnapshotDTO, ProposalDTO, SelectorDTO
     from src.ports.inbound import SessionUseCases
@@ -200,7 +201,9 @@ def test_proposal_ids_continue_above_a_file_database_after_restart(tmp_path) -> 
     first.close()
 
     second = build_container(_settings(db_path=database))
-    assert second.port(IdGenPort).new_id("proposal").value == "prop-000000000000000a"
+    fresh = second.port(IdGenPort).new_id("proposal").value
+    assert fresh != "prop-0000000000000009" and fresh != "prop-000000000000000a"
+    assert re.fullmatch(r"prop-[0-9a-f]{16}", fresh)  # random: no sequence to seed above
     second.close()
 
 
