@@ -41,6 +41,8 @@ from src.application.dry_run_service import DryRunService
 from src.application.entity_resolver import EntityResolver
 from src.application.evidence_assembler import EvidenceAssembler
 from src.application.evidence_service import EvidenceService
+from src.application.node_triage_handler import INTENT as NODE_TRIAGE_INTENT
+from src.application.node_triage_handler import NodeTriageHandler
 from src.application.parallel_reads import ParallelReads
 from src.application.pipeline import AnswerPipeline
 from src.application.proposal_dispatcher import ProposalDispatcher
@@ -84,6 +86,7 @@ from src.ports.outbound import (
     PolicyPort,
     ProposalStorePort,
     ReservationsPort,
+    RunbookRegistryPort,
     SessionStorePort,
     UnitOfWorkPort,
     UsersPort,
@@ -204,6 +207,7 @@ def build_container(settings: Settings) -> Container:
     groups, jobs, nodes = ports[GroupsPort], ports[JobsPort], ports[NodesPort]
     reservations, windows = ports[ReservationsPort], ports[WindowsPort]
     event_store = ports[EventStorePort]
+    runbooks = ports[RunbookRegistryPort]
     prose = SimProse()
     pipeline = AnswerPipeline()
     # The diagnoser reads only through the provider ports: with a failed estate every read is a
@@ -223,6 +227,16 @@ def build_container(settings: Settings) -> Container:
             resolver=EntityResolver(users=users, catalog=catalog, groups=groups, policy=policy),
             jobs=jobs,
             windows=windows,
+            prose=prose,
+            idgen=idgen,
+        ),
+    )
+    pipeline.register(
+        NODE_TRIAGE_INTENT,
+        NodeTriageHandler(
+            resolver=EntityResolver(users=users, catalog=catalog, nodes=nodes),
+            nodes=nodes,
+            runbooks=runbooks,
             prose=prose,
             idgen=idgen,
         ),
