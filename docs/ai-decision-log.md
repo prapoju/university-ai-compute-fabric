@@ -1061,3 +1061,17 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 - **AI slip:** the story author did not run the 2.1 suite against the planned chat shape before freezing the 2.2 red phase; the conflict was found by
   the first full run of Task 6.
 - **Outcome:** Task 6 commit carries this change. Reviewer: Juan (approved the option).
+
+## I2-23 - Code review of story 2.2: one request could flood the audit  *(AI code corrected, user approved)*
+- **Date / phase:** 2026-11-07, `bmad-code-review` of story 2.2 (Flow A), before the D.4 trap audit.
+- **Prompt (intent):** "Si aplicalos y deja el registro". The user approved P-1 and P-2 and the two deferrals, and left the value of the cap to the
+  AI, who proposed 50 as a rule of the application and not of the contract.
+- **What the review found (probed on the real app):** a dry-run with 2,000 `target_refs` returned 200 in 0.12 s and wrote 2,010 audit rows, because
+  every provider read of a request is an audit row; the retention cap of 10,000 rotates the oldest rows out. A bare ref was resolved two or three times,
+  and a repeated ref persisted a selector with a duplicate key.
+- **Decision:** at most 50 refs (`VALIDATION_MALFORMED_BODY` before any read), repeated refs are one target, each distinct ref is resolved once. No
+  change to `dto.py`, `openapi.yaml` or `contracts.md`; the missing `maxItems` is recorded in `deferred-work.md`. Two more deferrals: the token expiry is
+  not stored (story 2-3 decides) and `select` truncates silently at 10,000 rows.
+- **AI slip:** story 2.2 specified `target_refs` with `min_length=1` and no upper bound, and its audit design (D12) did not consider that the number of
+  audit rows of a request depends on the caller. The 2.1 handler had no such exposure (one target per query).
+- **Outcome:** fix in `c502192`; Review Findings added to the story; the story stays in `review` until the D.4 audit and the D.5 closure. Reviewer: Juan.

@@ -220,3 +220,17 @@ Claude Sonnet 5.5 (`claude-sonnet-5-5`), Claude Code, `bmad-create-story`, `bmad
 
 - 2026-11-07: Story created (`bmad-create-story`). Status -> ready-for-dev.
 - 2026-11-07: The user confirmed D1 (the `ChatRefusalResponse` schema) and D4 (the select vocabulary) and left the other decisions as written. The red phase may start.
+
+### Review Findings
+
+Code review of `01f74d5..568d756` (2026-11-07): Blind Hunter, Edge Case Hunter and Acceptance Auditor run in sequence by the reviewer (no subagents, none authorised), over 47 files and 3,315 added lines (1,406 of production, fixtures and contract). All 17 acceptance criteria hold, each with an ATDD case or a unit or API case of its own. Two probes against the real app were run before reporting.
+
+- [x] [Review][Patch] P-1 (medium): one request could flood the audit. A dry-run with 2,000 `target_refs` answered 200 in 0.12 s and wrote 2,010 audit rows; the retention cap (10,000) rotates the oldest rows out, so a few such requests could push earlier evidence away. A bare ref was also read two or three times. Now at most 50 refs per request (more is `VALIDATION_MALFORMED_BODY` before any read), each distinct ref is resolved once [src/application/dry_run_service.py] - fixed in `c502192`
+- [x] [Review][Patch] P-2 (low): repeated refs (`["node#ws-gpu-02", "node#ws-gpu-02"]`, or a typed and a bare ref to the same node) persisted a selector with a duplicate key. The refs and the resolved keys are now deduplicated in order [src/application/dry_run_service.py] - fixed in `c502192`
+- [x] [Review][Defer] D-1 (low): the token expiry is not stored; story 2-3 derives it from the snapshot and the setting in force at confirm time [`deferred-work.md`]
+- [x] [Review][Defer] D-2 (low): `select` truncates at 10,000 rows without a signal; not reachable with 32 nodes and 9 jobs [`deferred-work.md`]
+- [x] [Review][Defer] The cap of 50 refs is not in `dto.py` or `openapi.yaml` (contract change, needs its own decision) [`deferred-work.md`]
+
+Dismissed (2): the JSON round trip of `_refusal_body` is roundabout but exact; the change to the chat branch of the frozen 2.1 case was approved by the user (I2-22).
+
+Mutation check of the patch: no dedupe of refs, no cap, a cap off by one, the keys not deduplicated and a double read of a bare ref - five mutants, all killed (`pytest` 1824 passed, branch coverage of `src` 97.52%).
