@@ -19,7 +19,7 @@ This report is the final evidence for Impl-2. Every number below is quoted from 
 | Banned waits (`sleep(`, `waitForTimeout`) in `src tests console` | 0 matches | `docs/evidence/impl2/final-banned-waits.log` (empty) |
 | Traceability gate (rerun after the classifier fix) | CONCERNS (P0 7/7, overall 24/26, P1 17/19 = 89.5 %) | `test/traceability-matrix.md` |
 | NFR evidence | 5 dimensions mapped | `test/nfr-evidence.md` |
-| CI | Run `42531821585` on `d2d0e3d`: four of five jobs success; `Ruff + pytest` fails on the one NFR-1 corpus assertion (17 / 20), reproduced locally | `.github/workflows/quality-gate.yml`, section 8 |
+| CI | Run `42532576248` on `0c58d62`: all five jobs success (`Ruff + pytest`: 2164 passed) | `.github/workflows/quality-gate.yml`, section 8 |
 
 ## 1. Hardening and concurrency defense
 
@@ -142,10 +142,10 @@ Script `tests/nfr/copilot-load.js`. Thresholds in the script: `http_req_failed r
 |---|---|---:|---:|---:|---:|---:|---|
 | Local, in-memory | `:memory:` | 1000 | 300.66 ms | 368.52 ms | 0 / 1000 (0.00 %) | 4000 / 4000 | `docs/evidence/impl2/k6-12-5.json`, `docs/evidence/impl2/k6-12-5.log` |
 | Local, file database | temporary file | 1000 | 307.93 ms | 367.08 ms | 0 / 1000 (0.00 %) | 4000 / 4000 | `docs/evidence/impl2/k6-12-5-filedb.json`, `docs/evidence/impl2/k6-12-5-filedb.log` |
-| CI | Run `42531821585`, job `k6 load thresholds`, `copilot-load-summary.json` | 1000 | 95.48 ms | not exported by the CI summary (p(90) = 87.45 ms) | 0 / 1000 (`http_req_failed` value 0) | 4000 / 4000 | CI artifact `k6-summary` |
-| CI, earlier runs | `42527948599`: 181.23 ms; `42531640542`: 181.87 ms (same script and thresholds) | | | | | | |
+| CI | Run `42532576248`, job `k6 load thresholds`, `copilot-load-summary.json` | 1000 | 107.73 ms | not exported by the CI summary (p(90) = 98.70 ms) | 0 / 1000 (`http_req_failed` value 0) | 4000 / 4000 | CI artifact `k6-summary` |
+| CI, earlier runs | `42527948599`: 181.23 ms; `42531640542`: 181.87 ms; `42531821585`: 95.48 ms (same script and thresholds) | | | | | | |
 
-The threshold p95 < 800 ms holds with a margin of about 2.6 times in both local runs and about 8.4 times in the latest CI run (95.48 ms; the three CI runs range from 95.48 to 181.87 ms), and no check failed in any run. The smoke
+The threshold p95 < 800 ms holds with a margin of about 2.6 times in both local runs and about 7.4 times in the final CI run (107.73 ms; the four CI runs range from 95.48 to 181.87 ms), and no check failed in any run. The smoke
 script `tests/nfr/smoke.js` runs the liveness probe with `p(95)<200`, and `make nfr` runs both scripts.
 
 ## 7. Annex 12.6: conversational diagnostic console with cited state cards (stories 3-3 and 1-7)
@@ -203,14 +203,14 @@ with `--trace on` in CI and `on-first-retry` locally (`docs/evidence/impl2/final
 and uploads `test-results/` (artifact `playwright-test-results`, which holds the traces) and `playwright-report/`
 (artifact `playwright-report`).
 
-**CI runs.** Run `42531821585` on `d2d0e3d` (branch `impl-2`): four of the five jobs succeed:
-`No sleep / waitForTimeout`, `Schema checks`, `k6 load thresholds` and `Playwright E2E` (`3 passed (5.2s)`).
-The job `Ruff + pytest (branch coverage >= 90%)` fails on one assertion: `tests/api/test_nfr1_accuracy_corpus.py::test_nfr1_accuracy_is_at_least_ninety_percent_over_the_corpus`,
-which reports `17/20`, below the 90 % threshold. That failure reproduces locally (`docs/evidence/impl2/final-pytest-after-gap-closure.log`). The
-other 2157 tests in that job pass. The earlier green run on `618abcc` (`42527948599`) predates the corpus test. The corpus test is red on purpose: the
-expectations were kept, and the misses are reported in section 11. The Playwright artifacts are `playwright-test-results` (traces) and `playwright-report`.
+**CI runs.** Final run `42532576248` on `0c58d62` (branch `impl-2`): all five jobs succeed:
+`No sleep / waitForTimeout`, `Schema checks`, `Ruff + pytest (branch coverage >= 90%)` (2164 passed, branch coverage of `src` 97.59 %),
+`k6 load thresholds` and `Playwright E2E` (`3 passed (4.0s)`). The Playwright artifacts are `playwright-test-results` (traces) and `playwright-report`.
 
-**Final head.** Run `42531988473` on `7e4ef06` (the walkthrough commit) has the same result: four jobs succeed, `Ruff + pytest` fails only on the NFR-1 corpus assertion.
+**Earlier runs.** `42531821585` on `d2d0e3d` failed on the NFR-1 corpus assertion (17 / 20), which reproduced locally; the classifier fix
+(commit `66084c4`, I2-64) followed. The earlier green run `42527948599` on `618abcc` predates the corpus test.
+
+**Final run.** Run `42532576248` is the green run recorded above. The commit that records it only adds this text.
 
 ## 9. Testing pyramid: real counts against 70 / 20 / 10
 
@@ -269,7 +269,7 @@ because both have a source. Recorded in `_bmad-output/implementation-artifacts/3
   Section 12 lists them with their reasons.
 - **E2E breadth.** Two Playwright tests (section 7).
 - **Traceability sensitivity.** Counting FR-06 as P0 would make the gate FAIL (P0 7/8). The scope decision is I2-57 in the decision log.
-- **CI.** The final CI run is recorded in section 8.
+- **CI.** The final run `42532576248` is green for all five jobs (section 8). The CI k6 summary exports p(90) and p(95) but not p(99), so the CI p99 is not reported.
 
 ## 12. Out of scope (declared)
 
