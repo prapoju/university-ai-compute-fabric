@@ -1194,3 +1194,18 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
   the contract itself does not allow to stay.
 - **AI slip:** the story (and the plan) said "do not touch the migration" without checking that the contract's own transitions were all reachable under it.
 - **Outcome:** Task 3 commit carries the migration and the two adjusted tests. Reviewer: Pending.
+
+## I2-31 - Story 2.4: the confirm dispatches, so the frozen 2.3 tests were adapted  *(AI-written tests changed, user approved in advance)*
+- **Date / phase:** 2026-11-08, `bmad-dev-story` Task 4 of story 2.4, when the dispatcher was wired into the confirmation.
+- **Prompt (intent):** "Confirmo" to D1 of I2-28 (guide E.6): once the confirm dispatches, the committed 2.3 cases that assert `confirmed` change by design.
+- **What changed, and only this:** in `tests/atdd/test_story_2_3.py` every state expectation `"confirmed"` (15 occurrences on 14 lines) now reads
+  `"executed"`; the two `estate(client) == before` checks of the Annex cases now compare with `after_the_annex(before)` (the same estate with exactly the
+  three CS-101 jobs `cancelled`); the audit case expects the executor row after the copilot's (`len == 8`, the last three rows share the instant); the
+  replay case reads the confirm rows one place earlier; `executor_result is None` became `is not None` and `status == "applied"`. The unit rig of
+  `test_confirmation_service.py` now gives the service a dispatcher and its expectations read `executed` and `+ 3` audit rows. Nothing was loosened:
+  each changed assertion is stricter or states what the executor now does, the code, the message, the idempotency, the hammer, the stale and the
+  failure cases are as they were, and the 45 cases pass three times in a row.
+- **AI slips:** the first run of the adaptation script aborted twice on an assertion about how many literals it would replace (15 occurrences on 14 lines,
+  not 14) and once on an import anchor that the formatter had changed; each time nothing had been written and the script was corrected, not the tests.
+  The message of commit `c8af915` says `pytest 2000 passed`; the run was 1985.
+- **Outcome:** Task 4 commit carries the adaptation. Reviewer: Juan (approved D1), Pending (the rest).

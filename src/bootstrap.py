@@ -24,6 +24,7 @@ from src.adapters.outbound.db.migrate import MigrationError, apply_migrations
 from src.adapters.outbound.db.proposal_store import SqliteProposalStore
 from src.adapters.outbound.db.session_store import SqliteSessionStore
 from src.adapters.outbound.db.sqlite_writer import SqliteWriter
+from src.adapters.outbound.sim.executor_adapter import SimExecutor
 from src.adapters.outbound.sim.fixtures_adapter import SimProviders
 from src.adapters.outbound.sim.idgen_adapter import SimIdGen
 from src.adapters.outbound.sim.prose_adapter import SimProse
@@ -41,6 +42,7 @@ from src.application.entity_resolver import EntityResolver
 from src.application.evidence_assembler import EvidenceAssembler
 from src.application.evidence_service import EvidenceService
 from src.application.pipeline import AnswerPipeline
+from src.application.proposal_dispatcher import ProposalDispatcher
 from src.application.session_service import SessionService
 from src.application.state_service import StateService
 from src.application.tool_audit import TOOL_PORT_NAMES, ToolCallRecorder, audited
@@ -68,6 +70,7 @@ from src.ports.outbound import (
     AuditStorePort,
     CatalogPort,
     EventStorePort,
+    ExecutorPort,
     GroupsPort,
     IdGenPort,
     JobsPort,
@@ -244,6 +247,7 @@ def build_container(settings: Settings) -> Container:
     audit_pages: AuditUseCases
     destructive: DestructiveUseCases
     confirm: ConfirmUseCases
+    executor: ExecutorPort | None = None
     if store is None or audit_store is None or writer is None or session_problem is not None:
         use_cases = UnavailableSessionUseCases(session_problem or "session store unavailable")
         evidence = UnavailableEvidenceUseCases(session_problem or "session store unavailable")
@@ -290,8 +294,13 @@ def build_container(settings: Settings) -> Container:
             recorder=recorder,
             token_ttl_seconds=settings.gate_token_ttl_seconds,
         )
+        proposal_store = SqliteProposalStore(writer)
+        # the simulated executor: the only writer of simulated state, and the replacement point
+        executor = SimExecutor(
+            clock=providers.clock, stores=providers.executor_stores, proposals=proposal_store
+        )
         confirm = ConfirmationService(
-            proposals=SqliteProposalStore(writer),
+            proposals=proposal_store,
             sessions=store,
             clock=providers.clock,
             idgen=idgen,
@@ -300,6 +309,13 @@ def build_container(settings: Settings) -> Container:
             uow=writer,
             audit=AuditWriter(audit_store, idgen),
             recorder=recorder,
+            dispatcher=ProposalDispatcher(
+                proposals=proposal_store,
+                executor=executor,
+                clock=providers.clock,
+                uow=writer,
+                audit=AuditWriter(audit_store, idgen),
+            ),
             token_ttl_seconds=settings.gate_token_ttl_seconds,
         )
 
@@ -344,6 +360,8 @@ def build_container(settings: Settings) -> Container:
     container.register_port(AuditUseCases, audit_pages)
     container.register_port(DestructiveUseCases, destructive)
     container.register_port(ConfirmUseCases, confirm)
+    if executor is not None:
+        container.register_port(ExecutorPort, executor)
     container.register_port(ChatUseCases, ChatService(sessions=use_cases, destructive=destructive))
     container.register_port(StateUseCases, state)
     return container

@@ -8,8 +8,10 @@ write path) and one on ``SqliteAuditStore.append`` (a switch that fails it). The
 ``SimClock``, moved with ``advance``; nothing sleeps. Literals are written out on purpose: the
 caption, the codes, the statuses, the delta text and the instants are the contract.
 
-This story stops at ``confirmed``: there is no executor, so "Exec = 1" of the test design reads
-here as one ``dry_run -> confirmed`` transition and one set of audit rows. Dispatch belongs to 2-4.
+Written when the story stopped at ``confirmed`` (no executor yet). Since story 2.4 the confirm
+dispatches to the simulated executor, so every state expectation below reads ``executed``, the
+cluster changes by exactly the three CS-101 jobs (``cancelled``) and the audit gains the executor
+row. That adaptation is decision I2-31 (guide E.6, approved by the user); nothing else changed.
 
 Cases come from the story ("ATDD cases"), ``test/test-design.md`` 6.3.3 and the stub suite
 ``test/atdd/module12_contracts.test.py`` (``test_post_confirm_*``, ``test_confirm_and_dispatch_*``),
@@ -97,6 +99,15 @@ def estate(client: TestClient) -> dict:
             page += 1
         state[kind] = items
     return state
+
+
+def after_the_annex(before: dict) -> dict:
+    """``before`` with the three CS-101 jobs the executor cancelled (story 2.4)."""
+    expected = {kind: list(items) for kind, items in before.items()}
+    expected["jobs"] = [
+        {**job, "status": "cancelled"} if job["id"] in ANNEX_KEYS else job for job in before["jobs"]
+    ]
+    return expected
 
 
 def rows(client: TestClient) -> list[dict]:
@@ -195,17 +206,18 @@ def test_the_annex_dry_run_then_a_distinct_confirm_answers_a_confirmed_proposal(
             confirmed = ProposalDTO.model_validate(response.json())
         except ValidationError as exc:
             pytest.fail(f"the reply is not a contract Proposal: {exc}")
-        assert confirmed.state == "confirmed" and confirmed.action == "cancel_jobs"
+        assert confirmed.state == "executed" and confirmed.action == "cancel_jobs"
         assert confirmed.proposal_id == proposal["proposal_id"]
         assert confirmed.gate_token == proposal["gate_token"]
         assert confirmed.dry_run_snapshot.model_dump() == proposal["dry_run_snapshot"]
         assert confirmed.confirmation is not None
         assert confirmed.confirmation.confirmed_at == CLOCK
         assert confirmed.confirmation.caption == CAPTION
-        assert confirmed.executor_result is None
+        assert confirmed.executor_result is not None  # the executor applied it (story 2.4)
+        assert confirmed.executor_result.status == "applied"
         stored = row(client, proposal["proposal_id"])
-        assert (stored["state"], stored["confirmed_at"]) == ("confirmed", CLOCK)
-        assert estate(client) == before  # zero writes to simulated state
+        assert (stored["state"], stored["confirmed_at"]) == ("executed", CLOCK)
+        assert estate(client) == after_the_annex(before)  # only the executor changed the jobs
 
 
 # -- AC 2: no identity, no role, no session context -----------------------------------------------
@@ -235,7 +247,7 @@ def test_a_session_reset_between_the_dry_run_and_the_confirm_changes_nothing(
         assert client.delete(f"{SESSIONS}/{proposal['session_id']}").status_code == 204
         response = confirm_proposal(client, proposal)
         assert response.status_code == 200
-        assert response.json()["state"] == "confirmed"  # the context is never consulted
+        assert response.json()["state"] == "executed"  # the context is never consulted
 
 
 def test_the_confirmation_records_no_identity_of_its_own(tmp_path: Path) -> None:
@@ -264,7 +276,7 @@ def test_the_token_is_accepted_up_to_sixty_seconds_and_not_after(
         assert response.status_code == status
         stored = row(client, proposal["proposal_id"])
         if status == 200:
-            assert (response.json()["state"], stored["state"]) == ("confirmed", "confirmed")
+            assert (response.json()["state"], stored["state"]) == ("executed", "executed")
         else:
             assert response.json()["code"] == "CONFIRMATION_STALE"
             assert "token expired" in response.json()["message"]
@@ -346,7 +358,7 @@ def test_a_different_token_on_a_confirmed_proposal_is_a_conflict(tmp_path: Path)
         response = confirm(client, proposal["proposal_id"], OTHER_TOKEN)
         assert response.status_code == 409
         assert response.json()["code"] == "CONFIRMATION_CONFLICT"
-        assert row(client, proposal["proposal_id"])["state"] == "confirmed"
+        assert row(client, proposal["proposal_id"])["state"] == "executed"
 
 
 @pytest.mark.parametrize("token", ["nope", "gt-short", "GT-" + "ab" * 16, "gt-" + "AB" * 16, ""])
@@ -460,7 +472,7 @@ def test_an_unchanged_set_is_confirmed_after_the_selector_is_re_executed(
         proposal = dry_run(client)
         calls = jobs.calls
         response = confirm_proposal(client, proposal)
-        assert response.status_code == 200 and response.json()["state"] == "confirmed"
+        assert response.status_code == 200 and response.json()["state"] == "executed"
         assert jobs.calls == calls + 1  # the stored selector ran once more, on the real port
 
 
@@ -481,7 +493,7 @@ def test_a_jobs_outage_during_revalidation_is_a_safe_failure_and_recovery_works(
         assert tools(client, proposal["session_id"]) == audit_before
 
         jobs.down = False
-        assert confirm_proposal(client, proposal).json()["state"] == "confirmed"
+        assert confirm_proposal(client, proposal).json()["state"] == "executed"
 
 
 # -- AC 9: concurrent confirms make one transition ------------------------------------------------
@@ -504,10 +516,10 @@ def test_simultaneous_identical_confirms_make_exactly_one_transition(
         proposal = dry_run(client)
         replies = hammer(client, proposal, n)
         assert [r.status_code for r in replies] == [200] * n  # 0 HTTP 500, 0 "database is locked"
-        assert {r.json()["state"] for r in replies} == {"confirmed"}
+        assert {r.json()["state"] for r in replies} == {"executed"}
         assert {r.json()["confirmation"]["confirmed_at"] for r in replies} == {CLOCK}
         stored = row(client, proposal["proposal_id"])
-        assert (stored["state"], stored["confirmed_at"]) == ("confirmed", CLOCK)
+        assert (stored["state"], stored["confirmed_at"]) == ("executed", CLOCK)
         assert tools(client, proposal["session_id"]).count("toolcall.confirm_and_dispatch") == 1
 
 
@@ -528,7 +540,7 @@ def test_an_identical_confirm_raced_with_one_that_has_another_token_never_transi
         assert good.result().status_code == 200
         assert other.result().status_code in {403, 409}
         assert tools(client, proposal["session_id"]).count("toolcall.confirm_and_dispatch") == 1
-        assert row(client, proposal["proposal_id"])["state"] == "confirmed"
+        assert row(client, proposal["proposal_id"])["state"] == "executed"
 
 
 def test_a_confirm_that_goes_first_wins_and_a_state_change_that_goes_first_makes_it_stale(
@@ -539,7 +551,7 @@ def test_a_confirm_that_goes_first_wins_and_a_state_change_that_goes_first_makes
         first, second = dry_run(client), dry_run(client)
         assert confirm_proposal(client, first).status_code == 200  # order A: confirm, then change
         jobs.mode = "finished_and_new"
-        assert row(client, first["proposal_id"])["state"] == "confirmed"
+        assert row(client, first["proposal_id"])["state"] == "executed"
         response = confirm_proposal(client, second)  # order B: the change came first
         assert response.status_code == 409 and response.json()["code"] == "CONFIRMATION_STALE"
         assert row(client, second["proposal_id"])["state"] == "dry_run"
@@ -561,7 +573,7 @@ def test_a_failing_audit_write_leaves_the_proposal_in_dry_run(
         assert (stored["state"], stored["confirmed_at"]) == ("dry_run", None)
 
         fault.recover()
-        assert confirm_proposal(client, proposal).json()["state"] == "confirmed"
+        assert confirm_proposal(client, proposal).json()["state"] == "executed"
 
 
 # -- AC 11: the confirmation is audited once ------------------------------------------------------
@@ -577,12 +589,13 @@ def test_the_audit_after_a_confirm_has_the_head_and_the_revalidation_read(tmp_pa
         clock(client).advance(seconds=7)
         assert confirm_proposal(client, proposal).status_code == 200
         entries = audit(client, sid)
-        assert [e["result_summary"]["tool_name"] for e in entries[-2:]] == [
+        assert [e["result_summary"]["tool_name"] for e in entries[-3:]] == [
             "toolcall.confirm_and_dispatch",
             "toolcall.jobs_port.select",
+            "executor.dispatch",
         ]
-        assert len(entries) == 7
-        assert {e["timestamp"] for e in entries[-2:]} == {"2026-10-16T15:00:07.000Z"}
+        assert len(entries) == 8
+        assert {e["timestamp"] for e in entries[-3:]} == {"2026-10-16T15:00:07.000Z"}
         assert {e["operator_role"] for e in entries} == {"role-operations"}
         assert proposal["gate_token"] not in str(entries)  # the token is never audited
 
@@ -593,7 +606,7 @@ def test_a_replay_and_a_rejection_add_no_audit_row(tmp_path: Path) -> None:
         sid = proposal["session_id"]
         assert confirm_proposal(client, proposal).status_code == 200
         settled = tools(client, sid)
-        assert settled[-2:] == ["toolcall.confirm_and_dispatch", "toolcall.jobs_port.select"]
+        assert settled[-3:-1] == ["toolcall.confirm_and_dispatch", "toolcall.jobs_port.select"]
         assert confirm_proposal(client, proposal).status_code == 200  # replay
         assert confirm(client, proposal["proposal_id"], OTHER_TOKEN).status_code == 409  # conflict
         assert tools(client, sid) == settled
@@ -612,10 +625,10 @@ def test_annex_12_4_end_to_end_up_to_confirmed(tmp_path: Path) -> None:
 
         response = confirm_proposal(client, proposal)  # a separate request, only id and token
         assert response.status_code == 200
-        assert response.json()["state"] == "confirmed"
+        assert response.json()["state"] == "executed"
         assert response.json()["confirmation"] == {"confirmed_at": CLOCK, "caption": CAPTION}
-        assert estate(client) == before  # the cluster state is identical, nothing was dispatched
-        assert [r["state"] for r in rows(client)] == ["confirmed"]
+        assert estate(client) == after_the_annex(before)  # only the three jobs, by the executor
+        assert [r["state"] for r in rows(client)] == ["executed"]
 
 
 # -- AC 13: nothing that already works changes (regression guards) --------------------------------

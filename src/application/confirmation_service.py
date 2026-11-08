@@ -16,9 +16,12 @@ here (story 2.4); the executor does not exist yet. A failure before the claim wr
 from __future__ import annotations
 
 import logging
+import threading
+import weakref
 from collections.abc import Sequence
 
 from src.application.audit_writer import AuditWriter
+from src.application.proposal_dispatcher import ProposalDispatcher
 from src.application.tool_audit import RecordedCall, ToolCallRecorder
 from src.domain.canonical_strings import S_CAP
 from src.domain.confirmation import (
@@ -34,7 +37,7 @@ from src.domain.confirmation import (
 from src.domain.dry_run import JOBS_PORT, NODES_PORT, enumerate_items, reexecution_query
 from src.domain.error_catalog import fail
 from src.domain.result import Failure, Ok, Result, is_failure
-from src.dto import ClockReadDTO, ConfirmationDTO, ProposalDTO
+from src.dto import ClockReadDTO, ConfirmationDTO, ProposalDTO, SessionDTO
 from src.ports.inbound import ConfirmUseCases
 from src.ports.outbound import (
     AuditEntry,
@@ -64,6 +67,19 @@ _REJECTIONS = frozenset(
 _ATTEMPTS = 3  # the first read plus two re-reads after a lost claim; the second always settles
 
 
+class _Guard:
+    """A per-proposal lock that can be held weakly (a bare ``threading.Lock`` cannot)."""
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+
+    def __enter__(self) -> None:
+        self._lock.acquire()
+
+    def __exit__(self, *_: object) -> None:
+        self._lock.release()
+
+
 class ConfirmationService(ConfirmUseCases):
     def __init__(
         self,
@@ -77,8 +93,12 @@ class ConfirmationService(ConfirmUseCases):
         uow: UnitOfWorkPort,
         audit: AuditWriter,
         recorder: ToolCallRecorder,
+        dispatcher: ProposalDispatcher,
         token_ttl_seconds: int,
     ) -> None:
+        self._dispatcher = dispatcher
+        self._guards: weakref.WeakValueDictionary[str, _Guard] = weakref.WeakValueDictionary()
+        self._registry = threading.Lock()
         self._proposals = proposals
         self._sessions = sessions
         self._clock = clock
@@ -90,8 +110,20 @@ class ConfirmationService(ConfirmUseCases):
         self._recorder = recorder
         self._ttl = token_ttl_seconds
 
+    def _guard(self, proposal_id: str) -> _Guard:
+        with self._registry:
+            guard = self._guards.get(proposal_id)
+            if guard is None:
+                guard = _Guard()
+                self._guards[proposal_id] = guard
+            return guard
+
     def post_confirm(self, proposal_id: str, gate_token: str) -> Result[ProposalDTO]:
-        result = self._confirm(proposal_id, gate_token)
+        # one confirmation of a proposal at a time in this process: a simultaneous identical confirm
+        # waits for the winner and then answers the settled proposal (the claim is still the guard
+        # against another process)
+        with self._guard(proposal_id):
+            result = self._confirm(proposal_id, gate_token)
         if isinstance(result, Failure) and result.code in _REJECTIONS:
             # a rejected attempt writes no audit row (D7); this line is its only trace, and it never
             # holds the token. ``%r`` escapes anything a caller put in the id (review P-1)
@@ -126,11 +158,14 @@ class ConfirmationService(ConfirmUseCases):
                 stale = self._revalidate(proposal)
             if isinstance(stale, Failure):
                 return stale
-            claimed = self._claim(proposal, gate_token, read, calls)
+            session = self._session_of(proposal)
+            if is_failure(session):
+                return session
+            claimed = self._claim(proposal, gate_token, read, calls, session.value)
             if is_failure(claimed):
                 return claimed
-            if claimed.value:
-                return Ok(_confirmed(proposal, instant))
+            if claimed.value:  # committed as ``dispatched``: now, and only now, the executor
+                return self._dispatcher.dispatch(_dispatched(proposal, instant), session.value)
             # another confirm won the claim: read again and let P5 answer
         return fail("PROVIDER_UNAVAILABLE", observed=("the confirmation could not be settled",))
 
@@ -168,14 +203,23 @@ class ConfirmationService(ConfirmUseCases):
         )
 
     # -- the claim, with its audit rows ---------------------------------------------------------
-    def _claim(
-        self, proposal: ProposalDTO, token: str, read: ClockReadDTO, calls: Sequence[RecordedCall]
-    ) -> Result[bool]:
+    def _session_of(self, proposal: ProposalDTO) -> Result[SessionDTO]:
+        """The session row, read only for the audit's ``operator_role`` (never its context)."""
         stored = self._sessions.get(proposal.session_id)
         if is_failure(stored):
             return stored
         if stored.value is None:
             return fail("PROPOSAL_NOT_FOUND", pid=proposal.proposal_id)
+        return Ok(stored.value.session)
+
+    def _claim(
+        self,
+        proposal: ProposalDTO,
+        token: str,
+        read: ClockReadDTO,
+        calls: Sequence[RecordedCall],
+        session: SessionDTO,
+    ) -> Result[bool]:
         head = RecordedCall(
             _HEAD,
             {"proposal_id": proposal.proposal_id},
@@ -185,7 +229,7 @@ class ConfirmationService(ConfirmUseCases):
                 "affected_count": len(proposal.dry_run_snapshot.affected_items),
             },
         )
-        entries = self._audit.entries_for(stored.value.session, read, head, calls)
+        entries = self._audit.entries_for(session, read, head, calls)
         if is_failure(entries):
             return entries
         return self._commit(proposal.proposal_id, token, read.instant, entries.value)
@@ -202,6 +246,15 @@ class ConfirmationService(ConfirmUseCases):
                     return claimed
                 if not claimed.value:
                     return Ok(False)  # nothing was written: another confirm already won
+                begun = self._proposals.begin_dispatch(proposal_id, instant)
+                if is_failure(begun):
+                    tx.abort()
+                    return begun
+                if not begun.value:  # confirmed a moment ago in this very transaction: impossible
+                    tx.abort()
+                    return Failure(
+                        "PROVIDER_UNAVAILABLE", observed=("the dispatch was not claimed",)
+                    )
                 audited = self._audit.write(entries)
                 if is_failure(audited):
                     tx.abort()
@@ -222,10 +275,10 @@ def _settled(proposal: ProposalDTO, token: str) -> Result[ProposalDTO]:
     return fail("CONFIRMATION_CONFLICT", pid=proposal.proposal_id, state=proposal.state)
 
 
-def _confirmed(proposal: ProposalDTO, instant: str) -> ProposalDTO:
+def _dispatched(proposal: ProposalDTO, instant: str) -> ProposalDTO:
     return proposal.model_copy(
         update={
-            "state": "confirmed",
+            "state": "dispatched",
             "confirmation": ConfirmationDTO(confirmed_at=instant, caption=S_CAP),
         }
     )

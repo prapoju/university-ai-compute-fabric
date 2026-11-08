@@ -82,4 +82,10 @@ def post_confirm(body: PostConfirmBody, use_cases: Confirm) -> JSONResponse:
     result = use_cases.post_confirm(body.proposal_id, body.gate_token)
     if is_failure(result):
         return failure_response(result)
-    return JSONResponse(status_code=200, content=result.value.model_dump(mode="json"))
+    proposal = result.value
+    # a result the executor reported but that did not complete the scope: HTTP 502
+    # EXECUTOR_PARTIAL_APPLY whose body is the Proposal itself (contracts A16, story 2.4 D5)
+    partial = proposal.state == "failed" and proposal.executor_result is not None
+    return JSONResponse(
+        status_code=502 if partial else 200, content=proposal.model_dump(mode="json")
+    )

@@ -13,6 +13,7 @@ import pytest
 
 from src.application.audit_writer import AuditWriter
 from src.application.confirmation_service import ConfirmationService
+from src.application.proposal_dispatcher import ProposalDispatcher
 from src.application.tool_audit import ToolCallRecorder, audited
 from src.bootstrap import build_container
 from src.config import Settings
@@ -22,6 +23,7 @@ from src.ports.inbound import DestructiveUseCases, SessionUseCases
 from src.ports.outbound import (
     AuditStorePort,
     ClockPort,
+    ExecutorPort,
     IdGenPort,
     JobsPort,
     NodesPort,
@@ -89,6 +91,9 @@ class FailingAudit:
     def entries_for(self, *args):
         return DOWN if self._entries else self._inner.entries_for(*args)
 
+    def executor_entry(self, *args):
+        return self._inner.executor_entry(*args)
+
     def write(self, entries):
         return DOWN
 
@@ -149,6 +154,10 @@ class Rig:
             "token_ttl_seconds": 60,
         }
         parts.update(swap)
+        parts["dispatcher"] = ProposalDispatcher(
+            proposals=parts["proposals"], executor=port(ExecutorPort), clock=parts["clock"],
+            uow=parts["uow"], audit=parts["audit"],
+        )  # fmt: skip
         parts["jobs"] = audited_port(JobsPort, parts["jobs"], "jobs_port")
         parts["nodes"] = audited_port(NodesPort, parts["nodes"], "nodes_port")
         return ConfirmationService(**parts)
@@ -179,10 +188,10 @@ def test_a_fresh_proposal_is_confirmed_once_with_its_caption_and_its_audit(rig: 
     rows_before = rig.audit_rows()
     result = rig.service().post_confirm(proposal.proposal_id, proposal.gate_token)
     confirmed = result.value
-    assert confirmed.state == "confirmed" and confirmed.confirmation.confirmed_at.endswith("Z")
+    assert confirmed.state == "executed" and confirmed.confirmation.confirmed_at.endswith("Z")
     assert confirmed.confirmation.caption.startswith("This confirms a proposal for delegation.")
-    assert rig.state(proposal.proposal_id) == "confirmed"
-    assert rig.audit_rows() == rows_before + 2  # the head and the re-validation read
+    assert rig.state(proposal.proposal_id) == "executed"
+    assert rig.audit_rows() == rows_before + 3  # the head, the re-validation read, the executor
 
 
 def test_an_unknown_proposal_is_not_found_and_reads_no_clock(rig: Rig) -> None:
@@ -266,7 +275,7 @@ def test_a_provider_outage_during_revalidation_is_a_failure_and_writes_nothing(r
 def test_a_node_proposal_is_revalidated_through_the_nodes_port(rig: Rig) -> None:
     proposal = rig.dry_run("cordon_node", "node", "ws-gpu-02")
     result = rig.service().post_confirm(proposal.proposal_id, proposal.gate_token)
-    assert result.value.state == "confirmed"
+    assert result.value.state == "executed"
 
 
 def test_a_stored_selector_that_names_no_port_is_a_failure(rig: Rig) -> None:

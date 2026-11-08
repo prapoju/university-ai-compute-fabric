@@ -71,6 +71,29 @@ class AuditWriter:
             )
         return Ok(entries)
 
+    def executor_entry(
+        self, session: SessionDTO, proposal_id: str, timestamp: str, summary: dict[str, object]
+    ) -> Result[AuditEntry]:
+        """The one ``actor = executor`` row of a proposal (no tool call, the executor's instant)."""
+        audit_id = self._idgen.new_id("audit")
+        if is_failure(audit_id):
+            return audit_id
+        return Ok(
+            AuditEntry(
+                tool_call=None,
+                record=AuditRecordDTO(
+                    audit_id=audit_id.value,
+                    tool_call_id=None,
+                    session_id=session.session_id,
+                    operator_role=session.operator_role,
+                    timestamp=timestamp,
+                    result_summary=redact(dict(summary)),
+                    actor="executor",
+                    proposal_id=proposal_id,
+                ),
+            )
+        )
+
     def write(self, entries: Sequence[AuditEntry]) -> Result[None]:
         written = self._store.append(entries)
         if is_failure(written):
