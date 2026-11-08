@@ -150,7 +150,13 @@ class NodeTriageReferences:
     code: str
 
 
-_NODE_REF = re.compile(rf"\bnode(?:#|\s+)(?P<node>{_TOKEN})", re.I)
+# words that follow "node" in a triage question but never are its id: "the node is cordoned"
+# names no node, so it is a clarification and never ENTITY_NOT_FOUND node#is (I2-51)
+_NODE_STOP = (
+    r"(?:is|are|was|were|has|have|had|cordoned|drained|reports|shows|with|the|a|an|it|that|in|on"
+    r"|and|of|for|to)"
+)
+_NODE_REF = re.compile(rf"\bnode(?:#|\s+)(?!{_NODE_STOP}(?=[\s,;:?!.]|$))(?P<node>{_TOKEN})", re.I)
 _NODE_CODE = re.compile(rf"\bcode\s+(?P<code>{_TOKEN})", re.I)
 _RUNBOOK_WORD = re.compile(r"\brunbooks?\b", re.I)
 

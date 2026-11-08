@@ -1397,3 +1397,8 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 - **Why:** the contract and story 1.5 D2 disagreed. The route is session-less, so an audit row would have no session to attach to. Julio chose to align the contract with the existing decision.
 - **Deferred item:** removed from `deferred-work.md` (section 3-3).
 - **Reviewer:** Julio.
+
+## I2-51 - Story 3.3 review, finding M-1: a word after "node" that is not an id was taken as a node id  *(finding applied under the standing pre-approval, Reviewer: Julio (standing pre-approval))*
+- **Finding (medium):** "What about the node is cordoned with code ERR_THERMAL_88?" returned `ENTITY_NOT_FOUND node#is`. The extractor took the next word after "node" as the id. The same happens with "was", "cordoned" and "the". Reproduced on the running app before the fix.
+- **Fix:** the node extractor skips the stop words that follow "node" (the same approach as the group stop words of story 3.1). A question with no node id is now the clarification `the query must name a node and the error code it reports`, and it is never an `ENTITY_NOT_FOUND` on an invented id. Regression cases: four phrasings in `tests/unit/test_runbook.py`.
+- **Reviewer:** Julio (standing pre-approval).

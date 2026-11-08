@@ -121,6 +121,19 @@ def test_the_s3_question_yields_the_node_and_the_code_as_typed() -> None:
     assert (refs.node, refs.code) == ("ws-gpu-11", "ERR_THERMAL_88")
 
 
+@pytest.mark.parametrize(
+    "query",
+    [
+        "What about the node is cordoned with code ERR_THERMAL_88?",
+        "The node was cordoned with code ERR_THERMAL_88, what now?",
+        "node cordoned with code ERR_THERMAL_88 what should I do",
+        "Why is the node cordoned with code ERR_THERMAL_88?",
+    ],
+)
+def test_a_word_after_node_that_is_not_an_id_names_no_node(query: str) -> None:
+    assert extract_node_triage_references(query) is None
+
+
 def test_a_typed_node_id_and_a_question_without_a_code_are_handled() -> None:
     refs = extract_node_triage_references("node#ws-gpu-11 is cordoned with code ERR_X")
     assert refs is not None and refs.node == "ws-gpu-11"
