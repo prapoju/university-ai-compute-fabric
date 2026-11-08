@@ -48,7 +48,7 @@ Source: `planning/epics.md` Story 1.6. Requirements: FR-04, FR-13, NFR-3, NFR-5,
   - [ ] 3.6 Two tools fail completing in both orders → identical body (first failure in argument order). One tool raises, all tools raise → typed 503, never 500, no traceback.
   - [ ] 3.7 Every tool port records 0 mutating calls (AD-1, I18).
   - [ ] 3.8 Concurrency on a real SQLite file: 50 in-process requests across 50 sessions released by `Barrier(50)` → 50 × HTTP 200, 50 distinct `answer_id`s, audit rows = 50 × tool calls per query, 0 `database is locked`, 0 HTTP 500, `PRAGMA journal_mode` = `wal`.
-  - [ ] 3.9 Cross-store interleaving on the shared connection: store A fails mid-transaction (injected at the port) while store B commits. A's rows absent, B's present.
+  - [ ] 3.9 (integration, `tests/integration/`, not the ATDD file) Cross-store interleaving on the shared connection: store A fails mid-transaction (injected at the port) while store B commits. A's rows absent, B's present.
 
 - [ ] Task 4: k6 load script (AC: 3, 5)
   - [ ] 4.1 `tests/nfr/copilot-load.js`: `constant-vus`, 50 VUs, 20 iterations each (1 000 requests). Each request opens its own session via `/copilot/query`.

@@ -1,0 +1,557 @@
+FFFFFFF.F..F                                                             [100%]
+=================================== FAILURES ===================================
+E   AssertionError: M12_TOOL_FANOUT_BUDGET_SECONDS must exist and default to 0.5 s (log I2-35)
+    assert None == 0.5
+     +  where None = getattr(Settings(fixtures_dir=PosixPath('/home/julio/repos/ia-proyecto/university-ai-compute-fabric/fixtures'), migrations_dir...mory:', clock_start='2026-10-16T15:00:00.000Z', log_level='INFO', audit_retention_cap=10000, gate_token_ttl_seconds=60), 'tool_fanout_budget_seconds', None)
+/home/julio/repos/ia-proyecto/university-ai-compute-fabric/tests/atdd/test_story_1_6.py:254: AssertionError: M12_TOOL_FANOUT_BUDGET_SECONDS must exist and default to 0.5 s (log I2-35)
+E   AssertionError: ['the policy and events reads were never in flight at once']
+    assert not ['the policy and events reads were never in flight at once']
+     +  where ['the policy and events reads were never in flight at once'] = <tests.atdd.test_story_1_6.Gate object at 0x7f1d03a34c90>.stalls
+------------------------------ Captured log call -------------------------------
+INFO     src.bootstrap:bootstrap.py:342 container built (fixtures=/home/julio/repos/ia-proyecto/university-ai-compute-fabric/fixtures)
+ERROR    src.adapters.inbound.errors:errors.py:94 unhandled error
+Traceback (most recent call last):
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/telemetry/_asgi.py", line 151, in __call__
+    await self.app(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/routing.py", line 683, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 2811, in app
+    await route.handle(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 1839, in handle
+    await self.original_router.handle(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 2894, in handle
+    await included_router._handle_selected(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 1865, in _handle_selected
+    await original_route.handle(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 1328, in handle
+    await effective_context.app(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 166, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 152, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 745, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 374, in run_endpoint_function
+    return await run_in_threadpool(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/concurrency.py", line 34, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/anyio/to_thread.py", line 65, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2779, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1124, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/telemetry/_api.py", line 244, in _run_sync_endpoint
+    return function(**arguments)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/adapters/inbound/copilot.py", line 54, in copilot_query
+    return _answer(use_cases, body.query)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/adapters/inbound/copilot.py", line 49, in _answer
+    return query_response(use_cases.submit_query(created.value.session_id, query))
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/application/session_service.py", line 147, in submit_query
+    output = self._pipeline.respond(
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/application/pipeline.py", line 66, in respond
+    return handler(turn)
+           ^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/application/access_denial_handler.py", line 80, in __call__
+    records = self._assembler.gather(found.user, found.model, turn.now)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/application/evidence_assembler.py", line 40, in gather
+    clauses = self._policy.for_model(model.id)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/application/tool_audit.py", line 119, in call
+    result = target(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/tests/atdd/test_story_1_6.py", line 116, in for_model
+    gate.meet()
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/tests/atdd/test_story_1_6.py", line 106, in meet
+    self.together.wait()
+  File "/home/julio/.local/share/mise/installs/python/3.11.15/lib/python3.11/threading.py", line 697, in wait
+    self._wait(timeout)
+  File "/home/julio/.local/share/mise/installs/python/3.11.15/lib/python3.11/threading.py", line 735, in _wait
+    raise BrokenBarrierError
+threading.BrokenBarrierError
+/home/julio/repos/ia-proyecto/university-ai-compute-fabric/tests/atdd/test_story_1_6.py:266: AssertionError: ['the policy and events reads were never in flight at once']
+E   AssertionError: reverse completion: ['reverse order: the policy read waited for the events read']
+    assert not ['reverse order: the policy read waited for the events read']
+     +  where ['reverse order: the policy read waited for the events read'] = <tests.atdd.test_story_1_6.Gate object at 0x7f1d02815b90>.stalls
+------------------------------ Captured log call -------------------------------
+INFO     src.bootstrap:bootstrap.py:342 container built (fixtures=/home/julio/repos/ia-proyecto/university-ai-compute-fabric/fixtures)
+ERROR    src.adapters.inbound.errors:errors.py:94 unhandled error
+Traceback (most recent call last):
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/telemetry/_asgi.py", line 151, in __call__
+    await self.app(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/routing.py", line 683, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 2811, in app
+    await route.handle(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 1839, in handle
+    await self.original_router.handle(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 2894, in handle
+    await included_router._handle_selected(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 1865, in _handle_selected
+    await original_route.handle(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 1328, in handle
+    await effective_context.app(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 166, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 152, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 745, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 374, in run_endpoint_function
+    return await run_in_threadpool(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/concurrency.py", line 34, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/anyio/to_thread.py", line 65, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2779, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1124, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/telemetry/_api.py", line 244, in _run_sync_endpoint
+    return function(**arguments)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/adapters/inbound/copilot.py", line 54, in copilot_query
+    return _answer(use_cases, body.query)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/adapters/inbound/copilot.py", line 49, in _answer
+    return query_response(use_cases.submit_query(created.value.session_id, query))
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/application/session_service.py", line 147, in submit_query
+    output = self._pipeline.respond(
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/application/pipeline.py", line 66, in respond
+    return handler(turn)
+           ^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/application/access_denial_handler.py", line 80, in __call__
+    records = self._assembler.gather(found.user, found.model, turn.now)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/application/evidence_assembler.py", line 40, in gather
+    clauses = self._policy.for_model(model.id)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/application/tool_audit.py", line 119, in call
+    result = target(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/tests/atdd/test_story_1_6.py", line 118, in for_model
+    gate.await_(
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/tests/atdd/test_story_1_6.py", line 102, in await_
+    raise GateNeverOpened(message)
+tests.atdd.test_story_1_6.GateNeverOpened: reverse order: the policy read waited for the events read
+/home/julio/repos/ia-proyecto/university-ai-compute-fabric/tests/atdd/test_story_1_6.py:282: AssertionError: reverse completion: ['reverse order: the policy read waited for the events read']
+E   AssertionError: reverse completion: ['reverse order: the policy read waited for the events read']
+    assert not ['reverse order: the policy read waited for the events read']
+     +  where ['reverse order: the policy read waited for the events read'] = <tests.atdd.test_story_1_6.Gate object at 0x7f1d0268e0d0>.stalls
+------------------------------ Captured log call -------------------------------
+INFO     src.bootstrap:bootstrap.py:342 container built (fixtures=/home/julio/repos/ia-proyecto/university-ai-compute-fabric/fixtures)
+ERROR    src.adapters.inbound.errors:errors.py:94 unhandled error
+Traceback (most recent call last):
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/telemetry/_asgi.py", line 151, in __call__
+    await self.app(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/routing.py", line 683, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 2811, in app
+    await route.handle(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 1839, in handle
+    await self.original_router.handle(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 2894, in handle
+    await included_router._handle_selected(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 1865, in _handle_selected
+    await original_route.handle(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 1328, in handle
+    await effective_context.app(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 166, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 152, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 745, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 374, in run_endpoint_function
+    return await run_in_threadpool(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/concurrency.py", line 34, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/anyio/to_thread.py", line 65, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2779, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1124, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/telemetry/_api.py", line 244, in _run_sync_endpoint
+    return function(**arguments)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/adapters/inbound/copilot.py", line 54, in copilot_query
+    return _answer(use_cases, body.query)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/adapters/inbound/copilot.py", line 49, in _answer
+    return query_response(use_cases.submit_query(created.value.session_id, query))
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/application/session_service.py", line 147, in submit_query
+    output = self._pipeline.respond(
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/application/pipeline.py", line 66, in respond
+    return handler(turn)
+           ^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/application/access_denial_handler.py", line 80, in __call__
+    records = self._assembler.gather(found.user, found.model, turn.now)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/application/evidence_assembler.py", line 40, in gather
+    clauses = self._policy.for_model(model.id)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/application/tool_audit.py", line 119, in call
+    result = target(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/tests/atdd/test_story_1_6.py", line 118, in for_model
+    gate.await_(
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/tests/atdd/test_story_1_6.py", line 102, in await_
+    raise GateNeverOpened(message)
+tests.atdd.test_story_1_6.GateNeverOpened: reverse order: the policy read waited for the events read
+/home/julio/repos/ia-proyecto/university-ai-compute-fabric/tests/atdd/test_story_1_6.py:302: AssertionError: reverse completion: ['reverse order: the policy read waited for the events read']
+E   AssertionError: reverse completion: ['reverse order: the policy read waited for the events read']
+    assert not ['reverse order: the policy read waited for the events read']
+     +  where ['reverse order: the policy read waited for the events read'] = <tests.atdd.test_story_1_6.Gate object at 0x7f1d026ece50>.stalls
+------------------------------ Captured log call -------------------------------
+INFO     src.bootstrap:bootstrap.py:342 container built (fixtures=/home/julio/repos/ia-proyecto/university-ai-compute-fabric/fixtures)
+ERROR    src.adapters.inbound.errors:errors.py:94 unhandled error
+Traceback (most recent call last):
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/telemetry/_asgi.py", line 151, in __call__
+    await self.app(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/routing.py", line 683, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 2811, in app
+    await route.handle(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 1839, in handle
+    await self.original_router.handle(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 2894, in handle
+    await included_router._handle_selected(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 1865, in _handle_selected
+    await original_route.handle(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 1328, in handle
+    await effective_context.app(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 166, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 152, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 745, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 374, in run_endpoint_function
+    return await run_in_threadpool(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/concurrency.py", line 34, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/anyio/to_thread.py", line 65, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2779, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1124, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/telemetry/_api.py", line 244, in _run_sync_endpoint
+    return function(**arguments)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/adapters/inbound/copilot.py", line 54, in copilot_query
+    return _answer(use_cases, body.query)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/adapters/inbound/copilot.py", line 49, in _answer
+    return query_response(use_cases.submit_query(created.value.session_id, query))
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/application/session_service.py", line 147, in submit_query
+    output = self._pipeline.respond(
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/application/pipeline.py", line 66, in respond
+    return handler(turn)
+           ^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/application/access_denial_handler.py", line 80, in __call__
+    records = self._assembler.gather(found.user, found.model, turn.now)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/application/evidence_assembler.py", line 40, in gather
+    clauses = self._policy.for_model(model.id)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/application/tool_audit.py", line 119, in call
+    result = target(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/tests/atdd/test_story_1_6.py", line 118, in for_model
+    gate.await_(
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/tests/atdd/test_story_1_6.py", line 102, in await_
+    raise GateNeverOpened(message)
+tests.atdd.test_story_1_6.GateNeverOpened: reverse order: the policy read waited for the events read
+/home/julio/repos/ia-proyecto/university-ai-compute-fabric/tests/atdd/test_story_1_6.py:315: AssertionError: reverse completion: ['reverse order: the policy read waited for the events read']
+unknown configuration variable(s): M12_TOOL_FANOUT_BUDGET_SECONDS
+
+During handling of the above exception, another exception occurred:
+configuration is not supported yet: unknown configuration variable(s): M12_TOOL_FANOUT_BUDGET_SECONDS
+/home/julio/repos/ia-proyecto/university-ai-compute-fabric/tests/atdd/test_story_1_6.py:186: Failed: configuration is not supported yet: unknown configuration variable(s): M12_TOOL_FANOUT_BUDGET_SECONDS
+E   AssertionError: reverse completion: ['reverse order: the policy read waited for the events read']
+    assert not ['reverse order: the policy read waited for the events read']
+     +  where ['reverse order: the policy read waited for the events read'] = <tests.atdd.test_story_1_6.Gate object at 0x7f1d03a18bd0>.stalls
+------------------------------ Captured log call -------------------------------
+INFO     src.bootstrap:bootstrap.py:342 container built (fixtures=/home/julio/repos/ia-proyecto/university-ai-compute-fabric/fixtures)
+ERROR    src.adapters.inbound.errors:errors.py:94 unhandled error
+Traceback (most recent call last):
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/telemetry/_asgi.py", line 151, in __call__
+    await self.app(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/routing.py", line 683, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 2811, in app
+    await route.handle(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 1839, in handle
+    await self.original_router.handle(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 2894, in handle
+    await included_router._handle_selected(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 1865, in _handle_selected
+    await original_route.handle(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 1328, in handle
+    await effective_context.app(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 166, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 152, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 745, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 374, in run_endpoint_function
+    return await run_in_threadpool(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/concurrency.py", line 34, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/anyio/to_thread.py", line 65, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2779, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1124, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/telemetry/_api.py", line 244, in _run_sync_endpoint
+    return function(**arguments)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/adapters/inbound/sessions.py", line 60, in submit_query
+    return query_response(use_cases.submit_query(sid, body.query_text))
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/application/session_service.py", line 147, in submit_query
+    output = self._pipeline.respond(
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/application/pipeline.py", line 66, in respond
+    return handler(turn)
+           ^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/application/access_denial_handler.py", line 80, in __call__
+    records = self._assembler.gather(found.user, found.model, turn.now)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/application/evidence_assembler.py", line 40, in gather
+    clauses = self._policy.for_model(model.id)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/application/tool_audit.py", line 119, in call
+    result = target(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/tests/atdd/test_story_1_6.py", line 118, in for_model
+    gate.await_(
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/tests/atdd/test_story_1_6.py", line 102, in await_
+    raise GateNeverOpened(message)
+tests.atdd.test_story_1_6.GateNeverOpened: reverse order: the policy read waited for the events read
+/home/julio/repos/ia-proyecto/university-ai-compute-fabric/tests/atdd/test_story_1_6.py:355: AssertionError: reverse completion: ['reverse order: the policy read waited for the events read']
+E   AssertionError: reverse completion: ['reverse order: the policy read waited for the events read']
+    assert not ['reverse order: the policy read waited for the events read']
+     +  where ['reverse order: the policy read waited for the events read'] = <tests.atdd.test_story_1_6.Gate object at 0x7f1d0256fd10>.stalls
+------------------------------ Captured log call -------------------------------
+INFO     src.bootstrap:bootstrap.py:342 container built (fixtures=/home/julio/repos/ia-proyecto/university-ai-compute-fabric/fixtures)
+ERROR    src.adapters.inbound.errors:errors.py:61 request failed: PROVIDER_UNAVAILABLE: policy read
+ERROR    src.adapters.inbound.errors:errors.py:94 unhandled error
+Traceback (most recent call last):
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/telemetry/_asgi.py", line 151, in __call__
+    await self.app(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/routing.py", line 683, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 2811, in app
+    await route.handle(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 1839, in handle
+    await self.original_router.handle(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 2894, in handle
+    await included_router._handle_selected(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 1865, in _handle_selected
+    await original_route.handle(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 1328, in handle
+    await effective_context.app(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 166, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 152, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 745, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 374, in run_endpoint_function
+    return await run_in_threadpool(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/starlette/concurrency.py", line 34, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/anyio/to_thread.py", line 65, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2779, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1124, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/.venv/lib/python3.11/site-packages/fastapi/telemetry/_api.py", line 244, in _run_sync_endpoint
+    return function(**arguments)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/adapters/inbound/copilot.py", line 54, in copilot_query
+    return _answer(use_cases, body.query)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/adapters/inbound/copilot.py", line 49, in _answer
+    return query_response(use_cases.submit_query(created.value.session_id, query))
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/application/session_service.py", line 147, in submit_query
+    output = self._pipeline.respond(
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/application/pipeline.py", line 66, in respond
+    return handler(turn)
+           ^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/application/access_denial_handler.py", line 80, in __call__
+    records = self._assembler.gather(found.user, found.model, turn.now)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/application/evidence_assembler.py", line 40, in gather
+    clauses = self._policy.for_model(model.id)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/src/application/tool_audit.py", line 119, in call
+    result = target(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/tests/atdd/test_story_1_6.py", line 118, in for_model
+    gate.await_(
+  File "/home/julio/repos/ia-proyecto/university-ai-compute-fabric/tests/atdd/test_story_1_6.py", line 102, in await_
+    raise GateNeverOpened(message)
+tests.atdd.test_story_1_6.GateNeverOpened: reverse order: the policy read waited for the events read
+/home/julio/repos/ia-proyecto/university-ai-compute-fabric/tests/atdd/test_story_1_6.py:381: AssertionError: reverse completion: ['reverse order: the policy read waited for the events read']
+E   AssertionError: tests/nfr/copilot-load.js does not exist yet
+    assert False
+     +  where False = exists()
+     +    where exists = PosixPath('/home/julio/repos/ia-proyecto/university-ai-compute-fabric/tests/nfr/copilot-load.js').exists
+/home/julio/repos/ia-proyecto/university-ai-compute-fabric/tests/atdd/test_story_1_6.py:434: AssertionError: tests/nfr/copilot-load.js does not exist yet
+=========================== short test summary info ============================
+FAILED tests/atdd/test_story_1_6.py::test_the_fan_out_budget_defaults_to_half_a_second
+FAILED tests/atdd/test_story_1_6.py::test_the_policy_and_events_reads_are_in_flight_at_the_same_time
+FAILED tests/atdd/test_story_1_6.py::test_the_evidence_matches_the_sequential_order_under_forward_and_reverse_completion
+FAILED tests/atdd/test_story_1_6.py::test_the_audit_lists_the_tool_calls_in_argument_order_whatever_the_completion_order
+FAILED tests/atdd/test_story_1_6.py::test_the_tool_call_ids_are_minted_in_fixed_order_under_both_completion_orders
+FAILED tests/atdd/test_story_1_6.py::test_a_fan_out_past_its_wall_budget_returns_provider_unavailable_503
+FAILED tests/atdd/test_story_1_6.py::test_each_turn_takes_exactly_one_clock_read_whatever_the_completion_order
+FAILED tests/atdd/test_story_1_6.py::test_two_failing_reads_report_the_same_body_in_both_completion_orders
+FAILED tests/atdd/test_story_1_6.py::test_the_load_script_declares_the_story_thresholds_and_never_sleeps
+9 failed, 3 passed in 13.55s
