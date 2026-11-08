@@ -315,11 +315,14 @@ def test_the_tool_call_ids_are_minted_in_fixed_order_under_both_completion_order
         assert not gate.stalls, f"{order} completion: {gate.stalls}"
         assert response.status_code == 200, f"{order}: HTTP {response.status_code}"
         sid = response.json()["answers"][0]["session_id"]
-        ids =[ordinal(e["tool_call_id"]) for e in turn_entries(client, sid)]
+        entries = turn_entries(client, sid)
+        ids = [ordinal(e["tool_call_id"]) for e in entries]
         first = ids[0]
         assert [i - first for i in ids] == [0, 1, 2, 3], (
             f"{order} completion minted tool-call ids {ids}, expected consecutive in argument order"
         )
+        names = [e["result_summary"]["tool_name"] for e in entries]
+        assert names == S1_TOOL_CALLS, f"{order} completion: the ids follow the completion order"
 
 
 # -- AC 2: a fan-out past its wall budget is the typed 503, with no partial evidence -----------
