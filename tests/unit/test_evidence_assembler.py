@@ -5,6 +5,8 @@ from __future__ import annotations
 import pytest
 
 from src.application.evidence_assembler import EvidenceAssembler
+from src.application.parallel_reads import ParallelReads
+from src.application.tool_audit import ToolCallRecorder, audited
 from src.domain.result import Failure, is_ok
 from src.dto import ClockReadDTO
 from src.ports.outbound import EventStorePort, PolicyPort
@@ -68,15 +70,27 @@ class _RecordingEvents(EventStorePort):
         return self._real.browse(q, page, page_size)
 
 
-def test_a_policy_outage_aborts_before_any_event_is_read(providers) -> None:
-    """AD-12: no diagnosis from partial evidence, so the events are never fetched either."""
+def test_a_policy_outage_fails_the_turn_with_the_policy_failure_and_no_event_evidence(
+    providers,
+) -> None:
+    """AD-12 under parallel reads (story 1.6): the events may be read alongside the policy, but a
+    failed read fails the whole turn with the policy's own failure, and no event evidence reaches
+    the returned result or the recorded tool calls."""
     events = _RecordingEvents(providers.event_store)
-    assembler = EvidenceAssembler(policy=_PolicyDown(), events=events)
+    recorder = ToolCallRecorder()
+    assembler = EvidenceAssembler(
+        policy=audited(PolicyPort, _PolicyDown(), name="policy_port", recorder=recorder),
+        events=audited(EventStorePort, events, name="event_store_port", recorder=recorder),
+        reads=ParallelReads(recorder=recorder),
+    )
     user = providers.users.get("user#alex").value
     model = providers.catalog.get("model#deepseek-coder").value
-    result = assembler.gather(user, model, clock_at("2026-10-16T15:00:00.000Z"))
+    with recorder.turn() as calls:
+        result = assembler.gather(user, model, clock_at("2026-10-16T15:00:00.000Z"))
     assert result == DOWN  # the policy's own failure, not the event-window one (same code)
-    assert events.calls == []
+    assert not is_ok(result)
+    assert len(events.calls) <= 1, "events may be read at most once in the fan-out"
+    assert "evt-4711" not in repr(calls), "event evidence reached the recorded tool calls"
 
 
 @pytest.mark.parametrize("instant", ["0001-01-10T00:00:00.000Z", "9999-12-31T23:59:59.999Z"])

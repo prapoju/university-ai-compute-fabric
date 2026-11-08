@@ -1272,3 +1272,11 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 - **What the AI proposed:** parse the suffix with base 16. A scratch run of both completion orders against the real app gave `[0, 1, 2, 3]` for each, status 200, and no gate stalls.
 - **What the user decided:** approved. Changed in its own commit, with this entry. No assertion was weakened: the expected consecutive order is the same.
 - **Reviewer:** Julio.
+
+## I2-37 - Story 1.6: a policy-outage unit case asserted sequential reads, which parallel reads change  *(AI-written test corrected, user approved, Reviewer: Julio)*
+- **Date / phase:** 2026-11-08, dev step of story 1.6 (Flow D).
+- **What was wrong:** `test_a_policy_outage_aborts_before_any_event_is_read` asserted that the events are never read after a policy failure. That is a property of the sequential reads. With the approved parallel reads (I2-35), the events are read alongside the policy. The returned failure did not change.
+- **What the AI proposed:** keep the failure body assertion, and replace the "events never read" assertion with three that hold under parallel reads: the result is the policy's own failure and is not `Ok`; events are read at most once; and the event id `evt-4711` appears in neither the returned result nor the recorded tool calls. The test is renamed to `test_a_policy_outage_fails_the_turn_with_the_policy_failure_and_no_event_evidence`.
+- **What the user decided:** approved with that change. Not a plain deletion. Own commit, with this entry.
+- **Evidence the bodies are unchanged:** six regression queries (S1, S2, ghost, S3, 12.6 and the delete) were run on HEAD production code and on the change, and the JSON bodies are byte-identical.
+- **Reviewer:** Julio.
