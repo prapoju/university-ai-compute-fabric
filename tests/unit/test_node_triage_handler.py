@@ -155,7 +155,7 @@ def test_a_provider_failure_aborts_the_turn_and_never_fabricates_steps(providers
 
 
 class FactLeakingProse(LlmProsePort):
-    """A writer that always states the node id: the guard must reject it, once retried (AD-2, AD-8)."""
+    """A writer that always states the node id: the guard rejects it after one retry (AD-2)."""
 
     def __init__(self) -> None:
         self.calls = 0
