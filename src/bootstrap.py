@@ -47,6 +47,7 @@ from src.application.parallel_reads import ParallelReads
 from src.application.pipeline import AnswerPipeline
 from src.application.proposal_dispatcher import ProposalDispatcher
 from src.application.proposal_service import ProposalService
+from src.application.runbook_service import RunbookService
 from src.application.session_service import SessionService
 from src.application.state_service import StateService
 from src.application.tool_audit import TOOL_PORT_NAMES, ToolCallRecorder, audited
@@ -70,6 +71,7 @@ from src.ports.inbound import (
     DestructiveUseCases,
     EvidenceUseCases,
     ProposalUseCases,
+    RunbookUseCases,
     SessionUseCases,
     StateUseCases,
 )
@@ -388,6 +390,7 @@ def build_container(settings: Settings) -> Container:
     container.register_port(ProposalUseCases, proposal_uc)
     container.register_port(ChatUseCases, ChatService(sessions=use_cases, destructive=destructive))
     container.register_port(StateUseCases, state)
+    container.register_port(RunbookUseCases, RunbookService(registry=runbooks))
     return container
 
 

@@ -679,7 +679,7 @@ def served_operations(client: TestClient) -> set[tuple[str, str]]:
     return served
 
 
-def test_every_contract_operation_but_the_runbook_is_served(tmp_path: Path) -> None:
+def test_every_contract_operation_is_served(tmp_path: Path) -> None:
     declared = yaml.safe_load(CONTRACT.read_text(encoding="utf-8"))["paths"]
     wanted = {
         (m.upper(), re.sub(r"\{[^}]+\}", "{}", p))
@@ -689,7 +689,7 @@ def test_every_contract_operation_but_the_runbook_is_served(tmp_path: Path) -> N
     }
     with app_on(tmp_path) as client:
         missing = wanted - served_operations(client)
-        assert missing == {("GET", "/api/v1/runbooks/{}")}
+        assert missing == set()  # story 3.3 (I2-47) serves the last operation: none missing
 
 
 def test_regression_guard_no_mutating_route_outside_the_two_prefixes(tmp_path: Path) -> None:

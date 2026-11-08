@@ -1353,3 +1353,16 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 - **Open items:** `_bmad-output/implementation-artifacts/deferred-work.md`, section for story 1-6.
 - **Status:** done, in the story file and both sprint-status copies.
 - **Reviewer:** Julio.
+
+## I2-47 - Story 3.3: node triage (S3), runbook registry read route, and one committed ATDD assertion made stricter  *(AI-written code and test change, user approved, Reviewer: Julio)*
+- **Date / phase:** 2026-11-08, dev of story 3-3 (Flow B), after the approval of decisions D-1 to D-4 in the story file.
+- **What the AI proposed:** a pure node-triage rule (`src/domain/runbook.py`) and a diagnoser that checks P1 (cordoned) and P2 (the queried code is the node's recorded code) before it looks up the template. The steps are copied from the registered template in order, never generated. The intent `diagnose_node_triage` (`RULE-INTENT-NODE-TRIAGE`) matches a `node ... cordoned ... code` question. The access-denial rule also gains a `denied ... diagnose` pattern for annex 12.6. The read route `GET /api/v1/runbooks/{error_code}` is served by a thin `RunbookService`.
+- **What the user decided:** D-3 (a miss is the canonical literal `no runbook available for code {code}.` with no steps, where `{code}` is the node's recorded code, or `null`) and D-4 (`toolcall.diagnose_node_triage` stays deferred, in `deferred-work.md`). Approved in the story file.
+- **Canonical miss storage:** the stored answer has `diagnosis_class = no_runbook_available` and `canonical` unset. The answer DTO enum has no `RUNBOOK_NOT_FOUND`, and changing the schema is not part of D-3. The HTTP response still returns `RUNBOOK_NOT_FOUND` with the literal, as the other canonical outcomes do.
+- **Registration rules:** the registry port has no `register` method (AD-1, see `src/ports/outbound/runbook_registry.py`). Empty steps and an unsourced physical template are rejected when the fixtures load (`RUNBOOK_TEMPLATE_EMPTY`, `RUNBOOK_TEMPLATE_UNSOURCED`), not by a 422 at runtime.
+- **Test corrections (existing tests changed because story 3.3 changes the behaviour):**
+  - `tests/unit/test_intent.py`: the S3 question leaves the out-of-domain list, since it now routes. The rule list expectation gains `diagnose_node_triage`. Both are intended changes; the rest of the test is untouched.
+  - `tests/atdd/test_story_2_4.py::test_every_contract_operation_is_served` (renamed from `..._but_the_runbook_is_served`): the assertion was `missing == {GET /api/v1/runbooks/{}}`, a snapshot of the one operation the story left unserved. It now asserts `missing == set()`. This is stricter, not weaker: every contract operation must be served. Approved by Julio.
+- **Served routes:** `SERVED_IN_THIS_STORY` gains `GET /api/v1/runbooks/{}`, in the same commit as the route.
+- **Status:** dev of story 3-3 in progress; the review and closing entries follow.
+- **Reviewer:** Julio.
