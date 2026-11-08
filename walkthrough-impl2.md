@@ -9,13 +9,15 @@ This report is the final evidence for Impl-2. Every number below is quoted from 
 | Item | Result | Evidence |
 |---|---|---|
 | Stories done | 1-1 to 1-7, 2-1 to 2-4, 3-1, 3-3, 4-1, 4-2 (done). Optional 3-2, 3-4, 4-3, 1-8 out of scope (section 9) | `_bmad-output/implementation-artifacts/sprint-status.yaml` |
-| Pytest | 2156 passed | `docs/evidence/impl2/final-coverage.log` |
+| Pytest | 2157 passed, 1 failed of 2158 (the NFR-1 corpus test, red on purpose) | `docs/evidence/impl2/final-pytest-after-gap-closure.log` |
+| NFR-1 accuracy corpus | 17 / 20 = 85 % (threshold 90 %) | `tests/api/test_nfr1_accuracy_corpus.py` |
+| NFR-7 cold start | 0.54 s to the first 200 on `/healthz` (budget 60 s) | `docs/evidence/impl2/nfr7-cold-start.log` |
 | Branch coverage of `src` | 97.59 % (floor 90 %) | `docs/evidence/impl2/final-coverage.log` |
 | Playwright E2E | 3 passed | `docs/evidence/impl2/final-e2e.log` |
 | Ruff | All checks passed | `docs/evidence/impl2/final-ruff.log` |
 | Schema check | GATE PASS | `docs/evidence/impl2/final-schema-check.log` |
 | Banned waits (`sleep(`, `waitForTimeout`) in `src tests console` | 0 matches | `docs/evidence/impl2/final-banned-waits.log` (empty) |
-| Traceability gate | CONCERNS (P0 7/7, overall 23/26, P1 16/19) | `test/traceability-matrix.md` |
+| Traceability gate (rerun after gap closure) | CONCERNS (P0 7/7, overall 23/26, P1 16/19) | `test/traceability-matrix.md` |
 | NFR evidence | 5 dimensions mapped | `test/nfr-evidence.md` |
 | CI | Run `42527764596` on `ed8aeb9`: all five jobs success | `.github/workflows/quality-gate.yml`, section 8 |
 
@@ -193,24 +195,24 @@ The Playwright job reports `3 passed (5.4s)`. Its artifacts are `playwright-test
 
 ## 9. Testing pyramid: real counts against 70 / 20 / 10
 
-Counts from `pytest --collect-only` and the Playwright and k6 files on this commit. The total is 2161 automated cases.
+Counts from `pytest --collect-only` and the Playwright and k6 files on this commit. The total is 2163 automated cases.
 
 | Layer | Source | Count | Share | Target | Note |
 |---|---|---:|---:|---|---|
 | Unit | `tests/unit/` | 1481 | 68.5 % | 70 % | close to the target |
 | Integration | `tests/integration/` | 159 | 7.4 % | 20 % (with API) | real SQLite transactions |
-| API | `tests/api/` | 306 | 14.2 % | 20 % (with integration) | OpenAPI and route contracts |
+| API | `tests/api/` | 308 | 14.2 % | 20 % (with integration) | OpenAPI and route contracts |
 | ATDD | `tests/atdd/` | 207 | 9.6 % | 20 % (with the two above) | real app, red-then-green suites |
 | E2E | `tests/e2e/` (Playwright) | 3 | 0.1 % | 10 % | see deviation |
 | NFR | `tests/nfr/` (k6 scripts) | 2 | 0.1 % | separate layer | iterations: 1000 + 1000 |
 | Other | root files of `tests/` (not in a layer folder) | 3 | 0.1 % | n/a | |
 
-Integration, API and ATDD together are 31.1 %, against 20 % in the target. Unit is 68.5 %, against 70 %. Browser tests are
+Integration, API and ATDD together are 31.2 %, against 20 % in the target. Unit is 68.5 %, against 70 %. Browser tests are
 0.1 % of cases, against 10 %.
 
 **Deviation, explained.** The 70 / 20 / 10 split is a guide to cost, and it is not met by count in the browser layer. The
 pyramid counts cases, and cases are a poor measure of browser cost. The three Playwright tests take 5.1 s in total, against
-`pytest` at about 51 s for 2156 cases, so the browser layer is about 9 % of the wall time. The design planned ten E2E cases
+`pytest` at about 51 s for 2158 cases, so the browser layer is about 9 % of the wall time. The design planned ten E2E cases
 for the console and two were implemented (section 7). Writing eight more would move the suite toward the Ice Cream Cone trap that
 the task names. The Annex asks for one journey in the browser, and that journey is tested. The deviation is recorded here; the scope of the browser layer is recorded in I2-54.
 
@@ -242,7 +244,8 @@ because both have a source. Recorded in `_bmad-output/implementation-artifacts/3
 - **Simulated prose.** The LLM is a deterministic fake (`src/adapters/outbound/sim/prose_adapter.py`). The NFR-5 real-LLM budget (p95 ≤ 3 s) is not measured here. The
   measured pipeline is far below it (p95 300–308 ms), but that does not replace a real-model run.
 - **Single machine, single worker.** The k6 runs use one uvicorn worker. The 800 ms budget is story-level and does not cover the NFR-5 budget with a real model.
-- **NFR gaps.** NFR-1 (20-query extension corpus, ≥ 90 %), NFR-7 (8-hour availability and cold start) and NFR-9 (human usability study) are PARTIAL in `test/traceability-matrix.md`.
+- **NFR-1 is measured below its threshold.** The 20-query corpus scores 17 / 20 = 85 %, against 90 %. Three paraphrases (`why cant group 4 …`, `ws-gpu-11 cordoned ERR_THERMAL_88, what do I do?`, `What should I do about node ws-gpu-11 …`) get `CLARIFICATION_REQUIRED`. The corpus test is red on purpose: the expectations were not changed to match the output.
+- **NFR-7 and NFR-9 are waived in part.** The cold start is measured (0.54 s). The 8-hour 99 % availability window and the human usability study cannot be measured in the repository; they are waived in `test/traceability-matrix.md` section 8 and in I2-63.
 - **Requirements out of scope.** FR-06 retrospective diagnosis (story 3-2), parts of FR-01 and FR-02 (3-4), part of FR-16 (4-3), and the console surfaces of FR-09 to FR-12 (1-8).
   Section 12 lists them with their reasons.
 - **E2E breadth.** Two Playwright tests (section 7).
