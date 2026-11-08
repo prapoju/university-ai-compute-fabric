@@ -191,3 +191,4 @@ Claude Sonnet 5.5 (`claude-sonnet-5-5`), Claude Code, `bmad-create-story`.
 ### Change Log
 
 - 2026-11-08: Story created (`bmad-create-story`). Status -> ready-for-dev. D1, D2, D5, D7 and D9 wait for the user before the red phase.
+- 2026-11-08: The user confirmed D1, D2, D5, D7 and D9 as written and asked to continue without being shown the red log; the red phase was recorded and committed.

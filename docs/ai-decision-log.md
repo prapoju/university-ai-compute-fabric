@@ -1168,3 +1168,16 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
   a change to 2.3), but it stays one story because the Annex scenario cannot reach `executed` without all of it.
 - **Outcome:** story 2.4 is `ready-for-dev` in both `sprint-status.yaml` copies. No test or production code yet. Next: the ATDD red phase after the
   user confirms D1, D2, D5, D7 and D9. Reviewer: Pending.
+
+## I2-29 - Story 2.4: decisions confirmed and the red phase committed without a review of the log  *(user decision)*
+- **Date / phase:** 2026-11-08, ATDD red phase of story 2.4 (Flow A).
+- **Prompt (intent):** "Confirmo, haz el cambio y comitea despues, la idea es ahorrar tokens asi que no me muestre nada". The user confirmed D1, D2, D5, D7
+  and D9 of I2-28 as written (including changing the 2.3 assertions that read `confirmed`, guide E.6) and waived the usual stop to review the red log.
+- **What the AI did:** wrote `tests/atdd/test_story_2_4.py` (36 cases), checked that the 32 failures are missing behaviour (a missing `ExecutorPort`
+  reported with `pytest.fail` and no chained import error, routes answering 404, `confirmed` where `executed` is expected), that the 4 passing cases are
+  regression guards and that the result is stable in four runs, and committed it. The log is `docs/evidence/impl2/red-2-4.log`.
+- **AI slips:** the first draft had a hand-written `force_state` with an expression that could not run as intended, a guard that built its fake result
+  through a roundabout `hasattr`, an assertion about the executor's call count written as a conditional, and a last case that tested only its own
+  imports; all were rewritten or deleted before the official run. The first official run also showed 14 chained `ImportError`s in the log; the helper now
+  fails with `pytrace=False` so the log holds only the assertion that states the missing behaviour.
+- **Outcome:** red committed. Next: Tasks 2 to 6 of the story. Reviewer: Juan (the confirmations and the waiver), Pending (the rest).

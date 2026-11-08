@@ -1,0 +1,293 @@
+FFF.FFFFFFFFFFFFFFFFFFFFFFFFFFFFF...                                     [100%]
+================================== FAILURES ===================================
+_______ test_the_annex_runs_to_executed_and_only_the_three_jobs_change ________
+tests\atdd\test_story_2_4.py:251: in test_the_annex_runs_to_executed_and_only_the_three_jobs_change
+    assert done.state == "executed"
+E   AssertionError: assert 'confirmed' == 'executed'
+E     
+E     - executed
+E     + confirmed
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:318 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+______ test_the_session_audit_tells_the_copilots_rows_from_the_executors ______
+tests\atdd\test_story_2_4.py:274: in test_the_session_audit_tells_the_copilots_rows_from_the_executors
+    assert [e["result_summary"]["tool_name"] for e in entries] == [
+E   AssertionError: assert ['toolcall.an...ispatch', ...] == ['toolcall.an...ispatch', ...]
+E     
+E     Right contains one more item: 'executor.dispatch'
+E     Use -v to get more diff
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:318 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+________ test_the_executor_takes_its_own_clock_read_for_its_timestamp _________
+cannot import name 'ExecutorPort' from 'src.ports.outbound' (D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\src\ports\outbound\__init__.py)
+
+During handling of the above exception, another exception occurred:
+src.ports.outbound.ExecutorPort does not exist yet
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:318 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+______________________ test_a_provider_port_cannot_write ______________________
+cannot import name 'ExecutorPort' from 'src.ports.outbound' (D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\src\ports\outbound\__init__.py)
+
+During handling of the above exception, another exception occurred:
+src.ports.outbound.ExecutorPort does not exist yet
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:318 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+____________ test_simultaneous_confirms_call_the_executor_once[2] _____________
+tests\atdd\test_story_2_4.py:339: in test_simultaneous_confirms_call_the_executor_once
+    assert {r.json()["state"] for r in replies} == {"executed"}
+E   AssertionError: assert {'confirmed'} == {'executed'}
+E     
+E     Extra items in the left set:
+E     'confirmed'
+E     Extra items in the right set:
+E     'executed'
+E     Use -v to get more diff
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:318 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+____________ test_simultaneous_confirms_call_the_executor_once[50] ____________
+tests\atdd\test_story_2_4.py:339: in test_simultaneous_confirms_call_the_executor_once
+    assert {r.json()["state"] for r in replies} == {"executed"}
+E   AssertionError: assert {'confirmed'} == {'executed'}
+E     
+E     Extra items in the left set:
+E     'confirmed'
+E     Extra items in the right set:
+E     'executed'
+E     Use -v to get more diff
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:318 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+__ test_a_sequential_replay_answers_the_persisted_proposal_and_adds_no_call ___
+cannot import name 'ExecutorPort' from 'src.ports.outbound' (D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\src\ports\outbound\__init__.py)
+
+During handling of the above exception, another exception occurred:
+src.ports.outbound.ExecutorPort does not exist yet
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:318 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+___________ test_the_dispatcher_forwards_exactly_the_frozen_request ___________
+cannot import name 'ExecutorPort' from 'src.ports.outbound' (D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\src\ports\outbound\__init__.py)
+
+During handling of the above exception, another exception occurred:
+src.ports.outbound.ExecutorPort does not exist yet
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:318 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_a_malformed_executor_request_is_400_and_applies_nothing[ref-mismatch] __
+tests\atdd\test_story_2_4.py:392: in test_a_malformed_executor_request_is_400_and_applies_nothing
+    assert response.status_code == 400
+E   assert 404 == 400
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:318 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+__ test_a_malformed_executor_request_is_400_and_applies_nothing[extra-field] __
+tests\atdd\test_story_2_4.py:392: in test_a_malformed_executor_request_is_400_and_applies_nothing
+    assert response.status_code == 400
+E   assert 404 == 400
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:318 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+____ test_a_malformed_executor_request_is_400_and_applies_nothing[no-ref] _____
+tests\atdd\test_story_2_4.py:392: in test_a_malformed_executor_request_is_400_and_applies_nothing
+    assert response.status_code == 400
+E   assert 404 == 400
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:318 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_an_item_that_is_no_longer_running_is_skipped_and_the_result_is_partial _
+tests\atdd\test_story_2_4.py:405: in test_an_item_that_is_no_longer_running_is_skipped_and_the_result_is_partial
+    assert confirm(client, first).json()["state"] == "executed"  # the three jobs are cancelled
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: assert 'confirmed' == 'executed'
+E     
+E     - executed
+E     + confirmed
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:318 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_an_executor_that_is_down_fails_the_proposal_safely_and_is_never_retried _
+cannot import name 'ExecutorPort' from 'src.ports.outbound' (D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\src\ports\outbound\__init__.py)
+
+During handling of the above exception, another exception occurred:
+src.ports.outbound.ExecutorPort does not exist yet
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:318 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+___________ test_the_executor_has_five_seconds_on_the_clock[4.999s] ___________
+cannot import name 'ExecutorPort' from 'src.ports.outbound' (D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\src\ports\outbound\__init__.py)
+
+During handling of the above exception, another exception occurred:
+src.ports.outbound.ExecutorPort does not exist yet
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:318 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+___________ test_the_executor_has_five_seconds_on_the_clock[5.000s] ___________
+cannot import name 'ExecutorPort' from 'src.ports.outbound' (D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\src\ports\outbound\__init__.py)
+
+During handling of the above exception, another exception occurred:
+src.ports.outbound.ExecutorPort does not exist yet
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:318 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+___________ test_the_executor_has_five_seconds_on_the_clock[5.001s] ___________
+cannot import name 'ExecutorPort' from 'src.ports.outbound' (D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\src\ports\outbound\__init__.py)
+
+During handling of the above exception, another exception occurred:
+src.ports.outbound.ExecutorPort does not exist yet
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:318 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_____ test_a_late_result_is_kept_by_the_executor_and_never_applied_twice ______
+cannot import name 'ExecutorPort' from 'src.ports.outbound' (D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\src\ports\outbound\__init__.py)
+
+During handling of the above exception, another exception occurred:
+src.ports.outbound.ExecutorPort does not exist yet
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:318 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_______ test_a_partial_apply_is_failed_and_the_502_body_is_the_proposal _______
+cannot import name 'ExecutorPort' from 'src.ports.outbound' (D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\src\ports\outbound\__init__.py)
+
+During handling of the above exception, another exception occurred:
+src.ports.outbound.ExecutorPort does not exist yet
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:318 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+____________ test_a_result_larger_than_the_scope_is_never_executed ____________
+cannot import name 'ExecutorPort' from 'src.ports.outbound' (D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\src\ports\outbound\__init__.py)
+
+During handling of the above exception, another exception occurred:
+src.ports.outbound.ExecutorPort does not exist yet
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:318 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_________ test_the_executor_refuses_a_proposal_that_was_not_confirmed _________
+tests\atdd\test_story_2_4.py:511: in test_the_executor_refuses_a_proposal_that_was_not_confirmed
+    assert response.status_code == 409 and response.json()["code"] == "PROPOSAL_STATE_INVALID"
+E   assert (404 == 409)
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:318 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_____________ test_the_executor_checks_the_token_and_the_proposal _____________
+tests\atdd\test_story_2_4.py:522: in test_the_executor_checks_the_token_and_the_proposal
+    assert wrong.status_code == 403 and wrong.json()["code"] == "GATE_TOKEN_INVALID"
+E   assert (404 == 403)
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:318 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_an_identical_executor_request_returns_the_stored_result_and_a_differing_one_conflicts _
+tests\atdd\test_story_2_4.py:536: in test_an_identical_executor_request_returns_the_stored_result_and_a_differing_one_conflicts
+    assert first.status_code == 200 and first.json()["applied_count"] == 3
+E   assert (404 == 200)
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:318 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_______ test_get_proposal_answers_the_persisted_proposal_in_every_state _______
+tests\atdd\test_story_2_4.py:552: in test_get_proposal_answers_the_persisted_proposal_in_every_state
+    assert listed.status_code == 200 and listed.json()["state"] == "dry_run"
+E   assert (404 == 200)
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:318 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+___________ test_the_read_routes_answer_404_for_an_unknown_proposal ___________
+tests\atdd\test_story_2_4.py:563: in test_the_read_routes_answer_404_for_an_unknown_proposal
+    assert response.status_code == 404 and response.json()["code"] == "PROPOSAL_NOT_FOUND"
+E   AssertionError: assert (404 == 404 and 'ENTITY_NOT_FOUND' == 'PROPOSAL_NOT_FOUND'
+E    +  where 404 = <Response [404 Not Found]>.status_code
+E     
+E     - PROPOSAL_NOT_FOUND
+E     + ENTITY_NOT_FOUND)
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:318 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_a_failed_proposal_is_re_dispatched_as_a_new_proposal_through_the_gate __
+cannot import name 'ExecutorPort' from 'src.ports.outbound' (D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\src\ports\outbound\__init__.py)
+
+During handling of the above exception, another exception occurred:
+src.ports.outbound.ExecutorPort does not exist yet
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:318 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_______________ test_a_partly_applied_parent_is_not_superseded ________________
+cannot import name 'ExecutorPort' from 'src.ports.outbound' (D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\src\ports\outbound\__init__.py)
+
+During handling of the above exception, another exception occurred:
+src.ports.outbound.ExecutorPort does not exist yet
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:318 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+___________ test_only_a_failed_parent_can_be_re_dispatched[dry_run] ___________
+tests\atdd\test_story_2_4.py:628: in test_only_a_failed_parent_can_be_re_dispatched
+    assert response.status_code == 409 and response.json()["code"] == "PROPOSAL_STATE_INVALID"
+E   assert (404 == 409)
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:318 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+__________ test_only_a_failed_parent_can_be_re_dispatched[executed] ___________
+tests\atdd\test_story_2_4.py:621: in test_only_a_failed_parent_can_be_re_dispatched
+    assert confirm(client, parent).json()["state"] == "executed"
+E   AssertionError: assert 'confirmed' == 'executed'
+E     
+E     - executed
+E     + confirmed
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:318 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_________ test_only_a_failed_parent_can_be_re_dispatched[superseded] __________
+cannot import name 'ExecutorPort' from 'src.ports.outbound' (D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\src\ports\outbound\__init__.py)
+
+During handling of the above exception, another exception occurred:
+src.ports.outbound.ExecutorPort does not exist yet
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:318 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+__________ test_re_dispatch_of_an_unknown_or_empty_parent_is_refused __________
+tests\atdd\test_story_2_4.py:635: in test_re_dispatch_of_an_unknown_or_empty_parent_is_refused
+    assert missing.status_code == 404 and missing.json()["code"] == "PROPOSAL_NOT_FOUND"
+E   AssertionError: assert (404 == 404 and 'ENTITY_NOT_FOUND' == 'PROPOSAL_NOT_FOUND'
+E    +  where 404 = <Response [404 Not Found]>.status_code
+E     
+E     - PROPOSAL_NOT_FOUND
+E     + ENTITY_NOT_FOUND)
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:318 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_a_failing_audit_write_while_recording_the_result_leaves_the_proposal_dispatched _
+tests\atdd\test_story_2_4.py:651: in test_a_failing_audit_write_while_recording_the_result_leaves_the_proposal_dispatched
+    assert response.status_code == 500 and response.json()["code"] == "AUDIT_WRITE_FAILED"
+E   assert (200 == 500)
+E    +  where 200 = <Response [200 OK]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:318 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+___________ test_every_contract_operation_but_the_runbook_is_served ___________
+tests\atdd\test_story_2_4.py:679: in test_every_contract_operation_but_the_runbook_is_served
+    assert missing == {("GET", "/api/v1/runbooks/{}")}
+E   AssertionError: assert {('DELETE', '...ons/{}'), ...} == {('GET', '/ap...runbooks/{}')}
+E     
+E     Extra items in the left set:
+E     ('GET', '/api/v1/state/{}')
+E     ('GET', '/api/v1/answers/{}/evidence')
+E     ('POST', '/api/v1/copilot/query')
+E     ('GET', '/api/v1/destructive/proposals/{}')
+E     ('GET', '/api/v1/sessions/{}/audit')...
+E     
+E     ...Full output truncated (13 lines hidden), use '-vv' to show
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:318 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+=========================== short test summary info ===========================
+FAILED tests/atdd/test_story_2_4.py::test_the_annex_runs_to_executed_and_only_the_three_jobs_change
+FAILED tests/atdd/test_story_2_4.py::test_the_session_audit_tells_the_copilots_rows_from_the_executors
+FAILED tests/atdd/test_story_2_4.py::test_the_executor_takes_its_own_clock_read_for_its_timestamp
+FAILED tests/atdd/test_story_2_4.py::test_a_provider_port_cannot_write - Fail...
+FAILED tests/atdd/test_story_2_4.py::test_simultaneous_confirms_call_the_executor_once[2]
+FAILED tests/atdd/test_story_2_4.py::test_simultaneous_confirms_call_the_executor_once[50]
+FAILED tests/atdd/test_story_2_4.py::test_a_sequential_replay_answers_the_persisted_proposal_and_adds_no_call
+FAILED tests/atdd/test_story_2_4.py::test_the_dispatcher_forwards_exactly_the_frozen_request
+FAILED tests/atdd/test_story_2_4.py::test_a_malformed_executor_request_is_400_and_applies_nothing[ref-mismatch]
+FAILED tests/atdd/test_story_2_4.py::test_a_malformed_executor_request_is_400_and_applies_nothing[extra-field]
+FAILED tests/atdd/test_story_2_4.py::test_a_malformed_executor_request_is_400_and_applies_nothing[no-ref]
+FAILED tests/atdd/test_story_2_4.py::test_an_item_that_is_no_longer_running_is_skipped_and_the_result_is_partial
+FAILED tests/atdd/test_story_2_4.py::test_an_executor_that_is_down_fails_the_proposal_safely_and_is_never_retried
+FAILED tests/atdd/test_story_2_4.py::test_the_executor_has_five_seconds_on_the_clock[4.999s]
+FAILED tests/atdd/test_story_2_4.py::test_the_executor_has_five_seconds_on_the_clock[5.000s]
+FAILED tests/atdd/test_story_2_4.py::test_the_executor_has_five_seconds_on_the_clock[5.001s]
+FAILED tests/atdd/test_story_2_4.py::test_a_late_result_is_kept_by_the_executor_and_never_applied_twice
+FAILED tests/atdd/test_story_2_4.py::test_a_partial_apply_is_failed_and_the_502_body_is_the_proposal
+FAILED tests/atdd/test_story_2_4.py::test_a_result_larger_than_the_scope_is_never_executed
+FAILED tests/atdd/test_story_2_4.py::test_the_executor_refuses_a_proposal_that_was_not_confirmed
+FAILED tests/atdd/test_story_2_4.py::test_the_executor_checks_the_token_and_the_proposal
+FAILED tests/atdd/test_story_2_4.py::test_an_identical_executor_request_returns_the_stored_result_and_a_differing_one_conflicts
+FAILED tests/atdd/test_story_2_4.py::test_get_proposal_answers_the_persisted_proposal_in_every_state
+FAILED tests/atdd/test_story_2_4.py::test_the_read_routes_answer_404_for_an_unknown_proposal
+FAILED tests/atdd/test_story_2_4.py::test_a_failed_proposal_is_re_dispatched_as_a_new_proposal_through_the_gate
+FAILED tests/atdd/test_story_2_4.py::test_a_partly_applied_parent_is_not_superseded
+FAILED tests/atdd/test_story_2_4.py::test_only_a_failed_parent_can_be_re_dispatched[dry_run]
+FAILED tests/atdd/test_story_2_4.py::test_only_a_failed_parent_can_be_re_dispatched[executed]
+FAILED tests/atdd/test_story_2_4.py::test_only_a_failed_parent_can_be_re_dispatched[superseded]
+FAILED tests/atdd/test_story_2_4.py::test_re_dispatch_of_an_unknown_or_empty_parent_is_refused
+FAILED tests/atdd/test_story_2_4.py::test_a_failing_audit_write_while_recording_the_result_leaves_the_proposal_dispatched
+FAILED tests/atdd/test_story_2_4.py::test_every_contract_operation_but_the_runbook_is_served
+32 failed, 4 passed in 2.53s
