@@ -4,7 +4,7 @@ baseline_commit: 3054c0a
 
 # Story 2.4: Propose-only handoff, simulated executor and executor-failure safety
 
-Status: review
+Status: done
 
 <!-- Impl-2 Flow A (ATDD-first), Annex 12.4, last of four stories (2-1 .. 2-4). The red phase is
      recorded BEFORE any production code. This story completes the Annex: after the confirm claim the
@@ -220,3 +220,15 @@ Code review of `3054c0a..627b43d` (2026-11-08): Blind Hunter, Edge Case Hunter a
 Dismissed (2): the executor GET answers the result of any proposal id, which is not secret and is now unguessable; the simulated latency advances the shared fake clock, which is only the simulator.
 
 Mutation check of the patch: ids sequential again, an id of the wrong width and a token of the wrong width - three mutants, all killed (`pytest` 2052 passed, branch coverage of `src` 97.7%).
+
+#### Test-trap audit (D.4, 2026-11-08)
+
+- **Ice Cream Cone:** no. The 47 API cases (36 of the ATDD, 11 of the routes) sit on 51 unit cases of the rules, the simulated executor and the dispatcher (every collaborator failing in turn), on the integration cases of the new store transitions on the real schema (memory and file databases) and of migration 002 (all 42 ordered pairs of states), and on the adapted unit cases of the confirmation. The scope classification, the 5 s rule and each verb's effect are pinned by unit cases; the API confirms the wiring and the contract.
+- **Flaky Sleeper:** no. 0 sleeps and 0 wall-clock reads in the new test files: the executor's latency is simulated on the fake clock, the hammers wait on a `Barrier`, and the ATDD passes three runs in a row (`flow-a-2-4-atdd-x3.log`). The cases assert sets, counts and states, never which request won.
+- **Mocking Mirage:** no. The ATDD runs the real app on a file database. Its doubles are at outbound ports only: a switch on `SimJobs.select`, a `SqliteAuditStore.append` that fails on its Nth call and the simulated executor's own controls (`down`, `delay_seconds`, `apply_only`, `extra_applied`), which are the executor, not a mock of it. The unit doubles each replace one collaborator by a failing one against a healthy control.
+- **Blindly Green:** 21 mutants, all killed on the first run: the 18 of the story and 3 of the review patch. Two blind spots of my own were found by running the suite against the real app, not by the mutants: a helper that could not see FastAPI's included routers (so a case could never pass and its guard passed on an empty set) and a miscounted audit row, both corrected with the user's approval (I2-32); and the readable-token-behind-a-guessable-id flaw (I2-33), which no test of the story could have caught because it is a property of the system, found only by a probe.
+- **What can only fail if the code gains a write path:** the "estate unchanged" comparisons after a dry-run, a stale confirm and an executor that is down, and the static check that no provider port has a write method. The active proofs are the cases that read the three CS-101 jobs after the confirm and the executor row of the audit.
+
+#### Closure (D.5, 2026-11-08)
+
+Final gate: `pytest` all passed, branch coverage of `src` above 97%, `ruff check .` clean, `schema_check` PASS, both `dto.py` copies and both `sprint-status.yaml` copies identical. Log: `docs/evidence/impl2/flow-a-2-4-review-coverage.log`. Status -> done. With 2.1 to 2.4 done, epic 2 is done; its retrospective stays optional.

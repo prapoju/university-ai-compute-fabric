@@ -1243,3 +1243,16 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 - **AI slip:** story 2.4 added a read route that returns the secret of a proposal without asking whether the identifier that unlocks it was guessable; the
   2.2 design (D9) had chosen counter ids for reproducibility and the 2.3 review had checked token entropy only.
 - **Outcome:** fixes in `7d283cf` and the follow-up commit; D-1 and D-2 go to `deferred-work.md`. Reviewer: Juan (approved), Pending (the rest).
+
+## I2-34 - Story 2.4 closed, and with it epic 2: trap audit and the evidence it rests on  *(AI audit, reviewer pending)*
+- **Date / phase:** 2026-11-08, D.4 and D.5 of story 2.4 (Flow A).
+- **Prompt (intent):** the user asked to continue after the review fix, without intermediate output.
+- **What the AI checked:** the four traps over the new test files. No Ice Cream Cone (47 API cases over 51 unit cases and the integration cases of the store,
+  the migration and the transitions), no Flaky Sleeper (0 sleeps, simulated latency, a `Barrier` for the hammers, the ATDD stable in three runs), no
+  Mocking Mirage (real app on a file database, doubles only at outbound ports, unit doubles that fail one collaborator at a time against a healthy
+  control), Blindly Green handled by 21 mutants.
+- **AI slips kept on record:** the red file's miscount and its route helper blind to included routers (I2-32), found only when the routes existed; the
+  guessable proposal id behind a readable token (I2-33), found by a probe of the real app, not by any test; the migration trigger that made `superseded`
+  unreachable (I2-30); one commit message with a wrong test count (`c8af915` says 2000, the run was 1985).
+- **Outcome:** story 2.4 and epic 2 are `done` in the story file and in both `sprint-status.yaml` copies (the epic retrospective stays optional). Next
+  in the plan: story 1-6 (k6 and the concurrent diagnostics), 3-3, 1-7. Reviewer: Pending.
