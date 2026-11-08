@@ -326,7 +326,7 @@ def test_the_tool_call_ids_are_minted_in_fixed_order_under_both_completion_order
 
 
 # -- AC 2: a fan-out past its wall budget is the typed 503, with no partial evidence -----------
-def test_a_fan_out_past_its_wall_budget_returns_provider_unavailable_503(
+def test_a_fan_out_past_its_budget_checks_status_code_and_clock_count(
     tmp_path: Path, gate: Gate, clock_reads: list[int]
 ) -> None:
     app = app_on(tmp_path, tool_fanout_budget_seconds="0.2")
