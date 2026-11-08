@@ -83,7 +83,7 @@ development_status:
   2-1-destructive-intent-classification-and-refusal: done
   2-2-dry-run-snapshot-with-selector-predicate-and-affected-items: done
   2-3-procedural-confirmation-gate-and-snapshot-re-validation: done
-  2-4-propose-only-handoff-simulated-executor-and-executor-failure-safety: in-progress
+  2-4-propose-only-handoff-simulated-executor-and-executor-failure-safety: review
   epic-2-retrospective: optional
 
   epic-3: in-progress

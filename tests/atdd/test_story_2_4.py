@@ -428,7 +428,7 @@ def test_an_executor_that_is_down_fails_the_proposal_safely_and_is_never_retried
         assert stored["state"] == "failed" and stored["executor_result"] is None
         assert stored["confirmation"]["confirmed_at"] == CLOCK  # the proposal line is preserved
         assert stored["dry_run_snapshot"] == proposal["dry_run_snapshot"]
-        assert [e["actor"] for e in audit(client, proposal["session_id"])] == ["copilot"] * 8
+        assert [e["actor"] for e in audit(client, proposal["session_id"])] == ["copilot"] * 7
         assert estate(client) == before
         clock(client).advance(minutes=10)
         executor(client).down = False
@@ -657,12 +657,25 @@ def test_a_failing_audit_write_while_recording_the_result_leaves_the_proposal_di
 
 
 # -- AC 15: the contract surface is complete ------------------------------------------------------
+def flatten(routes, prefix: str = ""):
+    """Every concrete route, descending into the routers FastAPI wraps when they are included."""
+    for route in routes:
+        nested = getattr(route, "original_router", None)
+        if nested is not None:
+            context = getattr(getattr(route, "include_context", None), "prefix", "") or ""
+            yield from flatten(nested.routes, prefix + context)
+        elif hasattr(route, "methods"):
+            yield prefix + route.path, route.methods
+
+
 def served_operations(client: TestClient) -> set[tuple[str, str]]:
-    served = set()
-    for route in client.app.routes:
-        for method in getattr(route, "methods", None) or ():
-            if method in {"GET", "POST", "PUT", "PATCH", "DELETE"}:
-                served.add((method, re.sub(r"\{[^}]+\}", "{}", route.path)))
+    served = {
+        (method, re.sub(r"\{[^}]+\}", "{}", path))
+        for path, methods in flatten(client.app.routes)
+        for method in methods
+        if method in {"GET", "POST", "PUT", "PATCH", "DELETE"}
+    }
+    assert ("POST", "/api/v1/copilot/chat") in served  # the helper really sees the routes
     return served
 
 
@@ -686,7 +699,7 @@ def test_regression_guard_no_mutating_route_outside_the_two_prefixes(tmp_path: P
             if method in {"POST", "PUT", "PATCH", "DELETE"}
         }  # fmt: skip
         allowed = ("/api/v1/destructive/", "/executor/v1/", "/api/v1/sessions", "/api/v1/copilot/")
-        assert all(p.startswith(allowed) for p in mutating), sorted(mutating)
+        assert mutating and all(p.startswith(allowed) for p in mutating), sorted(mutating)
 
 
 # -- AC 16: regression guards (pass today, must not be edited) ------------------------------------

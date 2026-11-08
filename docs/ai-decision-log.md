@@ -1209,3 +1209,17 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
   not 14) and once on an import anchor that the formatter had changed; each time nothing had been written and the script was corrected, not the tests.
   The message of commit `c8af915` says `pytest 2000 passed`; the run was 1985.
 - **Outcome:** Task 4 commit carries the adaptation. Reviewer: Juan (approved D1), Pending (the rest).
+
+## I2-32 - Story 2.4: two cases of the committed ATDD were wrong about themselves  *(AI-written tests corrected, user approved)*
+- **Date / phase:** 2026-11-08, `bmad-dev-story` Task 5 of story 2.4, at the first full run with the routes in place (guide E.6: stop and ask).
+- **Prompt (intent):** "Ok, aplica las correcciones" after the AI listed the two cases and the fix of each.
+- **What was wrong, and the fix:** (1) `test_an_executor_that_is_down_...` expected `["copilot"] * 8` audit rows; the dry-run leaves 5, the confirm head and its
+  re-validation read make 7, and the executor, which never answered, writes none; it now expects 7 and still demands that every row is `copilot`. (2) The
+  helper `served_operations` walked `app.routes`, but FastAPI wraps an included router in `_IncludedRouter`, so the helper saw no route at all: the case
+  `test_every_contract_operation_but_the_runbook_is_served` could never have passed and its sibling guard `no_mutating_route_outside_the_two_prefixes` passed
+  on an empty set. The helper now descends into the wrapper like `tests/api/test_contract_routes.py` does, asserts that it really sees `POST /copilot/chat`,
+  and the guard also asserts that the set of mutating routes is not empty. Both now fail if the code is wrong; nothing was loosened.
+- **AI slips:** both defects were mine: a miscount, and a helper I had not exercised against the real app before committing the red phase (I had checked
+  only that the failures were missing behaviour, not that the two cases could ever pass). The red log `red-2-4.log` records the red state of the file at
+  commit `db44749`; the file differs from it only by these two corrections, so its green evidence is `flow-a-2-4-atdd-x3.log`.
+- **Outcome:** 36 of 36 cases pass three times in a row. Reviewer: Juan (approved), Pending (the rest).
