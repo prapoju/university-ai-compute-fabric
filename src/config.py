@@ -14,6 +14,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
+from src.domain.fanout import DEFAULT_FANOUT_BUDGET_SECONDS
 from src.domain.instants import is_instant
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -39,6 +40,8 @@ class Settings(BaseModel):
     audit_retention_cap: int = Field(10_000, ge=1)
     # Annex 12.4 / impl2-rules: a gate token lives 60 s from the dry-run snapshot, configurable
     gate_token_ttl_seconds: int = Field(60, ge=1)
+    # story 1.6 (log I2-35): wall-time budget of the parallel read fan-out of one turn
+    tool_fanout_budget_seconds: float = Field(DEFAULT_FANOUT_BUDGET_SECONDS, gt=0)
 
     @field_validator("fixtures_dir", "migrations_dir", "db_path", mode="before")
     @classmethod

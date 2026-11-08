@@ -41,6 +41,7 @@ from src.application.dry_run_service import DryRunService
 from src.application.entity_resolver import EntityResolver
 from src.application.evidence_assembler import EvidenceAssembler
 from src.application.evidence_service import EvidenceService
+from src.application.parallel_reads import ParallelReads
 from src.application.pipeline import AnswerPipeline
 from src.application.proposal_dispatcher import ProposalDispatcher
 from src.application.proposal_service import ProposalService
@@ -193,6 +194,7 @@ def build_container(settings: Settings) -> Container:
     # Every provider port is wrapped once, so each read made during a turn is a recorded tool call
     # (FR-11, D3, D4); the wrapped instances are the ones every consumer and the registry receive.
     recorder = ToolCallRecorder()
+    reads = ParallelReads(budget_seconds=settings.tool_fanout_budget_seconds, recorder=recorder)
     raw_ports = providers.as_ports()
     ports: dict[type, object] = {
         port_type: audited(port_type, raw_ports[port_type], name=name, recorder=recorder)
@@ -210,7 +212,7 @@ def build_container(settings: Settings) -> Container:
         ACCESS_DENIAL_INTENT,
         AccessDenialHandler(
             resolver=EntityResolver(users=users, catalog=catalog, policy=policy),
-            assembler=EvidenceAssembler(policy=policy, events=event_store),
+            assembler=EvidenceAssembler(policy=policy, events=event_store, reads=reads),
             prose=prose,
             idgen=idgen,
         ),

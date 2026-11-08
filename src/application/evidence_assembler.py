@@ -1,13 +1,16 @@
 """Provider reads for the access-denial diagnosis (AD-1: read-only, AD-12: all or nothing).
 
-Fetches the policy clauses of the model and the user's recent ``access_denied`` events. Any
-provider failure aborts the turn: a diagnosis is never built from partial evidence.
+Fetches the policy clauses of the model and the user's recent ``access_denied`` events. The two
+reads are independent, so they fan out in parallel (story 1.6); their results come back in the
+fixed order (policy, events). Any provider failure aborts the turn: a diagnosis is never built
+from partial evidence.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
+from src.application.parallel_reads import ParallelReads
 from src.domain.instants import add_seconds
 from src.domain.result import Failure, Ok, Result, is_failure
 from src.dto import (
@@ -30,16 +33,20 @@ class DenialRecords:
 
 
 class EvidenceAssembler:
-    def __init__(self, *, policy: PolicyPort, events: EventStorePort) -> None:
+    def __init__(
+        self,
+        *,
+        policy: PolicyPort,
+        events: EventStorePort,
+        reads: ParallelReads | None = None,
+    ) -> None:
         self._policy = policy
         self._events = events
+        self._reads = ParallelReads() if reads is None else reads
 
     def gather(
         self, user: UserRecordDTO, model: ModelCatalogEntryDTO, now: ClockReadDTO
     ) -> Result[DenialRecords]:
-        clauses = self._policy.for_model(model.id)
-        if is_failure(clauses):
-            return clauses
         try:
             window = EventWindow(
                 add_seconds(now.instant, -LOOK_BACK_SECONDS),
@@ -47,10 +54,16 @@ class EvidenceAssembler:
             )
         except (OverflowError, ValueError) as exc:  # a clock at the edge of the calendar
             return Failure("PROVIDER_UNAVAILABLE", observed=(f"event window: {exc}",))
-        events = self._events.query(user.id, "access_denied", window)
-        if is_failure(events):
-            return events
-        return Ok(DenialRecords(tuple(clauses.value), tuple(events.value)))
+        outcome = self._reads.run(
+            (
+                lambda: self._policy.for_model(model.id),
+                lambda: self._events.query(user.id, "access_denied", window),
+            )
+        )
+        if is_failure(outcome):
+            return outcome
+        clauses, events = outcome.value
+        return Ok(DenialRecords(tuple(clauses), tuple(events)))
 
 
 __all__ = ["LOOK_BACK_SECONDS", "DenialRecords", "EvidenceAssembler"]
