@@ -99,8 +99,11 @@ class ToolCallRecorder:
         """
 
         def run() -> T:
-            self._calls.set(lane)
-            return read()
+            token = self._calls.set(lane)  # pool threads are reused: reset when the read ends
+            try:
+                return read()
+            finally:
+                self._calls.reset(token)
 
         return run
 

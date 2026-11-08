@@ -1,20 +1,23 @@
-"""The parallel read fan-out of one turn (story 1.6; review D-2.1 to D-2.6, log I2-35).
+"""The parallel read fan-out of one turn (story 1.6; review D-2.1 to D-2.6, log I2-35, I2-39).
 
-Independent read-only tool calls run concurrently. Each read runs in a worker thread, inside its
-own recorder lane. ``run`` returns the values in argument order, so evidence positions, the audit
-rows and the reported failure never depend on completion order. The budget is wall time
-(``asyncio.timeout``), never a Clock-port read, so a turn still makes exactly one clock read.
+Independent read-only tool calls run concurrently, each in a worker thread of one shared, bounded
+pool, inside its own recorder lane. ``run`` returns the values in argument order, so evidence
+positions, the audit rows and the reported failure never depend on completion order.
 
-Constraint: ``run`` calls ``asyncio.run``, so it must be called from a thread that has no running
-event loop. The routes that reach it are sync ``def`` handlers, and a route audit test pins that.
+The budget is wall time: ``run`` waits for the reads with ``concurrent.futures.wait(timeout)`` and
+answers ``PROVIDER_UNAVAILABLE`` (503) at the budget, even when a read is still running. A read
+that finishes after the budget never records into the turn, the audit or the evidence: the lanes
+are settled only when every read finished in time. A read that is still running keeps its pool
+slot until it returns. When no slot is free, the turn is refused at once and nothing is queued.
 
 Pure application ring: stdlib, the recorder and the domain result only (R3).
 """
 
 from __future__ import annotations
 
-import asyncio
+import threading
 from collections.abc import Callable, Sequence
+from concurrent.futures import Future, ThreadPoolExecutor, wait
 from typing import Any
 
 from src.application.tool_audit import RecordedCall, ToolCallRecorder
@@ -23,6 +26,39 @@ from src.domain.result import Failure, Ok, Result, is_failure
 
 UNAVAILABLE = "PROVIDER_UNAVAILABLE"
 BUDGET_OBSERVED = "fan-out budget exceeded"
+POOL_FULL_OBSERVED = "fan-out pool is full"
+
+# Two reads per turn, and anyio runs at most 40 sync route handlers at once (its default thread
+# limit), so at most 80 reads are in flight from the request threads. 50 operators therefore never
+# find the pool full; a full pool means reads are still hung, and the turn is refused at once.
+FANOUT_SLOTS = 80
+
+
+class FanoutPool:
+    """Worker threads for the reads, with one slot per read that is still running."""
+
+    def __init__(self, size: int) -> None:
+        self.size = size
+        self._executor = ThreadPoolExecutor(max_workers=size, thread_name_prefix="m12-fanout")
+        self._slots = threading.BoundedSemaphore(size)
+
+    def claim(self, count: int) -> bool:
+        """Take ``count`` slots without blocking; all or none."""
+        for claimed in range(count):
+            if not self._slots.acquire(blocking=False):
+                for _ in range(claimed):
+                    self._slots.release()
+                return False
+        return True
+
+    def submit(self, call: Callable[[], Result[Any]]) -> Future[Result[Any]]:
+        """Run ``call`` on a worker; the slot taken by ``claim`` comes back when it returns."""
+        future = self._executor.submit(call)
+        future.add_done_callback(lambda _finished: self._slots.release())
+        return future
+
+
+SHARED_POOL = FanoutPool(FANOUT_SLOTS)
 
 
 class ParallelReads:
@@ -31,39 +67,37 @@ class ParallelReads:
         *,
         budget_seconds: float = DEFAULT_FANOUT_BUDGET_SECONDS,
         recorder: ToolCallRecorder | None = None,
+        pool: FanoutPool = SHARED_POOL,
     ) -> None:
         self._budget = budget_seconds
         self._recorder = recorder
+        self._pool = pool
 
     def run(self, reads: Sequence[Callable[[], Result[Any]]]) -> Result[list[Any]]:
         """The values of ``reads`` in argument order, or the first failure in argument order.
 
-        A read that raises becomes a ``PROVIDER_UNAVAILABLE`` failure (AD-12). A fan-out past the
-        budget is ``PROVIDER_UNAVAILABLE`` too. No partial evidence is returned in either case.
+        A read that raises becomes a ``PROVIDER_UNAVAILABLE`` failure (AD-12). A fan-out still
+        running at the budget, or a full pool, is ``PROVIDER_UNAVAILABLE`` too. No partial
+        evidence is returned, and nothing from a read that outlives the turn is recorded.
         """
+        if not self._pool.claim(len(reads)):
+            return Failure(UNAVAILABLE, observed=(POOL_FULL_OBSERVED,))
         lanes: list[list[RecordedCall]] = [[] for _ in reads]
-        try:
-            outcomes = asyncio.run(self._fan_out(reads, lanes))
-        except TimeoutError:
+        futures = [
+            self._pool.submit(self._in_lane(read, lane))
+            for read, lane in zip(reads, lanes, strict=True)
+        ]
+        finished, pending = wait(futures, timeout=self._budget)
+        if pending:
+            # the late reads write into their lanes, which are never settled into the turn
             return Failure(UNAVAILABLE, observed=(BUDGET_OBSERVED,))
-        finally:
-            if self._recorder is not None:
-                self._recorder.settle(lanes)
+        outcomes = [future.result() for future in futures]
+        if self._recorder is not None:
+            self._recorder.settle(lanes)
         for outcome in outcomes:
             if is_failure(outcome):
                 return outcome
         return Ok([outcome.value for outcome in outcomes])
-
-    async def _fan_out(
-        self, reads: Sequence[Callable[[], Result[Any]]], lanes: list[list[RecordedCall]]
-    ) -> list[Result[Any]]:
-        async with asyncio.timeout(self._budget):
-            return await asyncio.gather(
-                *(
-                    asyncio.to_thread(self._in_lane(read, lane))
-                    for read, lane in zip(reads, lanes, strict=True)
-                )
-            )
 
     def _in_lane(
         self, read: Callable[[], Result[Any]], lane: list[RecordedCall]

@@ -1288,3 +1288,20 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 - **What the user decided:** the regex change approved. The message change was made to pass the scan, and it is recorded here so the change is visible.
 - **Check run:** the CI banned-waits pattern, run locally on `src` and `tests`, returns nothing. The ATDD file still passes (12 cases).
 - **Reviewer:** Julio.
+
+## I2-39 - Story 1.6 review F-1: the wall budget must return at the budget, so the fan-out moves to a bounded shared pool  *(change of mechanism versus I2-35, user decision, Reviewer: Julio)*
+- **Date / phase:** 2026-11-08, code review of story 1.6, finding F-1 (high).
+- **What was wrong:** the fan-out ran `asyncio.run` per turn. `asyncio.run` waits for its worker threads when it exits, so a read that hangs made the 503 wait too. A probe with a 0.2 s budget and a read blocked for 3 s answered after 3.01 s. The budget bounded the wait, not the response.
+- **What changed (versus I2-35):** the route stays sync `def` and the budget stays 0.5 s. The mechanism changes. The reads run on one module-level `ThreadPoolExecutor` shared by all turns. `concurrent.futures.wait(timeout=budget)` returns at the budget, and then the turn answers `PROVIDER_UNAVAILABLE` (503). The per-turn event loop and thread pool are gone.
+- **Pool size: 80 slots.** Each turn runs two reads. anyio runs at most 40 sync route handlers at once (its default thread limit), so at most 80 reads are in flight from the request threads. 50 operators therefore never find the pool full. The other 10 wait in anyio, as they do today.
+- **Full pool:** a turn that cannot claim all its slots is refused at once with 503. Nothing is queued behind hung reads.
+- **Late reads:** a read that finishes after the budget writes only into its own lane. The lanes are settled into the turn only when every read finished in time, so a late read never reaches the audit or the evidence. A running read keeps its slot until it returns.
+- **Trade-offs recorded:** a hung provider holds its slots until it returns. Pool threads are not daemon threads, so the process waits for them at exit. The second point is accepted; the first is bounded by the pool size.
+- **Reviewer:** Julio.
+
+## I2-40 - Story 1.6 review F-1: a unit rig built the fan-out without its recorder, and the reads' audit rows were lost  *(AI-written test wiring corrected, user approved with F-1, Reviewer: Julio)*
+- **Date / phase:** 2026-11-08, F-1 of the code review of story 1.6.
+- **What was wrong:** the audited S1 rig in `tests/unit/test_session_service.py` built `EvidenceAssembler` without a recorder. Under asyncio the reads inherited the turn's context, so their audit rows were recorded. Pool threads do not inherit the context, so with I2-39 those two rows were lost. The app's own wiring already passed the recorder, so only the unit rig was affected.
+- **What changed:** the rig now passes `reads=ParallelReads(recorder=rig.recorder)`, the same wiring as `bootstrap.py`. No assertion changed.
+- **Open hazard, recorded:** `ParallelReads()` without a recorder silently drops the reads' audit rows. The default is kept only so existing unit doubles construct. Removing the default is a separate change, not part of this fix.
+- **Reviewer:** Julio.
