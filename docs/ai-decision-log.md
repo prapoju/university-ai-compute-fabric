@@ -1114,3 +1114,17 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
   to M-L but it stays one story because the gate cannot be tested without all of them.
 - **Outcome:** story 2.3 is `ready-for-dev` in both `sprint-status.yaml` copies. No test or production code yet. Next: the ATDD red phase after
   the user confirms D1 and D6. Reviewer: Juan (D2), Pending (the rest).
+
+## I2-26 - Code review of story 2.3: a rejected confirmation left no trace  *(AI code corrected, user approved)*
+- **Date / phase:** 2026-11-08, `bmad-code-review` of story 2.3 (Flow A), before the D.4 trap audit.
+- **Prompt (intent):** "Si" to apply P-1 and to record D-1 and D-2.
+- **What the review found (probed on the real app):** 20 wrong-token confirmations left the session audit at 5 rows and the application log empty.
+  The confirmation writes audit rows only for the winner (decision D7, applied by the AI and not discussed with the user), so a client could probe
+  gate tokens without any evidence. The window between the re-validation and the claim is inherent in the contract's order, and the stale delta has
+  no upper bound.
+- **Decision:** a rejected confirmation still writes no audit row, but it logs one warning with the proposal id (`%r`, 64 characters) and the code,
+  never the token. D-1 (the window: story 2-4's executor applies only the referenced snapshot's items and re-validates) and D-2 (the unbounded delta)
+  go to `deferred-work.md`.
+- **AI slip:** D7 chose "no audit row for a rejection" for consistency with 2.2 without weighing that a confirmation, unlike a dry-run, is a
+  security-relevant attempt. The commit message of `6d70e5d` says `pytest 1932 passed`; the run was 1933 (a message slip, the code is right).
+- **Outcome:** fix in `6d70e5d`; Review Findings added to the story; the story stays in `review` until the D.4 audit and the D.5 closure. Reviewer: Juan.

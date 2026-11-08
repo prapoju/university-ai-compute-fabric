@@ -196,3 +196,15 @@ Claude Sonnet 5.5 (`claude-sonnet-5-5`), Claude Code, `bmad-create-story`, `bmad
 - 2026-11-08: D1 and D6 confirmed by the user; the red phase was recorded and confirmed.
 
 - 2026-11-08: Story created (`bmad-create-story`). Status -> ready-for-dev. D2 (the derived expiry) was decided by the user; D1 and D6 wait for the user before the red phase.
+
+### Review Findings
+
+Code review of `4e8f902..9a54b2d` (2026-11-08): Blind Hunter, Edge Case Hunter and Acceptance Auditor run in sequence by the reviewer (no subagents, none authorised), over 11 files of production and contract and 480 added lines. All 14 acceptance criteria hold, each with an ATDD case or a unit or API case of its own, and the 14 mutants of the story confirm it. No wall-clock read in the new code (the only `datetime` import is `timedelta`). One probe was run against the real app before reporting.
+
+- [x] [Review][Patch] P-1 (low): a rejected confirmation left no trace. 20 wrong-token attempts left the audit at 5 rows and the application log empty, so a client could probe tokens unseen. A rejection still writes no audit row (D7, as in 2.2), but the six rejection codes now log one warning with the proposal id (escaped with `%r`, cut at 64 characters) and the code, never the token; a success, a replay and a provider failure log nothing [src/application/confirmation_service.py] - fixed in `6d70e5d`
+- [x] [Review][Defer] D-1 (low): there is a window between the re-validation and the claim; story 2-4 must make the executor apply only the referenced snapshot's items and re-validate at dispatch [`deferred-work.md`]
+- [x] [Review][Defer] D-2 (low): the delta text of `CONFIRMATION_STALE` has no upper bound; not reachable with 32 nodes and 9 jobs [`deferred-work.md`]
+
+Dismissed (3): the audit ids minted and unused by the losers of a race leave gaps in the sequence (described in D7, harmless); the wording `Snapshot stale: token expired: ...` comes from the fixed catalog template; the "confirm first or change first" cases are sequential, not gated, as D10 says.
+
+Mutation check of the patch: no log line, no escaping, the token logged and a success logged - four mutants, all killed (`pytest` 1933 passed, branch coverage of `src` 97.66%).
