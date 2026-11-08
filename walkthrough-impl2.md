@@ -71,7 +71,7 @@ row was decided before the code was written and is not reopened here.
 | Flow | Strategy | Applied to | Evidence |
 |---|---|---|---|
 | A | ATDD-first: red tests committed before production code | 2-1, 2-2, 2-3, 2-4 (12.4), 1-6, 1-7 | red logs in section 4 |
-| B | Test-along: code and tests in the same commit | 1-4, 1-5, 4-2, 3-3 (12.6 backend), 1-7 review | `docs/evidence/impl2/flow-b-*.log` |
+| B | Test-along: code and tests in the same commit | 1-4, 1-5, 4-2, 3-3 (12.6 backend), 1-7 review | `docs/evidence/impl2/flow-b-1-4-coverage.log`, `flow-b-1-5-coverage.log`, `flow-b-4-2-coverage.log`, `flow-b-3-3-review-coverage.log` |
 | C | Test-after: harden what exists | 3-1, 4-1 | `docs/evidence/impl2/flow-c-coverage.log` |
 | D | Quality gate (NFR): k6 with real thresholds | 1-6 (12.5) | section 6 |
 | E | Playwright E2E with Page Object Model and `trace.zip` | 1-7 (12.6) | section 7 |
@@ -203,7 +203,7 @@ Counts from `pytest --collect-only` and the Playwright and k6 files on this comm
 | ATDD | `tests/atdd/` | 207 | 9.6 % | 20 % (with the two above) | real app, red-then-green suites |
 | E2E | `tests/e2e/` (Playwright) | 3 | 0.1 % | 10 % | see deviation |
 | NFR | `tests/nfr/` (k6 scripts) | 2 | 0.1 % | separate layer | iterations: 1000 + 1000 |
-| Other | `tests/*.py` root | 3 | 0.1 % | n/a | |
+| Other | root files of `tests/` (not in a layer folder) | 3 | 0.1 % | n/a | |
 
 Integration, API and ATDD together are 31.1 %, against 20 % in the target. Unit is 68.5 %, against 70 %. Browser tests are
 0.1 % of cases, against 10 %.
