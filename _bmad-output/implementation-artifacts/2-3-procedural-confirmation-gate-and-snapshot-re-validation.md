@@ -4,7 +4,7 @@ baseline_commit: 4e8f902
 
 # Story 2.3: Procedural confirmation gate and snapshot re-validation
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Impl-2 Flow A (ATDD-first), Annex 12.4, third of four stories (2-1 .. 2-4). The red phase is
      recorded BEFORE any production code. This story builds the confirmation gate: a distinct
@@ -47,9 +47,9 @@ Source: `planning/epics.md` Story 2.3, `test/test-design.md` section 6.3.3, `doc
   - [ ] 1.1 Write `tests/atdd/test_story_2_3.py` against the real app on a file database, one case per row of "ATDD cases" below. No `skip`, no `xfail`; ruff before the official run.
   - [ ] 1.2 Run `pytest tests/atdd/test_story_2_3.py -q --tb=short 2>&1 | tee docs/evidence/impl2/red-2-3.log`, check that every failure is missing behaviour (not an import, fixture or syntax error), label the cases that already pass as regression guards, show the log and **wait for the user** before committing. No production code before that commit.
   - [ ] 1.3 Write the ATDD checklist `_bmad-output/test-artifacts/atdd-checklist-2-3-procedural-confirmation-gate-and-snapshot-re-validation.md`.
-- [ ] **Task 2: Proposal store reads and the claim** (AC: 1, 4, 9, 10) -> `feat(story-2.3): proposal store get and the conditional claim`
-  - [ ] 2.1 `ProposalStorePort.get(proposal_id)` (a miss is `Ok(None)`) rebuilding the `ProposalDTO` (confirmation from `confirmed_at` + `S_CAP`, executor result from its columns) and `claim(proposal_id, gate_token, confirmed_at)` as the single statement `UPDATE ... SET state='confirmed', confirmed_at, updated_at WHERE proposal_id = ? AND state = 'dry_run' AND gate_token = ?`, answering whether a row changed. `SqliteProposalStore` joins the caller's transaction. Update the owned-port method set in `tests/unit/test_ports_query_only.py`.
-  - [ ] 2.2 Integration tests on the real schema: round trip of a `dry_run` and a `confirmed` row, the claim wins once and loses afterwards, the claim with another token or on another state changes nothing, a closed connection is a typed failure, the state-machine trigger still blocks an illegal jump.
+- [x] **Task 2: Proposal store reads and the claim** (AC: 1, 4, 9, 10) -> `feat(story-2.3): proposal store get and the conditional claim`
+  - [x] 2.1 `ProposalStorePort.get(proposal_id)` (a miss is `Ok(None)`) rebuilding the `ProposalDTO` (confirmation from `confirmed_at` + `S_CAP`, executor result from its columns) and `claim(proposal_id, gate_token, confirmed_at)` as the single statement `UPDATE ... SET state='confirmed', confirmed_at, updated_at WHERE proposal_id = ? AND state = 'dry_run' AND gate_token = ?`, answering whether a row changed. `SqliteProposalStore` joins the caller's transaction. Update the owned-port method set in `tests/unit/test_ports_query_only.py`.
+  - [x] 2.2 Integration tests on the real schema: round trip of a `dry_run` and a `confirmed` row, the claim wins once and loses afterwards, the claim with another token or on another state changes nothing, a closed connection is a typed failure, the state-machine trigger still blocks an illegal jump.
 - [ ] **Task 3: Pure confirmation rules** (AC: 3, 5, 6, 7) -> `feat(story-2.3): token lifetime, set comparison and delta rules`
   - [ ] 3.1 `src/domain/confirmation.py`: `token_is_fresh(snapshot_timestamp, now, ttl)` (`<=`), `tokens_match` (constant time), `has_actionable(items)`, `diff(stored_items, current_items)` returning added, removed and changed, and `delta_text(...)` (deterministic, ordered by key).
   - [ ] 3.2 Unit tests: the three boundary instants, a token one millisecond late, ttl 5, equal and different tokens, the delta of every kind (one of each, several, none), the order of the delta, the text.

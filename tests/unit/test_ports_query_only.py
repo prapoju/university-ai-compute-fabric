@@ -48,7 +48,7 @@ OWNED_PORT_METHODS: dict[str, set[str]] = {
     },
     "UnitOfWorkPort": {"atomic"},
     "AuditStorePort": {"append", "page", "highest_counters"},  # story 1.5: append-only (AD-10)
-    "ProposalStorePort": {"add", "highest_counters"},  # story 2.2: the dry-run proposal (AD-4)
+    "ProposalStorePort": {"add", "get", "claim", "highest_counters"},  # stories 2.2, 2.3 (AD-4)
 }  # fmt: skip
 ALL_PORTS = {*CONTRACT_METHODS, *OWNED_PORT_METHODS}
 # a transaction scope yields a context manager, not a read result (begin/commit failures raise
