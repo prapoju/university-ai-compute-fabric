@@ -14,20 +14,17 @@
               * operators: 20 iterations for each of 50 VUs (maxDuration: 10m0s, gracefulStop: 30s)
 
 
-running (00m01.0s), 50/50 VUs, 128 complete and 0 interrupted iterations
-operators   [  13% ] 50 VUs  00m01.0s/10m0s  0128/1000 iters, 20 per VU
+running (00m01.0s), 50/50 VUs, 171 complete and 0 interrupted iterations
+operators   [  17% ] 50 VUs  00m01.0s/10m0s  0171/1000 iters, 20 per VU
 
-running (00m02.0s), 50/50 VUs, 306 complete and 0 interrupted iterations
-operators   [  31% ] 50 VUs  00m02.0s/10m0s  0306/1000 iters, 20 per VU
+running (00m02.0s), 50/50 VUs, 389 complete and 0 interrupted iterations
+operators   [  39% ] 50 VUs  00m02.0s/10m0s  0389/1000 iters, 20 per VU
 
-running (00m03.0s), 50/50 VUs, 484 complete and 0 interrupted iterations
-operators   [  48% ] 50 VUs  00m03.0s/10m0s  0484/1000 iters, 20 per VU
+running (00m03.0s), 50/50 VUs, 642 complete and 0 interrupted iterations
+operators   [  64% ] 50 VUs  00m03.0s/10m0s  0642/1000 iters, 20 per VU
 
-running (00m04.0s), 50/50 VUs, 669 complete and 0 interrupted iterations
-operators   [  67% ] 50 VUs  00m04.0s/10m0s  0669/1000 iters, 20 per VU
-
-running (00m05.0s), 50/50 VUs, 835 complete and 0 interrupted iterations
-operators   [  84% ] 50 VUs  00m05.0s/10m0s  0835/1000 iters, 20 per VU
+running (00m04.0s), 48/50 VUs, 874 complete and 0 interrupted iterations
+operators   [  87% ] 50 VUs  00m04.0s/10m0s  0874/1000 iters, 20 per VU
 
 
   █ THRESHOLDS 
@@ -36,7 +33,7 @@ operators   [  84% ] 50 VUs  00m05.0s/10m0s  0835/1000 iters, 20 per VU
     ✓ 'rate==1' rate=100.00%
 
     http_req_duration
-    ✓ 'p(95)<800' p(95)=371.26ms
+    ✓ 'p(95)<800' p(95)=300.66ms
 
     http_req_failed
     ✓ 'rate==0' rate=0.00%
@@ -44,7 +41,7 @@ operators   [  84% ] 50 VUs  00m05.0s/10m0s  0835/1000 iters, 20 per VU
 
   █ TOTAL RESULTS 
 
-    checks_total.......: 4000    687.620219/s
+    checks_total.......: 4000    895.602049/s
     checks_succeeded...: 100.00% 4000 out of 4000
     checks_failed......: 0.00%   0 out of 4000
 
@@ -54,23 +51,23 @@ operators   [  84% ] 50 VUs  00m05.0s/10m0s  0835/1000 iters, 20 per VU
     ✓ cites deepseek-coder
 
     HTTP
-    http_req_duration..............: avg=283.45ms min=44.19ms med=281.06ms max=606.05ms p(90)=352.36ms p(95)=371.26ms p(99)=435.84ms
-      { expected_response:true }...: avg=283.45ms min=44.19ms med=281.06ms max=606.05ms p(90)=352.36ms p(95)=371.26ms p(99)=435.84ms
+    http_req_duration..............: avg=216.35ms min=11.78ms med=212.99ms max=427.59ms p(90)=274.2ms  p(95)=300.66ms p(99)=368.52ms
+      { expected_response:true }...: avg=216.35ms min=11.78ms med=212.99ms max=427.59ms p(90)=274.2ms  p(95)=300.66ms p(99)=368.52ms
     http_req_failed................: 0.00%  0 out of 1000
-    http_reqs......................: 1000   171.905055/s
+    http_reqs......................: 1000   223.900512/s
 
     EXECUTION
-    iteration_duration.............: avg=283.73ms min=44.35ms med=281.35ms max=611ms    p(90)=352.58ms p(95)=371.52ms p(99)=436.03ms
-    iterations.....................: 1000   171.905055/s
-    vus............................: 50     min=50        max=50
+    iteration_duration.............: avg=216.81ms min=12.17ms med=213.49ms max=430.32ms p(90)=274.76ms p(95)=303.42ms p(99)=370.01ms
+    iterations.....................: 1000   223.900512/s
+    vus............................: 48     min=48        max=50
     vus_max........................: 50     min=50        max=50
 
     NETWORK
-    data_received..................: 2.4 MB 417 kB/s
-    data_sent......................: 214 kB 37 kB/s
+    data_received..................: 2.4 MB 543 kB/s
+    data_sent......................: 214 kB 48 kB/s
 
 
 
 
-running (00m05.8s), 00/50 VUs, 1000 complete and 0 interrupted iterations
-operators ✓ [ 100% ] 50 VUs  00m05.8s/10m0s  1000/1000 iters, 20 per VU
+running (00m04.5s), 00/50 VUs, 1000 complete and 0 interrupted iterations
+operators ✓ [ 100% ] 50 VUs  00m04.5s/10m0s  1000/1000 iters, 20 per VU
