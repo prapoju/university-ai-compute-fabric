@@ -22,9 +22,10 @@ POOL_FAILURE = Failure("PROVIDER_UNAVAILABLE", observed=("fan-out pool is full",
 
 def test_results_come_back_in_argument_order_whatever_the_completion_order() -> None:
     second_done = threading.Event()
+    gate_opened: list[bool] = []
 
     def first():
-        second_done.wait(WAIT)  # the first argument finishes last
+        gate_opened.append(second_done.wait(WAIT))  # the first argument finishes last
         return Ok("first")
 
     def second():
@@ -33,13 +34,15 @@ def test_results_come_back_in_argument_order_whatever_the_completion_order() -> 
 
     reads = ParallelReads(budget_seconds=5.0, pool=FanoutPool(2))  # cannot expire before the gate
     assert reads.run((first, second)) == Ok(["first", "second"])
+    assert gate_opened == [True], "the second read did not run while the first was waiting"
 
 
 def test_the_first_failure_in_argument_order_is_the_one_reported() -> None:
     second_done = threading.Event()
+    gate_opened: list[bool] = []
 
     def first():
-        second_done.wait(WAIT)
+        gate_opened.append(second_done.wait(WAIT))
         return Failure("PROVIDER_UNAVAILABLE", observed=("first",))
 
     def second():
@@ -48,6 +51,7 @@ def test_the_first_failure_in_argument_order_is_the_one_reported() -> None:
 
     reads = ParallelReads(budget_seconds=5.0, pool=FanoutPool(2))  # cannot expire before the gate
     assert reads.run((first, second)) == Failure("PROVIDER_UNAVAILABLE", observed=("first",))
+    assert gate_opened == [True], "the second read did not run while the first was waiting"
 
 
 def test_a_read_that_raises_is_a_typed_failure_not_an_exception() -> None:
