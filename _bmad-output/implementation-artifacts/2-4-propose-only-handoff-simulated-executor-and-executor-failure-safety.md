@@ -207,3 +207,16 @@ Claude Sonnet 5.5 (`claude-sonnet-5-5`), Claude Code, `bmad-create-story`, `bmad
 
 - 2026-11-08: Story created (`bmad-create-story`). Status -> ready-for-dev. D1, D2, D5, D7 and D9 wait for the user before the red phase.
 - 2026-11-08: The user confirmed D1, D2, D5, D7 and D9 as written and asked to continue without being shown the red log; the red phase was recorded and committed.
+
+### Review Findings
+
+Code review of `3054c0a..627b43d` (2026-11-08): Blind Hunter, Edge Case Hunter and Acceptance Auditor run in sequence by the reviewer (no subagents, none authorised), over 36 files and about 3,000 added lines. All 17 acceptance criteria hold, each with an ATDD case or a unit, integration or API case of its own, and the 18 mutants of the story confirm it. One probe was run against the real app before reporting.
+
+- [x] [Review][Patch] P-1 (high): anyone could execute another operator's proposal. `GET /destructive/proposals/{pid}` returns the proposal with its `gate_token` (the contract requires it), the confirmation asks for only `{proposal_id, gate_token}` and proposal ids were a counter: guessing `prop-0000000000000001` read the token, a confirm answered 200 `executed` and the three CS-101 jobs were cancelled, by someone who never saw the chat reply. Proposal ids are now `prop-` plus 16 random hex from `secrets` (option a; a masked token or a session on the GET would change the contract) [src/adapters/outbound/token_idgen.py] - fixed in `7d283cf`; the one committed 2.2 case that compared the ids with the counter's sequence was corrected with the user's approval (I2-33)
+- [x] [Review][Defer] D-1 (low): a proposal can stay `dispatched` for ever if the process dies or the clock or audit fails after the claim; it needs a reconciliation policy the contract does not define [`deferred-work.md`]
+- [x] [Review][Defer] D-2 (low): a partly applied parent stays `failed` after a re-dispatch and can be re-dispatched again and again [`deferred-work.md`]
+- [x] [Review][Defer] The per-proposal lock is held for the whole executor call (5 s with a real executor); the claim stays the guard across processes [`deferred-work.md`]
+
+Dismissed (2): the executor GET answers the result of any proposal id, which is not secret and is now unguessable; the simulated latency advances the shared fake clock, which is only the simulator.
+
+Mutation check of the patch: ids sequential again, an id of the wrong width and a token of the wrong width - three mutants, all killed (`pytest` 2052 passed, branch coverage of `src` 97.7%).
