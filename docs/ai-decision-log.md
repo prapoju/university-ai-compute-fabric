@@ -1256,3 +1256,12 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
   unreachable (I2-30); one commit message with a wrong test count (`c8af915` says 2000, the run was 1985).
 - **Outcome:** story 2.4 and epic 2 are `done` in the story file and in both `sprint-status.yaml` copies (the epic retrospective stays optional). Next
   in the plan: story 1-6 (k6 and the concurrent diagnostics), 3-3, 1-7. Reviewer: Pending.
+
+## I2-35 - Story 1.6 created: the route stays sync and the fan-out budget is 0.5 s  *(user decision, Reviewer: Julio)*
+- **Date / phase:** 2026-11-08, story creation of 1-6 (Flow D), before the ATDD red phase.
+- **Prompt (intent):** create the story for 1-6 from the epic, with the decisions below taken from the shift-left review.
+- **What the AI proposed:** the parallel dispatcher keeps the request path synchronous. The route stays `def` and `ParallelReads` runs `asyncio.run(gather(to_thread(...)))` inside the worker thread (review D-2.6). The earlier plan for this story had made the `/copilot/query` handler `async def`. That was rejected: it would need the per-session guard and the store rewritten for no latency gain on in-process fakes. The AI also proposed a fan-out budget default of 0.5 s for `M12_TOOL_FANOUT_BUDGET_SECONDS`.
+- **What the user decided:** keep the sync route (D-2.6) and add the route-audit assertion in the dev step. Accept 0.5 s as the default. Commit the story file, both copies of `sprint-status.yaml` and this entry together.
+- **Why 0.5 s:** the fan-out is only one part of the turn. The 800 ms p95 must also absorb the single-writer queue, prose, and the audit transaction. A 0.5 s ceiling leaves about 300 ms for those. The number is a guess until measured under k6.
+- **Risk recorded:** when the budget fires, the answer is HTTP 503 (`PROVIDER_UNAVAILABLE`), not a slow 200. Under load, a 503 would break the 100% HTTP 200 gate, so the k6 run will show it as an error, not as latency. A timeout at 0.5 s is therefore a load-test failure to investigate, not a setting to raise without evidence.
+- **Outcome:** the story is `ready-for-dev` in both `sprint-status.yaml` copies. Code, ATDD red phase and k6 run are next. Reviewer: Julio.
