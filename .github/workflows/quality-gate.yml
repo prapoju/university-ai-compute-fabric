@@ -1,0 +1,223 @@
+# Module 12 — TEA quality gate (Impl-2). Local mirror: `make ci` (see Makefile).
+#
+# Jobs:
+#   banned-waits -> no sleep / waitForTimeout in src, tests, console/src (docs/impl2-rules.md)
+#   lint-test    -> ruff, then pytest with branch coverage of src >= 90%
+#   schema       -> SQL / dto.py / events.schema.json / openapi.yaml valid (no red-phase step)
+#   nfr          -> k6 against a uvicorn started in the job; any threshold breach fails
+#   e2e          -> Playwright with --trace on, so trace.zip exists even when every test passes
+#                   (playwright.config.ts keeps 'on-first-retry' for local runs)
+
+name: quality-gate
+
+on:
+  push:
+    branches: [main, impl-2]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.11"
+  NODE_VERSION: "24"
+  K6_VERSION: "2.3.0"
+  BASE_URL: http://127.0.0.1:8000
+
+jobs:
+  banned-waits:
+    name: No sleep / waitForTimeout
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+
+      # Matches wait calls on code lines; comment lines ("// No sleep(): ...") are prose.
+      # grep: 0 = match (fail), 1 = no match (pass), >1 = error (fail); scan errors are checked first.
+      - name: Fail on sleep or waitForTimeout
+        shell: bash
+        run: |
+          set -u
+          dirs=()
+          for d in src tests console/src; do
+            if [ -d "$d" ]; then dirs+=("$d"); else echo "skip: $d does not exist"; fi
+          done
+          [ ${#dirs[@]} -eq 0 ] && { echo "no directories to scan"; exit 0; }
+
+          pattern='\bsleep[[:space:]]*\(|\bfrom[[:space:]]+(time|asyncio)[[:space:]]+import\b.*\bsleep\b|\bwaitForTimeout\b|\bwait_for_timeout\b'
+          comment='^[^:]+:[0-9]+:[[:space:]]*(#|//|/\*|\*)'
+
+          # GitHub runs `bash -e -o pipefail`; grep exit 1 must reach PIPESTATUS, not abort.
+          set +e +o pipefail
+          grep -rnE \
+            --include='*.py' --include='*.js' --include='*.mjs' --include='*.cjs' \
+            --include='*.jsx' --include='*.ts' --include='*.mts' --include='*.tsx' \
+            --include='*.vue' --include='*.svelte' \
+            --exclude-dir=__pycache__ --exclude-dir=node_modules --exclude-dir=dist \
+            "$pattern" "${dirs[@]}" | grep -vE "$comment"
+          scan=("${PIPESTATUS[@]}")
+          if [ "${scan[0]}" -gt 1 ]; then echo "::error::grep failed (exit ${scan[0]})"; exit "${scan[0]}"; fi
+          rc=${scan[1]}
+          case $rc in
+            0) echo "::error::sleep / waitForTimeout is banned (docs/impl2-rules.md)"; exit 1 ;;
+            1) echo "no banned waits in: ${dirs[*]}"; exit 0 ;;
+            *) echo "::error::grep failed (exit $rc)"; exit "$rc" ;;
+          esac
+
+      # setTimeout used as a wait, in tests/ only (console/src may use setTimeout for UI work):
+      # `new Promise(r => setTimeout(r, n))`, `promisify(setTimeout)`, `timers/promises`.
+      - name: Fail on setTimeout-based waits in tests
+        shell: bash
+        run: |
+          set -u
+          [ -d tests ] || { echo "skip: tests does not exist"; exit 0; }
+
+          pattern='\bnew[[:space:]]+Promise\b.*\bsetTimeout\b|\bpromisify[[:space:]]*\([[:space:]]*setTimeout\b|timers/promises'
+          comment='^[^:]+:[0-9]+:[[:space:]]*(//|/\*|\*)'
+
+          # GitHub runs `bash -e -o pipefail`; grep exit 1 must reach PIPESTATUS, not abort.
+          set +e +o pipefail
+          grep -rnE \
+            --include='*.js' --include='*.mjs' --include='*.cjs' \
+            --include='*.jsx' --include='*.ts' --include='*.mts' --include='*.tsx' \
+            --exclude-dir=node_modules \
+            "$pattern" tests | grep -vE "$comment"
+          scan=("${PIPESTATUS[@]}")
+          if [ "${scan[0]}" -gt 1 ]; then echo "::error::grep failed (exit ${scan[0]})"; exit "${scan[0]}"; fi
+          rc=${scan[1]}
+          case $rc in
+            0) echo "::error::setTimeout-based waits are banned in tests (docs/impl2-rules.md)"; exit 1 ;;
+            1) echo "no setTimeout-based waits in: tests"; exit 0 ;;
+            *) echo "::error::grep failed (exit $rc)"; exit "$rc" ;;
+          esac
+
+  lint-test:
+    name: Ruff + pytest (branch coverage >= 90%)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install dependencies
+        run: python -m pip install -r requirements-test.txt
+      - name: Ruff
+        run: python -m ruff check .
+      - name: Pytest with coverage
+        run: |
+          python -m pytest tests -q --strict-markers \
+            --cov=src --cov-branch --cov-report=term-missing --cov-report=xml \
+            --cov-fail-under=90
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: coverage-xml
+          path: coverage.xml
+          if-no-files-found: warn
+
+  schema:
+    name: Schema checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install dependencies
+        run: python -m pip install -r requirements-test.txt
+      - name: Validate schemas and DTOs
+        run: python test/ci/schema_check.py
+
+  nfr:
+    name: k6 load thresholds
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install dependencies
+        run: python -m pip install -r requirements-test.txt
+      - uses: grafana/setup-k6-action@v1
+        with:
+          k6-version: ${{ env.K6_VERSION }}
+      - name: Start server
+        env:
+          M12_DB_PATH: ":memory:"
+        run: |
+          nohup python -m uvicorn src.adapters.inbound.app:create_app --factory \
+            --host 127.0.0.1 --port 8000 --log-level warning > uvicorn.log 2>&1 &
+      - name: Wait for /healthz
+        run: curl --retry 30 --retry-connrefused --retry-delay 1 -sf http://127.0.0.1:8000/healthz
+      # k6 exits non-zero (99) on any threshold breach, which fails the job.
+      - name: Run k6
+        run: |
+          mkdir -p k6-results
+          for script in tests/nfr/*.js; do
+            name=$(basename "$script" .js)
+            k6 run --summary-export="k6-results/${name}-summary.json" "$script"
+          done
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: k6-summary
+          path: |
+            k6-results/
+            uvicorn.log
+          if-no-files-found: warn
+
+  e2e:
+    name: Playwright E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements-test.txt
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - name: Install Node dependencies
+        run: npm ci
+      - name: Install console dependencies
+        run: npm ci --prefix console
+      - name: Build console
+        run: npm run build --prefix console
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+      # playwright.config.ts starts uvicorn itself (webServer) and picks python3 in CI.
+      # The console is built above and served by Vite preview from the same webServer list.
+      - name: Run Playwright
+        run: npx playwright test --trace on --fail-on-flaky-tests
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: playwright-test-results
+          path: test-results/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          if-no-files-found: warn

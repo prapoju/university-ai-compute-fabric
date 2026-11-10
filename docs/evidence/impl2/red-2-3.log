@@ -1,0 +1,368 @@
+FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF...                            [100%]
+================================== FAILURES ===================================
+_ test_the_annex_dry_run_then_a_distinct_confirm_answers_a_confirmed_proposal _
+tests\atdd\test_story_2_3.py:193: in test_the_annex_dry_run_then_a_distinct_confirm_answers_a_confirmed_proposal
+    assert response.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_a_confirm_body_with_an_identity_claim_is_malformed_and_changes_nothing[role] _
+tests\atdd\test_story_2_3.py:224: in test_a_confirm_body_with_an_identity_claim_is_malformed_and_changes_nothing
+    assert response.status_code == 400
+E   assert 404 == 400
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_a_confirm_body_with_an_identity_claim_is_malformed_and_changes_nothing[user] _
+tests\atdd\test_story_2_3.py:224: in test_a_confirm_body_with_an_identity_claim_is_malformed_and_changes_nothing
+    assert response.status_code == 400
+E   assert 404 == 400
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_a_confirm_body_with_an_identity_claim_is_malformed_and_changes_nothing[session_id] _
+tests\atdd\test_story_2_3.py:224: in test_a_confirm_body_with_an_identity_claim_is_malformed_and_changes_nothing
+    assert response.status_code == 400
+E   assert 404 == 400
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_a_confirm_body_with_an_identity_claim_is_malformed_and_changes_nothing[operator_role] _
+tests\atdd\test_story_2_3.py:224: in test_a_confirm_body_with_an_identity_claim_is_malformed_and_changes_nothing
+    assert response.status_code == 400
+E   assert 404 == 400
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_a_confirm_body_with_an_identity_claim_is_malformed_and_changes_nothing[identity] _
+tests\atdd\test_story_2_3.py:224: in test_a_confirm_body_with_an_identity_claim_is_malformed_and_changes_nothing
+    assert response.status_code == 400
+E   assert 404 == 400
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+__ test_a_session_reset_between_the_dry_run_and_the_confirm_changes_nothing ___
+tests\atdd\test_story_2_3.py:237: in test_a_session_reset_between_the_dry_run_and_the_confirm_changes_nothing
+    assert response.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+____________ test_the_confirmation_records_no_identity_of_its_own _____________
+tests\atdd\test_story_2_3.py:245: in test_the_confirmation_records_no_identity_of_its_own
+    assert set(body) <= set(ProposalDTO.model_fields)  # no extra identity field in the reply
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: assert {'code', 'exp...le', 'status'} <= {'action', 'c...osal_id', ...}
+E     
+E     Extra items in the left set:
+E     'status'
+E     'retryable'
+E     'message'
+E     'explanation'
+E     'code'
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+___ test_the_token_is_accepted_up_to_sixty_seconds_and_not_after[+59.999s] ____
+tests\atdd\test_story_2_3.py:264: in test_the_token_is_accepted_up_to_sixty_seconds_and_not_after
+    assert response.status_code == status
+E   assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+___ test_the_token_is_accepted_up_to_sixty_seconds_and_not_after[+60.000s] ____
+tests\atdd\test_story_2_3.py:264: in test_the_token_is_accepted_up_to_sixty_seconds_and_not_after
+    assert response.status_code == status
+E   assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+___ test_the_token_is_accepted_up_to_sixty_seconds_and_not_after[+60.001s] ____
+tests\atdd\test_story_2_3.py:264: in test_the_token_is_accepted_up_to_sixty_seconds_and_not_after
+    assert response.status_code == status
+E   assert 404 == 409
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+____________ test_the_token_lifetime_is_the_setting_in_force[+5s] _____________
+tests\atdd\test_story_2_3.py:281: in test_the_token_lifetime_is_the_setting_in_force
+    assert confirm_proposal(client, proposal).status_code == status
+E   AssertionError: assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+E    +    where <Response [404 Not Found]> = confirm_proposal(<starlette.testclient.TestClient object at 0x0000020AF7CE6610>, {'proposal_id': 'prop-0000000000000001', 'session_id': 'sess-0000000000000001', 'state': 'dry_run', 'action': 'cancel_jobs', ...})
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+__________ test_the_token_lifetime_is_the_setting_in_force[+5.001s] ___________
+tests\atdd\test_story_2_3.py:281: in test_the_token_lifetime_is_the_setting_in_force
+    assert confirm_proposal(client, proposal).status_code == status
+E   AssertionError: assert 404 == 409
+E    +  where 404 = <Response [404 Not Found]>.status_code
+E    +    where <Response [404 Not Found]> = confirm_proposal(<starlette.testclient.TestClient object at 0x0000020AF8069690>, {'proposal_id': 'prop-0000000000000001', 'session_id': 'sess-0000000000000001', 'state': 'dry_run', 'action': 'cancel_jobs', ...})
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_an_identical_replay_answers_the_persisted_proposal_and_changes_nothing _
+tests\atdd\test_story_2_3.py:291: in test_an_identical_replay_answers_the_persisted_proposal_and_changes_nothing
+    assert first.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_an_identical_replay_after_the_token_lifetime_still_answers_the_persisted_proposal _
+tests\atdd\test_story_2_3.py:309: in test_an_identical_replay_after_the_token_lifetime_still_answers_the_persisted_proposal
+    assert replay.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+____________________ test_an_unknown_proposal_is_not_found ____________________
+tests\atdd\test_story_2_3.py:318: in test_an_unknown_proposal_is_not_found
+    assert response.json()["code"] == "PROPOSAL_NOT_FOUND"
+E   AssertionError: assert 'ENTITY_NOT_FOUND' == 'PROPOSAL_NOT_FOUND'
+E     
+E     - PROPOSAL_NOT_FOUND
+E     + ENTITY_NOT_FOUND
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+______ test_a_wrong_token_is_forbidden_and_the_proposal_stays_in_dry_run ______
+tests\atdd\test_story_2_3.py:327: in test_a_wrong_token_is_forbidden_and_the_proposal_stays_in_dry_run
+    assert response.status_code == 403
+E   assert 404 == 403
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+__________________ test_another_proposals_token_is_forbidden __________________
+tests\atdd\test_story_2_3.py:338: in test_another_proposals_token_is_forbidden
+    assert response.status_code == 403 and response.json()["code"] == "GATE_TOKEN_INVALID"
+E   assert (404 == 403)
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+________ test_a_different_token_on_a_confirmed_proposal_is_a_conflict _________
+tests\atdd\test_story_2_3.py:345: in test_a_different_token_on_a_confirmed_proposal_is_a_conflict
+    assert confirm_proposal(client, proposal).status_code == 200
+E   AssertionError: assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+E    +    where <Response [404 Not Found]> = confirm_proposal(<starlette.testclient.TestClient object at 0x0000020AF819CF90>, {'proposal_id': 'prop-0000000000000001', 'session_id': 'sess-0000000000000001', 'state': 'dry_run', 'action': 'cancel_jobs', ...})
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+______________ test_a_malformed_token_is_a_malformed_body[nope] _______________
+tests\atdd\test_story_2_3.py:357: in test_a_malformed_token_is_a_malformed_body
+    assert response.status_code == 400
+E   assert 404 == 400
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+____________ test_a_malformed_token_is_a_malformed_body[gt-short] _____________
+tests\atdd\test_story_2_3.py:357: in test_a_malformed_token_is_a_malformed_body
+    assert response.status_code == 400
+E   assert 404 == 400
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_a_malformed_token_is_a_malformed_body[GT-abababababababababababababababab] _
+tests\atdd\test_story_2_3.py:357: in test_a_malformed_token_is_a_malformed_body
+    assert response.status_code == 400
+E   assert 404 == 400
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_a_malformed_token_is_a_malformed_body[gt-ABABABABABABABABABABABABABABABAB] _
+tests\atdd\test_story_2_3.py:357: in test_a_malformed_token_is_a_malformed_body
+    assert response.status_code == 400
+E   assert 404 == 400
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+________________ test_a_malformed_token_is_a_malformed_body[] _________________
+tests\atdd\test_story_2_3.py:357: in test_a_malformed_token_is_a_malformed_body
+    assert response.status_code == 400
+E   assert 404 == 400
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+__________ test_a_proposal_in_the_refused_state_cannot_be_confirmed ___________
+tests\atdd\test_story_2_3.py:375: in test_a_proposal_in_the_refused_state_cannot_be_confirmed
+    assert response.status_code == 409
+E   assert 404 == 409
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_a_set_with_nothing_actionable_is_refused_without_a_provider_read[empty] _
+tests\atdd\test_story_2_3.py:400: in test_a_set_with_nothing_actionable_is_refused_without_a_provider_read
+    assert response.status_code == 409, why
+E   AssertionError: empty set
+E   assert 404 == 409
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_a_set_with_nothing_actionable_is_refused_without_a_provider_read[cancelled-job] _
+tests\atdd\test_story_2_3.py:400: in test_a_set_with_nothing_actionable_is_refused_without_a_provider_read
+    assert response.status_code == 409, why
+E   AssertionError: a cancelled job is listed and not actionable
+E   assert 404 == 409
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_a_set_with_nothing_actionable_is_refused_without_a_provider_read[succeeded-job] _
+tests\atdd\test_story_2_3.py:400: in test_a_set_with_nothing_actionable_is_refused_without_a_provider_read
+    assert response.status_code == 409, why
+E   AssertionError: a succeeded job is listed and not actionable
+E   assert 404 == 409
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_a_set_with_nothing_actionable_is_refused_without_a_provider_read[fault-node] _
+tests\atdd\test_story_2_3.py:400: in test_a_set_with_nothing_actionable_is_refused_without_a_provider_read
+    assert response.status_code == 409, why
+E   AssertionError: a node in fault is listed and not actionable
+E   assert 404 == 409
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_a_job_that_left_the_set_and_a_new_one_that_joined_it_make_the_confirmation_stale _
+tests\atdd\test_story_2_3.py:416: in test_a_job_that_left_the_set_and_a_new_one_that_joined_it_make_the_confirmation_stale
+    assert response.status_code == 409
+E   assert 404 == 409
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+___________ test_a_status_that_changed_makes_the_confirmation_stale ___________
+tests\atdd\test_story_2_3.py:438: in test_a_status_that_changed_makes_the_confirmation_stale
+    assert response.status_code == 409 and response.json()["code"] == "CONFIRMATION_STALE"
+E   assert (404 == 409)
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+______________ test_a_removed_item_makes_the_confirmation_stale _______________
+tests\atdd\test_story_2_3.py:451: in test_a_removed_item_makes_the_confirmation_stale
+    assert response.status_code == 409 and response.json()["code"] == "CONFIRMATION_STALE"
+E   assert (404 == 409)
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+____ test_an_unchanged_set_is_confirmed_after_the_selector_is_re_executed _____
+tests\atdd\test_story_2_3.py:463: in test_an_unchanged_set_is_confirmed_after_the_selector_is_re_executed
+    assert response.status_code == 200 and response.json()["state"] == "confirmed"
+E   assert (404 == 200)
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_a_jobs_outage_during_revalidation_is_a_safe_failure_and_recovery_works _
+tests\atdd\test_story_2_3.py:477: in test_a_jobs_outage_during_revalidation_is_a_safe_failure_and_recovery_works
+    assert response.status_code == 503
+E   assert 404 == 503
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_____ test_simultaneous_identical_confirms_make_exactly_one_transition[2] _____
+tests\atdd\test_story_2_3.py:506: in test_simultaneous_identical_confirms_make_exactly_one_transition
+    assert [r.status_code for r in replies] == [200] * n  # 0 HTTP 500, 0 "database is locked"
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   assert [404, 404] == [200, 200]
+E     
+E     At index 0 diff: 404 != 200
+E     Use -v to get more diff
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+____ test_simultaneous_identical_confirms_make_exactly_one_transition[50] _____
+tests\atdd\test_story_2_3.py:506: in test_simultaneous_identical_confirms_make_exactly_one_transition
+    assert [r.status_code for r in replies] == [200] * n  # 0 HTTP 500, 0 "database is locked"
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   assert [404, 404, 40...404, 404, ...] == [200, 200, 20...200, 200, ...]
+E     
+E     At index 0 diff: 404 != 200
+E     Use -v to get more diff
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_an_identical_confirm_raced_with_one_that_has_another_token_never_transitions_twice _
+tests\atdd\test_story_2_3.py:528: in test_an_identical_confirm_raced_with_one_that_has_another_token_never_transitions_twice
+    assert good.result().status_code == 200
+E   assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+E    +    where <Response [404 Not Found]> = result()
+E    +      where result = <Future at 0x20af83a4dd0 state=finished returned Response>.result
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_ test_a_confirm_that_goes_first_wins_and_a_state_change_that_goes_first_makes_it_stale _
+tests\atdd\test_story_2_3.py:540: in test_a_confirm_that_goes_first_wins_and_a_state_change_that_goes_first_makes_it_stale
+    assert confirm_proposal(client, first).status_code == 200  # order A: confirm, then change
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+E    +    where <Response [404 Not Found]> = confirm_proposal(<starlette.testclient.TestClient object at 0x0000020AF813D490>, {'proposal_id': 'prop-0000000000000001', 'session_id': 'sess-0000000000000001', 'state': 'dry_run', 'action': 'cancel_jobs', ...})
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+__________ test_a_failing_audit_write_leaves_the_proposal_in_dry_run __________
+tests\atdd\test_story_2_3.py:558: in test_a_failing_audit_write_leaves_the_proposal_in_dry_run
+    assert response.status_code == 500
+E   assert 404 == 500
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+____ test_the_audit_after_a_confirm_has_the_head_and_the_revalidation_read ____
+tests\atdd\test_story_2_3.py:578: in test_the_audit_after_a_confirm_has_the_head_and_the_revalidation_read
+    assert confirm_proposal(client, proposal).status_code == 200
+E   AssertionError: assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+E    +    where <Response [404 Not Found]> = confirm_proposal(<starlette.testclient.TestClient object at 0x0000020AF961CE90>, {'proposal_id': 'prop-0000000000000001', 'session_id': 'sess-0000000000000001', 'state': 'dry_run', 'action': 'cancel_jobs', ...})
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_______________ test_a_replay_and_a_rejection_add_no_audit_row ________________
+tests\atdd\test_story_2_3.py:594: in test_a_replay_and_a_rejection_add_no_audit_row
+    assert confirm_proposal(client, proposal).status_code == 200
+E   AssertionError: assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+E    +    where <Response [404 Not Found]> = confirm_proposal(<starlette.testclient.TestClient object at 0x0000020AF9675F90>, {'proposal_id': 'prop-0000000000000001', 'session_id': 'sess-0000000000000001', 'state': 'dry_run', 'action': 'cancel_jobs', ...})
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+_________________ test_annex_12_4_end_to_end_up_to_confirmed __________________
+tests\atdd\test_story_2_3.py:614: in test_annex_12_4_end_to_end_up_to_confirmed
+    assert response.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+------------------------------ Captured log call ------------------------------
+INFO     src.bootstrap:bootstrap.py:301 container built (fixtures=D:\Proyectos\Desarrollo-Asistido\university-ai-compute-fabric\fixtures)
+=========================== short test summary info ===========================
+FAILED tests/atdd/test_story_2_3.py::test_the_annex_dry_run_then_a_distinct_confirm_answers_a_confirmed_proposal
+FAILED tests/atdd/test_story_2_3.py::test_a_confirm_body_with_an_identity_claim_is_malformed_and_changes_nothing[role]
+FAILED tests/atdd/test_story_2_3.py::test_a_confirm_body_with_an_identity_claim_is_malformed_and_changes_nothing[user]
+FAILED tests/atdd/test_story_2_3.py::test_a_confirm_body_with_an_identity_claim_is_malformed_and_changes_nothing[session_id]
+FAILED tests/atdd/test_story_2_3.py::test_a_confirm_body_with_an_identity_claim_is_malformed_and_changes_nothing[operator_role]
+FAILED tests/atdd/test_story_2_3.py::test_a_confirm_body_with_an_identity_claim_is_malformed_and_changes_nothing[identity]
+FAILED tests/atdd/test_story_2_3.py::test_a_session_reset_between_the_dry_run_and_the_confirm_changes_nothing
+FAILED tests/atdd/test_story_2_3.py::test_the_confirmation_records_no_identity_of_its_own
+FAILED tests/atdd/test_story_2_3.py::test_the_token_is_accepted_up_to_sixty_seconds_and_not_after[+59.999s]
+FAILED tests/atdd/test_story_2_3.py::test_the_token_is_accepted_up_to_sixty_seconds_and_not_after[+60.000s]
+FAILED tests/atdd/test_story_2_3.py::test_the_token_is_accepted_up_to_sixty_seconds_and_not_after[+60.001s]
+FAILED tests/atdd/test_story_2_3.py::test_the_token_lifetime_is_the_setting_in_force[+5s]
+FAILED tests/atdd/test_story_2_3.py::test_the_token_lifetime_is_the_setting_in_force[+5.001s]
+FAILED tests/atdd/test_story_2_3.py::test_an_identical_replay_answers_the_persisted_proposal_and_changes_nothing
+FAILED tests/atdd/test_story_2_3.py::test_an_identical_replay_after_the_token_lifetime_still_answers_the_persisted_proposal
+FAILED tests/atdd/test_story_2_3.py::test_an_unknown_proposal_is_not_found - ...
+FAILED tests/atdd/test_story_2_3.py::test_a_wrong_token_is_forbidden_and_the_proposal_stays_in_dry_run
+FAILED tests/atdd/test_story_2_3.py::test_another_proposals_token_is_forbidden
+FAILED tests/atdd/test_story_2_3.py::test_a_different_token_on_a_confirmed_proposal_is_a_conflict
+FAILED tests/atdd/test_story_2_3.py::test_a_malformed_token_is_a_malformed_body[nope]
+FAILED tests/atdd/test_story_2_3.py::test_a_malformed_token_is_a_malformed_body[gt-short]
+FAILED tests/atdd/test_story_2_3.py::test_a_malformed_token_is_a_malformed_body[GT-abababababababababababababababab]
+FAILED tests/atdd/test_story_2_3.py::test_a_malformed_token_is_a_malformed_body[gt-ABABABABABABABABABABABABABABABAB]
+FAILED tests/atdd/test_story_2_3.py::test_a_malformed_token_is_a_malformed_body[]
+FAILED tests/atdd/test_story_2_3.py::test_a_proposal_in_the_refused_state_cannot_be_confirmed
+FAILED tests/atdd/test_story_2_3.py::test_a_set_with_nothing_actionable_is_refused_without_a_provider_read[empty]
+FAILED tests/atdd/test_story_2_3.py::test_a_set_with_nothing_actionable_is_refused_without_a_provider_read[cancelled-job]
+FAILED tests/atdd/test_story_2_3.py::test_a_set_with_nothing_actionable_is_refused_without_a_provider_read[succeeded-job]
+FAILED tests/atdd/test_story_2_3.py::test_a_set_with_nothing_actionable_is_refused_without_a_provider_read[fault-node]
+FAILED tests/atdd/test_story_2_3.py::test_a_job_that_left_the_set_and_a_new_one_that_joined_it_make_the_confirmation_stale
+FAILED tests/atdd/test_story_2_3.py::test_a_status_that_changed_makes_the_confirmation_stale
+FAILED tests/atdd/test_story_2_3.py::test_a_removed_item_makes_the_confirmation_stale
+FAILED tests/atdd/test_story_2_3.py::test_an_unchanged_set_is_confirmed_after_the_selector_is_re_executed
+FAILED tests/atdd/test_story_2_3.py::test_a_jobs_outage_during_revalidation_is_a_safe_failure_and_recovery_works
+FAILED tests/atdd/test_story_2_3.py::test_simultaneous_identical_confirms_make_exactly_one_transition[2]
+FAILED tests/atdd/test_story_2_3.py::test_simultaneous_identical_confirms_make_exactly_one_transition[50]
+FAILED tests/atdd/test_story_2_3.py::test_an_identical_confirm_raced_with_one_that_has_another_token_never_transitions_twice
+FAILED tests/atdd/test_story_2_3.py::test_a_confirm_that_goes_first_wins_and_a_state_change_that_goes_first_makes_it_stale
+FAILED tests/atdd/test_story_2_3.py::test_a_failing_audit_write_leaves_the_proposal_in_dry_run
+FAILED tests/atdd/test_story_2_3.py::test_the_audit_after_a_confirm_has_the_head_and_the_revalidation_read
+FAILED tests/atdd/test_story_2_3.py::test_a_replay_and_a_rejection_add_no_audit_row
+FAILED tests/atdd/test_story_2_3.py::test_annex_12_4_end_to_end_up_to_confirmed
+42 failed, 3 passed in 2.75s

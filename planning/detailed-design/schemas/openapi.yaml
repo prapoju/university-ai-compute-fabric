@@ -110,7 +110,7 @@ paths:
         "410": { $ref: '#/components/responses/Response410' }
         "500": { $ref: '#/components/responses/Response500' }
         "503": { $ref: '#/components/responses/Response503' }
-      x-error-codes: [VALIDATION_EMPTY_QUERY, VALIDATION_QUERY_TOO_LONG, VALIDATION_MALFORMED_BODY, SESSION_NOT_FOUND, SESSION_EXPIRED, ENTITY_NOT_FOUND, CANNOT_CONFIRM, CLARIFICATION_REQUIRED, INTENT_NOT_SUPPORTED, PROVIDER_UNAVAILABLE, LLM_UNAVAILABLE, LLM_PROSE_REJECTED, AUDIT_WRITE_FAILED]
+      x-error-codes: [VALIDATION_EMPTY_QUERY, VALIDATION_QUERY_TOO_LONG, VALIDATION_MALFORMED_BODY, SESSION_NOT_FOUND, SESSION_EXPIRED, ENTITY_NOT_FOUND, CANNOT_CONFIRM, CLARIFICATION_REQUIRED, ACTION_REFUSED, VALIDATION_BAD_ACTION, INTENT_NOT_SUPPORTED, PROVIDER_UNAVAILABLE, LLM_UNAVAILABLE, LLM_PROSE_REJECTED, AUDIT_WRITE_FAILED]
 
   /api/v1/copilot/query:
     post:
@@ -137,7 +137,38 @@ paths:
         "400": { $ref: '#/components/responses/Response400' }
         "500": { $ref: '#/components/responses/Response500' }
         "503": { $ref: '#/components/responses/Response503' }
-      x-error-codes: [VALIDATION_EMPTY_QUERY, VALIDATION_QUERY_TOO_LONG, VALIDATION_MALFORMED_BODY, ENTITY_NOT_FOUND, CANNOT_CONFIRM, CLARIFICATION_REQUIRED, INTENT_NOT_SUPPORTED, PROVIDER_UNAVAILABLE, CLOCK_UNAVAILABLE, LLM_UNAVAILABLE, LLM_PROSE_REJECTED]
+      x-error-codes: [VALIDATION_EMPTY_QUERY, VALIDATION_QUERY_TOO_LONG, VALIDATION_MALFORMED_BODY, ENTITY_NOT_FOUND, CANNOT_CONFIRM, CLARIFICATION_REQUIRED, ACTION_REFUSED, VALIDATION_BAD_ACTION, INTENT_NOT_SUPPORTED, PROVIDER_UNAVAILABLE, CLOCK_UNAVAILABLE, LLM_UNAVAILABLE, LLM_PROSE_REJECTED, AUDIT_WRITE_FAILED]
+
+  /api/v1/copilot/chat:
+    post:
+      operationId: copilot_chat
+      tags: [copilot]
+      summary: copilot_chat — POST /api/v1/copilot/chat (Impl-2 annex 12.4 inbound)
+      description: >
+        Annex 12.4 entry point. A thin route over the same use cases as `copilot_query`: it opens a
+        session for the operator and submits `query` in it. A destructive request is refused with the
+        canonical `Action refused.` (`ACTION_REFUSED`, 200) and the reply is a `ChatRefusalResponse`:
+        the refusal, the impact summary, the `dry_run` proposal with its gate token, the token expiry
+        and `confirmation_enabled` (story 2.2). `copilot_query` stays refusal-only.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CopilotChatRequest' }
+      responses:
+        "200":
+          description: AnswerEnvelope, a canonical 200 ErrorBody, or a ChatRefusalResponse.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - { $ref: '#/components/schemas/AnswerEnvelope' }
+                  - { $ref: '#/components/schemas/ErrorBody' }
+                  - { $ref: '#/components/schemas/ChatRefusalResponse' }
+        "400": { $ref: '#/components/responses/Response400' }
+        "500": { $ref: '#/components/responses/Response500' }
+        "503": { $ref: '#/components/responses/Response503' }
+      x-error-codes: [VALIDATION_EMPTY_QUERY, VALIDATION_QUERY_TOO_LONG, VALIDATION_MALFORMED_BODY, VALIDATION_BAD_ACTION, ENTITY_NOT_FOUND, CANNOT_CONFIRM, CLARIFICATION_REQUIRED, ACTION_REFUSED, INTENT_NOT_SUPPORTED, PROVIDER_UNAVAILABLE, CLOCK_UNAVAILABLE, LLM_UNAVAILABLE, LLM_PROSE_REJECTED, AUDIT_WRITE_FAILED]
 
   /api/v1/sessions/{sid}:
     get:
@@ -161,8 +192,9 @@ paths:
       responses:
         "204": { description: "No Content — session reset (contracts §2 reset_session)." }
         "404": { $ref: '#/components/responses/Response404' }
+        "500": { $ref: '#/components/responses/Response500' }
         "503": { $ref: '#/components/responses/Response503' }
-      x-error-codes: [SESSION_NOT_FOUND, CLOCK_UNAVAILABLE, PROVIDER_UNAVAILABLE]
+      x-error-codes: [SESSION_NOT_FOUND, CLOCK_UNAVAILABLE, PROVIDER_UNAVAILABLE, AUDIT_WRITE_FAILED]
 
   /api/v1/state/{entity_type}/{id}:
     get:
@@ -220,7 +252,8 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/AnswerEvidenceResponse' }
         "404": { $ref: '#/components/responses/Response404' }
-      x-error-codes: [ENTITY_NOT_FOUND]
+        "503": { $ref: '#/components/responses/Response503' }
+      x-error-codes: [ENTITY_NOT_FOUND, PROVIDER_UNAVAILABLE]
 
   /api/v1/citations/{cid}:
     get:
@@ -281,7 +314,8 @@ paths:
               schema: { $ref: '#/components/schemas/GetAuditPageResponse' }
         "400": { $ref: '#/components/responses/Response400' }
         "404": { $ref: '#/components/responses/Response404' }
-      x-error-codes: [PAGINATION_INVALID, SESSION_NOT_FOUND]
+        "503": { $ref: '#/components/responses/Response503' }
+      x-error-codes: [PAGINATION_INVALID, VALIDATION_MALFORMED_BODY, SESSION_NOT_FOUND, PROVIDER_UNAVAILABLE]
 
   /api/v1/destructive/dry-runs:
     post:
@@ -321,7 +355,7 @@ paths:
             schema: { $ref: '#/components/schemas/PostConfirmRequest' }
       responses:
         "200":
-          description: "Proposal in {dispatched, executed, failed}; caption S_CAP carried in confirmation.caption."
+          description: "Proposal in {confirmed, dispatched, executed, failed} (confirmed until the executor exists, story 2.3); caption S_CAP carried in confirmation.caption."
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Proposal' }
@@ -378,7 +412,7 @@ paths:
       operationId: executor_post_proposal
       tags: [executor]
       summary: executor_post_proposal — POST /executor/v1/proposals (contracts §2; AD-15 frozen contract)
-      description: Simulated executor reference adapter; applies exactly the referenced snapshot's items.
+      description: Simulated executor reference adapter; applies exactly the referenced snapshot's actionable items, and only for a `dispatched` proposal with its token (a `dry_run` or `confirmed` one is 409 PROPOSAL_STATE_INVALID), so it cannot bypass the confirmation.
       requestBody:
         required: true
         content:
@@ -546,6 +580,7 @@ components:
         status: { type: string, enum: [pending, running, succeeded, cancelled, failed] }
         scheduling_constraint: { type: [string, "null"] }
         created_at: { $ref: '#/components/schemas/Instant' }
+        node: { type: [string, "null"] }
     NodeRecord:
       type: object
       additionalProperties: false
@@ -602,6 +637,14 @@ components:
         - { $ref: '#/components/schemas/OperationalEvent' }
 
     # ---- answer composition (§0.4) ----
+    ClockRead:
+      type: object
+      additionalProperties: false
+      required: [read_id, instant, source]
+      properties:
+        read_id: { type: string }
+        instant: { $ref: '#/components/schemas/Instant' }
+        source: { type: string, enum: [clock] }
     Evidence:
       type: object
       additionalProperties: false
@@ -744,6 +787,16 @@ components:
         gate_token: { $ref: '#/components/schemas/GateToken' }
         confirmation: { oneOf: [{ $ref: '#/components/schemas/Confirmation' }, { type: "null" }] }
         executor_result: { oneOf: [{ $ref: '#/components/schemas/ExecutorResult' }, { type: "null" }] }
+    ChatRefusalResponse:
+      type: object
+      additionalProperties: false
+      required: [refusal, impact_summary, proposal, token_expires_at, confirmation_enabled]
+      properties:
+        refusal: { $ref: '#/components/schemas/ErrorBody' }
+        impact_summary: { type: string }
+        proposal: { $ref: '#/components/schemas/Proposal' }
+        token_expires_at: { $ref: '#/components/schemas/Instant' }
+        confirmation_enabled: { type: boolean }
     ExecutorRequest:
       type: object
       additionalProperties: false
@@ -771,6 +824,11 @@ components:
       required: [query_text]
       properties: { query_text: { $ref: '#/components/schemas/QueryText' } }
     CopilotQueryRequest:
+      type: object
+      additionalProperties: false
+      required: [query]
+      properties: { query: { $ref: '#/components/schemas/QueryText' } }
+    CopilotChatRequest:
       type: object
       additionalProperties: false
       required: [query]
@@ -806,7 +864,11 @@ components:
       additionalProperties: false
       required: [source_record, snippet]
       properties:
-        source_record: { $ref: '#/components/schemas/Record' }
+        # story 1.4 D4: a clock# citation resolves to the clock read it cites, not an estate record
+        source_record:
+          oneOf:
+            - { $ref: '#/components/schemas/Record' }
+            - { $ref: '#/components/schemas/ClockRead' }
         snippet: { $ref: '#/components/schemas/Snippet' }
     GetRunbookResponse:
       type: object

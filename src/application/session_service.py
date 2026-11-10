@@ -3,6 +3,11 @@
 Enforces the contract preconditions in order, reads the clock once per call, writes only through
 the session-store port and serializes the turns of one session so concurrent requests cannot lose
 updates (NFR-6). Context never authorizes anything (AD-5): there is no destructive path here.
+
+Every stored turn and every reset is audited (FR-11, AD-10): the provider-port calls of the turn are
+recorded while the pipeline runs, their ids are minted before the write, and the audit rows commit
+in the same unit of work as the ``Answer`` (story 1.5 D1). A failed turn writes neither. The writer
+lock is never held across ``pipeline.respond`` (prose), only across the short write.
 """
 
 from __future__ import annotations
@@ -10,8 +15,11 @@ from __future__ import annotations
 import logging
 import threading
 import weakref
+from collections.abc import Callable
 
-from src.application.pipeline import AnswerPipeline, TurnInput
+from src.application.audit_writer import AuditWriter
+from src.application.pipeline import AnswerPipeline, TurnInput, TurnOutput
+from src.application.tool_audit import RecordedCall, ToolCallRecorder
 from src.domain.error_catalog import fail
 from src.domain.intent import classify
 from src.domain.result import Failure, Ok, Result, is_failure
@@ -23,7 +31,15 @@ from src.domain.session_rules import (
 )
 from src.dto import AnswerEnvelopeDTO, GetSessionResponse, SessionContextDTO, SessionDTO
 from src.ports.inbound import CanonicalOutcome, SessionUseCases
-from src.ports.outbound import ClockPort, IdGenPort, SessionStorePort, StoredSession
+from src.ports.outbound import (
+    AuditEntry,
+    ClockPort,
+    IdGenPort,
+    SessionStorePort,
+    StoredSession,
+    UnitOfWorkError,
+    UnitOfWorkPort,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -49,11 +65,17 @@ class SessionService(SessionUseCases):
         clock: ClockPort,
         idgen: IdGenPort,
         pipeline: AnswerPipeline,
+        uow: UnitOfWorkPort,
+        audit: AuditWriter,
+        recorder: ToolCallRecorder,
     ) -> None:
         self._store = store
         self._clock = clock
         self._idgen = idgen
         self._pipeline = pipeline
+        self._uow = uow
+        self._audit = audit
+        self._recorder = recorder
         self._guards: weakref.WeakValueDictionary[str, _Guard] = weakref.WeakValueDictionary()
         self._registry_lock = threading.Lock()
 
@@ -121,18 +143,19 @@ class SessionService(SessionUseCases):
             if is_failure(answer_id):
                 return answer_id
             context = stored.session.context
-            output = self._pipeline.respond(
-                TurnInput(
-                    session_id=session_id,
-                    answer_id=answer_id.value,
-                    query=query.value,
-                    now=now.value,
-                    decision=classify(query.value, context.prior_intents),
-                    context=context,
+            with self._recorder.turn() as calls:
+                output = self._pipeline.respond(
+                    TurnInput(
+                        session_id=session_id,
+                        answer_id=answer_id.value,
+                        query=query.value,
+                        now=now.value,
+                        decision=classify(query.value, context.prior_intents),
+                        context=context,
+                    )
                 )
-            )
             if is_failure(output):
-                return output
+                return output  # a failed turn is not audited: nothing of it is persisted
 
             turn = output.value
             used = list(dict.fromkeys(turn.resolved_entities))
@@ -144,21 +167,41 @@ class SessionService(SessionUseCases):
                 prior_intents=[*context.prior_intents, turn.answer.intent],
                 active_answer_ids=[*context.active_answer_ids, turn.answer.answer_id],
             )
-            written = self._store.append_turn(session_id, turn.answer, updated, now.value.instant)
+            # every id is minted before the transaction opens, head first (D-2.3)
+            entries = self._audit.entries_for(stored.session, now.value, _head(turn, used), calls)
+            if is_failure(entries):
+                return entries
+            written = self._write_audited(
+                lambda: self._store.append_turn(
+                    session_id, turn.answer, updated, now.value.instant
+                ),
+                entries.value,
+            )
             if is_failure(written):
                 return written
             return Ok(turn.canonical or AnswerEnvelopeDTO(answers=[turn.answer]))
 
+    def _write_audited(
+        self, write: Callable[[], Result[None]], entries: list[AuditEntry]
+    ) -> Result[None]:
+        """``write`` and the audit rows in one unit of work: both commit, or neither does."""
+        try:
+            with self._uow.atomic() as tx:
+                written = write()
+                if is_failure(written):
+                    tx.abort()
+                    return written
+                audited = self._audit.write(entries)
+                if is_failure(audited):
+                    tx.abort()
+                    return audited
+        except UnitOfWorkError as exc:
+            return Failure("PROVIDER_UNAVAILABLE", observed=(str(exc),))
+        return Ok(None)
+
     @staticmethod
     def _is_usable(stored: StoredSession, now: str) -> Result[bool]:
-        if stored.session.status in ("reset", "expired"):
-            return Ok(False)
-        last_activity = stored.last_turn_at or stored.session.created_at
-        try:
-            return Ok(not is_idle_expired(last_activity, now))
-        except ValueError as exc:  # a stored timestamp that is not a real instant
-            observed = (f"stored timestamp is not a valid instant: {exc}",)
-            return Failure("PROVIDER_UNAVAILABLE", observed=observed)
+        return session_usable(stored, now)
 
     # -- get_session ---------------------------------------------------------------------------
     def get_session(self, session_id: str) -> Result[GetSessionResponse]:
@@ -195,4 +238,34 @@ class SessionService(SessionUseCases):
             now = self._clock.now()  # one read, inside the guard (see submit_query)
             if is_failure(now):
                 return now
-            return self._store.reset(session_id, now.value.instant)
+            head = RecordedCall("toolcall.reset_session", {"session_id": session_id}, "ok")
+            entries = self._audit.entries_for(found.value.session, now.value, head, [])
+            if is_failure(entries):
+                return entries
+            return self._write_audited(
+                lambda: self._store.reset(session_id, now.value.instant), entries.value
+            )
+
+
+def session_usable(stored: StoredSession, now: str) -> Result[bool]:
+    """Whether a session still takes requests: not reset, not expired, not idle too long (P2)."""
+    if stored.session.status in ("reset", "expired"):
+        return Ok(False)
+    last_activity = stored.last_turn_at or stored.session.created_at
+    try:
+        return Ok(not is_idle_expired(last_activity, now))
+    except ValueError as exc:  # a stored timestamp that is not a real instant
+        observed = (f"stored timestamp is not a valid instant: {exc}",)
+        return Failure("PROVIDER_UNAVAILABLE", observed=observed)
+
+
+def _head(turn: TurnOutput, resolved: list[str]) -> RecordedCall:
+    """The ``toolcall.answer_query`` call that heads a turn's audit (never the query text)."""
+    answer = turn.answer
+    result: dict[str, object] = {}
+    if answer.diagnosis_class is not None:
+        result["diagnosis_class"] = answer.diagnosis_class
+    if answer.canonical is not None:
+        result["canonical"] = answer.canonical
+    params = {"answer_id": answer.answer_id, "intent": answer.intent, "resolved_entities": resolved}
+    return RecordedCall("toolcall.answer_query", params, "ok", result=result)

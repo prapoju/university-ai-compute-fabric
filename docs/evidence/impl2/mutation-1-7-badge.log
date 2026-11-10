@@ -1,0 +1,79 @@
+[WebServer] 2026-11-08 16:24:35,399 INFO src.bootstrap: container built (fixtures=/home/julio/repos/ia-proyecto/university-ai-compute-fabric/fixtures)
+[WebServer] INFO:     Started server process [1411417]
+[WebServer] INFO:     Waiting for application startup.
+[WebServer] INFO:     Application startup complete.
+[WebServer] INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+
+Running 3 tests using 2 workers
+
+  ✓  2 tests/e2e/smoke.spec.ts:4:1 › GET /healthz reports the process is up (48ms)
+  ✘  1 tests/e2e/copilot-console.spec.ts:16:3 › Helpdesk specialist investigates an access denial › diagnoses the denial, shows the verified runbook and copies it (5.2s)
+  ✘  3 tests/e2e/copilot-console.spec.ts:16:3 › Helpdesk specialist investigates an access denial › diagnoses the denial, shows the verified runbook and copies it (retry #1) (5.3s)
+  ✓  4 tests/e2e/copilot-console.spec.ts:33:3 › Helpdesk specialist investigates an access denial › shows a visible error and no runbook when the inquiry names an unknown student (250ms)
+
+
+  1) tests/e2e/copilot-console.spec.ts:16:3 › Helpdesk specialist investigates an access denial › diagnoses the denial, shows the verified runbook and copies it 
+
+    Error: expect(locator).toHaveText(expected) failed
+
+    Locator:  getByTestId('citation-badge')
+    Expected: "Verified via Policy Engine [RULE-CAT-04]"
+    Received: "Verified via Policy Engine (RULE-CAT-04)"
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveText" getByTestId('citation-badge') with timeout 5000ms
+      - waiting for getByTestId('citation-badge')
+        14 × locator resolved to <p class="badge" data-testid="citation-badge">Verified via Policy Engine (RULE-CAT-04)</p>
+           - unexpected value "Verified via Policy Engine (RULE-CAT-04)"
+
+
+      20 |     await copilot.ask('Student Alex was denied model deepseek-coder. Diagnose and provide runbook.');
+      21 |
+    > 22 |     await expect(copilot.badge).toHaveText('Verified via Policy Engine [RULE-CAT-04]');
+         |                                 ^
+      23 |     await expect(copilot.runbookCard).toBeVisible();
+      24 |     await expect(copilot.runbookSteps).toHaveText(runbook.steps);
+      25 |
+        at /home/julio/repos/ia-proyecto/university-ai-compute-fabric/tests/e2e/copilot-console.spec.ts:22:33
+
+    Error Context: test-results/copilot-console-Helpdesk-s-e2135-ified-runbook-and-copies-it/error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: expect(locator).toHaveText(expected) failed
+
+    Locator:  getByTestId('citation-badge')
+    Expected: "Verified via Policy Engine [RULE-CAT-04]"
+    Received: "Verified via Policy Engine (RULE-CAT-04)"
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveText" getByTestId('citation-badge') with timeout 5000ms
+      - waiting for getByTestId('citation-badge')
+        14 × locator resolved to <p class="badge" data-testid="citation-badge">Verified via Policy Engine (RULE-CAT-04)</p>
+           - unexpected value "Verified via Policy Engine (RULE-CAT-04)"
+
+
+      20 |     await copilot.ask('Student Alex was denied model deepseek-coder. Diagnose and provide runbook.');
+      21 |
+    > 22 |     await expect(copilot.badge).toHaveText('Verified via Policy Engine [RULE-CAT-04]');
+         |                                 ^
+      23 |     await expect(copilot.runbookCard).toBeVisible();
+      24 |     await expect(copilot.runbookSteps).toHaveText(runbook.steps);
+      25 |
+        at /home/julio/repos/ia-proyecto/university-ai-compute-fabric/tests/e2e/copilot-console.spec.ts:22:33
+
+    Error Context: test-results/copilot-console-Helpdesk-s-e2135-ified-runbook-and-copies-it-retry1/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/copilot-console-Helpdesk-s-e2135-ified-runbook-and-copies-it-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/copilot-console-Helpdesk-s-e2135-ified-runbook-and-copies-it-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests/e2e/copilot-console.spec.ts:16:3 › Helpdesk specialist investigates an access denial › diagnoses the denial, shows the verified runbook and copies it 
+  2 passed (16.6s)

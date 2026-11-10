@@ -1,10 +1,10 @@
 """The schedule/window diagnoser (story 3.1, Annex 12.2): why a group's job cannot run now.
 
 Order of a turn: extract the group -> resolve it exactly (AD-7) -> read the group's jobs and the
-policy windows -> diagnose in the pure domain (AD-2) -> guarded prose, once (AD-8) -> mint claim
-ids. An unknown group is a canonical outcome that never reaches the LLM; a missing or past
-window is stated as such (contracts.md Q1, D55); any provider failure aborts the turn (AD-12) -
-a window is never fabricated.
+policy windows -> diagnose in the pure domain (AD-2) -> bind the claims to the evidence ->
+guarded prose, once (AD-8) -> mint claim ids. An unknown group and an unbound claim are canonical
+outcomes that never reach the LLM; a missing or past window is stated as such (contracts.md Q1,
+D55); any provider failure aborts the turn (AD-12) - a window is never fabricated.
 """
 
 from __future__ import annotations
@@ -12,12 +12,14 @@ from __future__ import annotations
 from src.application.entity_resolver import EntityResolver, ResolvedGroup, Unresolved
 from src.application.pipeline import TurnInput, TurnOutput
 from src.application.turn_support import (
+    bind_or_downgrade,
     canonical_turn,
     clarification_turn,
     mint_claims,
     write_prose,
 )
 from src.domain import canonical_strings as cs
+from src.domain.references import extract_policy_references, in_input_order
 from src.domain.result import Ok, Result, is_failure
 from src.domain.window_diagnosis import diagnose_schedule_window, extract_group_reference
 from src.dto import AnswerDTO, SelectorDTO
@@ -44,15 +46,23 @@ class WindowDiagnosisHandler:
 
     def __call__(self, turn: TurnInput) -> Result[TurnOutput]:
         token = extract_group_reference(turn.query)
-        if token is None:
-            return Ok(clarification_turn(turn, cs.R_MISSING_GROUP))
-        resolution = self._resolver.resolve_group(token)
-        if is_failure(resolution):
-            return resolution
-        found = resolution.value
-        if isinstance(found, Unresolved):
-            message = cs.entity_not_found(found.refs)
+        found: ResolvedGroup | Unresolved | None = None
+        if token is not None:
+            resolution = self._resolver.resolve_group(token)
+            if is_failure(resolution):
+                return resolution
+            found = resolution.value
+        # a named policy#... must exist too (AD-7, story 4.1), and a missing entity outranks the
+        # missing-group clarification: no answer to it could make the diagnosis proceed
+        missing = self._resolver.missing_policies(extract_policy_references(turn.query))
+        if is_failure(missing):
+            return missing
+        unresolved = (*(found.refs if isinstance(found, Unresolved) else ()), *missing.value)
+        if unresolved:
+            message = cs.entity_not_found(in_input_order(turn.query, unresolved))
             return Ok(canonical_turn(turn, INTENT, "ENTITY_NOT_FOUND", message))
+        if found is None:
+            return Ok(clarification_turn(turn, cs.R_MISSING_GROUP))
         assert isinstance(found, ResolvedGroup)
         group = found.group
 
@@ -64,6 +74,9 @@ class WindowDiagnosisHandler:
             return windows
 
         outcome = diagnose_schedule_window(group, jobs.value, windows.value, turn.now)
+        downgraded = bind_or_downgrade(turn, INTENT, outcome.claims, outcome.evidence, (group.id,))
+        if downgraded is not None:
+            return Ok(downgraded)  # an unbound claim never renders (FR-13): no LLM, no claim id
         prose = write_prose(self._prose, outcome.evidence, outcome.fact_tokens)
         if is_failure(prose):
             return prose

@@ -207,6 +207,7 @@ class JobRecordDTO(_DTO):
     status: Literal["pending", "running", "succeeded", "cancelled", "failed"]
     scheduling_constraint: Optional[str] = None
     created_at: Instant
+    node: Optional[str] = None  # the node a running job occupies, null when it has none (story 2.2)
 
 
 class NodeRecordDTO(_DTO):
@@ -425,6 +426,16 @@ class ProposalDTO(_DTO):
     executor_result: Optional[ExecutorResultDTO] = None
 
 
+class ChatRefusalResponse(_DTO):
+    """The Annex 12.4 chat reply to a refused destructive request (story 2.2, D1)."""
+
+    refusal: ErrorBody  # the canonical ``Action refused.``
+    impact_summary: str
+    proposal: ProposalDTO  # state ``dry_run``
+    token_expires_at: Instant
+    confirmation_enabled: bool
+
+
 class ExecutorRequestDTO(_DTO):
     """Frozen executor contract payload (AD-15)."""
 
@@ -538,7 +549,8 @@ class GetCitationRequest(_DTO):
 
 
 class GetCitationResponse(_DTO):
-    source_record: RecordDTO
+    # a clock citation resolves to the clock read it cites (story 1.4 D4): it is no estate record
+    source_record: Union[RecordDTO, ClockReadDTO]
     snippet: Snippet
 
 

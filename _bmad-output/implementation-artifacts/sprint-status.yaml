@@ -1,10 +1,22 @@
+# ==== IMPL-2 SCOPE (course task impl-2, Module 12; docs/task-impl2.md, docs/impl2-rules.md) ====
+# Annex -> stories -> testing flow
+#   12.1        : 1-3 (scaffold 1-1, 1-2)       done
+#   12.2        : 3-1                            Flow C (test-after)
+#   12.3        : 4-1                            Flow C (test-after)
+#   foundations : 1-4, 1-5, 4-2                  Flow B (test-along)
+#   12.4        : 2-1, 2-2, 2-3, 2-4             Flow A (ATDD-first)
+#   12.5        : 1-6                            Flow D (k6 NFR, tests/nfr/copilot-load.js)
+#   12.6        : 3-3 (B), 1-7 (E)               Flow B + Flow E (Playwright POM)
+#   optional    : 1-8 (S-B, S-C, S-D surfaces)   Flow E
+# epics_source is now 4 epics / 19 stories (Sprint Change Proposal 2026-11-06).
+# ===============================================================================================
 # generated: 2026-10-16 21:34
-# last_updated: 2026-10-25 08:10
+# last_updated: 2026-11-07
 # project: plan-2-university-ai-fabric
 # project_key: NOKEY
 # tracking_system: file-system
 # story_location: _bmad-output/implementation-artifacts
-# epics_source: planning/epics.md (4 epics / 16 stories)
+# epics_source: planning/epics.md (4 epics / 19 stories)
 # IMPL-1 SCOPE (course task impl-1, Module 12):
 #   Foundation scaffold : 1-1 (fixtures + read-only adapter ring), 1-2 (console shell + session store)
 #   Core stories (Annex 12.1 / 12.2 / 12.3) : 1-3 access-denial diagnosis, 3-1 schedule/window diagnosis,
@@ -49,7 +61,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-10-16 21:34
-last_updated: 2026-10-24 23:10
+last_updated: 2026-11-08
 project: plan-2-university-ai-fabric
 project_key: NOKEY
 tracking_system: file-system
@@ -60,26 +72,29 @@ development_status:
   1-1-seed-the-fixture-estate-and-stand-up-the-read-only-adapter-ring: done
   1-2-console-shell-session-store-and-conversational-intake: done
   1-3-entity-resolution-and-access-denial-diagnosis-end-to-end-walking-skeleton-happy-path: done
-  1-4-structured-claims-citation-cards-and-evidence-level-determinism: backlog
-  1-5-tool-call-audit-log-and-state-inspection-viewer: backlog
+  1-4-structured-claims-citation-cards-and-evidence-level-determinism: done
+  1-5-tool-call-audit-log-and-state-inspection-viewer: done
+  1-6-concurrent-multi-tool-diagnostics-under-a-k6-latency-budget: done
+  1-7-react-diagnostic-console-with-cited-state-cards-and-runbook-copy: done
+  1-8-inspector-audit-and-safety-console-surfaces: backlog  # optional, out of scope for Impl-2 (I2-57)
   epic-1-retrospective: optional
 
-  epic-2: backlog
-  2-1-destructive-intent-classification-and-refusal: backlog
-  2-2-dry-run-snapshot-with-selector-predicate-and-affected-items: backlog
-  2-3-procedural-confirmation-gate-and-snapshot-re-validation: backlog
-  2-4-propose-only-handoff-simulated-executor-and-executor-failure-safety: backlog
+  epic-2: done
+  2-1-destructive-intent-classification-and-refusal: done
+  2-2-dry-run-snapshot-with-selector-predicate-and-affected-items: done
+  2-3-procedural-confirmation-gate-and-snapshot-re-validation: done
+  2-4-propose-only-handoff-simulated-executor-and-executor-failure-safety: done
   epic-2-retrospective: optional
 
   epic-3: in-progress
-  3-1-schedule-and-window-diagnosis: review
-  3-2-retrospective-event-log-diagnosis: backlog
-  3-3-runbook-registry-and-node-triage-runbook: backlog
-  3-4-intent-taxonomy-extension-and-session-follow-up-references: backlog
+  3-1-schedule-and-window-diagnosis: done
+  3-2-retrospective-event-log-diagnosis: backlog  # optional, out of scope for Impl-2 (I2-57)
+  3-3-runbook-registry-and-node-triage-runbook: done
+  3-4-intent-taxonomy-extension-and-session-follow-up-references: backlog  # optional, out of scope for Impl-2 (I2-57)
   epic-3-retrospective: optional
 
   epic-4: in-progress
-  4-1-anti-fabrication-guardrail-and-content-data-hygiene-mandatory-edge-case: review
-  4-2-safe-failure-on-retrieval-dependencies: backlog
-  4-3-safe-failure-on-the-prose-runtime-and-malformed-input: backlog
+  4-1-anti-fabrication-guardrail-and-content-data-hygiene-mandatory-edge-case: done
+  4-2-safe-failure-on-retrieval-dependencies: done
+  4-3-safe-failure-on-the-prose-runtime-and-malformed-input: backlog  # optional, out of scope for Impl-2 (I2-57)
   epic-4-retrospective: optional

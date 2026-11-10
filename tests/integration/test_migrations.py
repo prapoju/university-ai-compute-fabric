@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import hashlib
 import sqlite3
 from pathlib import Path
 
 import pytest
 
 from src.adapters.outbound.db.migrate import MigrationError, apply_migrations
+from src.adapters.outbound.db.sqlite_writer import SqliteWriter
 from src.config import PROJECT_ROOT
 
 pytestmark = pytest.mark.integration
@@ -19,9 +21,15 @@ OWNED_TABLES = {
 }  # fmt: skip
 
 
-def _tables(connection: sqlite3.Connection) -> set[str]:
-    rows = connection.execute("select name from sqlite_master where type = 'table'").fetchall()
+def _tables(writer: SqliteWriter) -> set[str]:
+    with writer.read() as connection:
+        rows = connection.execute("select name from sqlite_master where type = 'table'").fetchall()
     return {name for (name,) in rows}
+
+
+def _scalar(writer: SqliteWriter, sql: str) -> tuple:
+    with writer.read() as connection:
+        return connection.execute(sql).fetchone()
 
 
 def test_migration_matches_the_contract_schema_byte_for_byte() -> None:
@@ -30,55 +38,59 @@ def test_migration_matches_the_contract_schema_byte_for_byte() -> None:
 
 
 def test_applies_every_module12_owned_table_and_nothing_about_the_estate() -> None:
-    connection = sqlite3.connect(":memory:")
-    applied = apply_migrations(connection, MIGRATIONS)
-    tables = _tables(connection)
-    assert applied == ["001_module12_copilot_schema.sql"]
+    writer = SqliteWriter.open(":memory:")
+    applied = apply_migrations(writer, MIGRATIONS)
+    tables = _tables(writer)
+    assert applied == [
+        "001_module12_copilot_schema.sql",
+        "002_proposals_failed_to_superseded.sql",  # story 2.4: a failed proposal can be superseded
+    ]
     assert OWNED_TABLES <= tables
     # AD-1/AD-13: the operational estate never lives in this database
     assert not {"users", "nodes", "jobs", "catalog", "groups"} & tables
 
 
 def test_is_idempotent_second_run_applies_nothing() -> None:
-    connection = sqlite3.connect(":memory:")
-    apply_migrations(connection, MIGRATIONS)
-    assert apply_migrations(connection, MIGRATIONS) == []
+    writer = SqliteWriter.open(":memory:")
+    apply_migrations(writer, MIGRATIONS)
+    assert apply_migrations(writer, MIGRATIONS) == []
 
 
 def test_modified_migration_is_detected_not_silently_reapplied(tmp_path: Path) -> None:
     (tmp_path / "001_a.sql").write_text("create table a (x integer);", encoding="utf-8")
-    connection = sqlite3.connect(":memory:")
-    apply_migrations(connection, tmp_path)
+    writer = SqliteWriter.open(":memory:")
+    apply_migrations(writer, tmp_path)
     (tmp_path / "001_a.sql").write_text("create table a (x integer, y integer);", encoding="utf-8")
     with pytest.raises(MigrationError, match="001_a.sql"):
-        apply_migrations(connection, tmp_path)
+        apply_migrations(writer, tmp_path)
 
 
 def test_append_only_audit_trigger_survives_migration() -> None:
-    connection = sqlite3.connect(":memory:")
-    apply_migrations(connection, MIGRATIONS)
-    rows = connection.execute("select name from sqlite_master where type = 'trigger'")
+    writer = SqliteWriter.open(":memory:")
+    apply_migrations(writer, MIGRATIONS)
+    with writer.read() as db:
+        rows = db.execute("select name from sqlite_master where type = 'trigger'").fetchall()
     triggers = {name for (name,) in rows}
     assert {"trg_audit_records_no_update", "trg_audit_records_no_delete"} <= triggers
 
 
 def test_missing_directory_is_a_clear_error(tmp_path: Path) -> None:
     with pytest.raises(MigrationError, match="not found"):
-        apply_migrations(sqlite3.connect(":memory:"), tmp_path / "absent")
+        apply_migrations(SqliteWriter.open(":memory:"), tmp_path / "absent")
 
 
 def test_a_failing_migration_rolls_back_completely_and_can_be_retried(tmp_path: Path) -> None:
     script = tmp_path / "001_a.sql"
     script.write_text("create table a (x integer); create table a (x integer);", encoding="utf-8")
-    connection = sqlite3.connect(":memory:")
+    writer = SqliteWriter.open(":memory:")
     with pytest.raises(MigrationError, match="001_a.sql"):
-        apply_migrations(connection, tmp_path)
+        apply_migrations(writer, tmp_path)
     # nothing half-applied: neither the first table nor a bookkeeping row survived
-    assert "a" not in _tables(connection)
-    assert connection.execute("select count(*) from schema_migrations").fetchone() == (0,)
+    assert "a" not in _tables(writer)
+    assert _scalar(writer, "select count(*) from schema_migrations") == (0,)
     # once the file is fixed the very same database can be migrated
     script.write_text("create table a (x integer);", encoding="utf-8")
-    assert apply_migrations(connection, tmp_path) == ["001_a.sql"]
+    assert apply_migrations(writer, tmp_path) == ["001_a.sql"]
 
 
 def test_syntax_errors_and_invalid_utf8_are_migration_errors_not_raw_driver_errors(
@@ -86,33 +98,36 @@ def test_syntax_errors_and_invalid_utf8_are_migration_errors_not_raw_driver_erro
 ) -> None:
     (tmp_path / "001_syntax.sql").write_text("create table (;", encoding="utf-8")
     with pytest.raises(MigrationError, match="001_syntax.sql"):
-        apply_migrations(sqlite3.connect(":memory:"), tmp_path)
+        apply_migrations(SqliteWriter.open(":memory:"), tmp_path)
     (tmp_path / "001_syntax.sql").unlink()
     (tmp_path / "002_bytes.sql").write_bytes(b"\xff\xfe\x00 not utf-8")
     with pytest.raises(MigrationError, match="002_bytes.sql"):
-        apply_migrations(sqlite3.connect(":memory:"), tmp_path)
+        apply_migrations(SqliteWriter.open(":memory:"), tmp_path)
 
 
 def test_an_applied_migration_that_disappears_is_reported(tmp_path: Path) -> None:
     (tmp_path / "001_a.sql").write_text("create table a (x integer);", encoding="utf-8")
-    connection = sqlite3.connect(":memory:")
-    apply_migrations(connection, tmp_path)
+    writer = SqliteWriter.open(":memory:")
+    apply_migrations(writer, tmp_path)
     (tmp_path / "001_a.sql").unlink()
     (tmp_path / "002_b.sql").write_text("create table b (x integer);", encoding="utf-8")
     with pytest.raises(MigrationError, match="001_a.sql"):
-        apply_migrations(connection, tmp_path)
+        apply_migrations(writer, tmp_path)
 
 
 def test_migrations_apply_to_a_file_database_and_enable_wal(tmp_path: Path) -> None:
     # WAL cannot be switched on inside a transaction, so PRAGMAs must run outside the atomic part
     database = tmp_path / "m12.db"
-    connection = sqlite3.connect(database)
-    assert apply_migrations(connection, MIGRATIONS) == ["001_module12_copilot_schema.sql"]
-    assert connection.execute("pragma journal_mode").fetchone() == ("wal",)
-    assert OWNED_TABLES <= _tables(connection)
-    connection.close()
+    writer = SqliteWriter.open(str(database))
+    assert apply_migrations(writer, MIGRATIONS) == [
+        "001_module12_copilot_schema.sql",
+        "002_proposals_failed_to_superseded.sql",
+    ]
+    assert _scalar(writer, "pragma journal_mode") == ("wal",)
+    assert OWNED_TABLES <= _tables(writer)
+    writer.close()
     # a second process start on the same file is a no-op
-    reopened = sqlite3.connect(database)
+    reopened = SqliteWriter.open(str(database))
     assert apply_migrations(reopened, MIGRATIONS) == []
     reopened.close()
 
@@ -124,10 +139,10 @@ def test_a_failure_in_the_body_still_rolls_back_when_pragmas_were_split_off(
         "PRAGMA foreign_keys = ON;\ncreate table a (x integer);\ncreate table a (x integer);",
         encoding="utf-8",
     )
-    connection = sqlite3.connect(tmp_path / "x.db")
+    writer = SqliteWriter.open(str(tmp_path / "x.db"))
     with pytest.raises(MigrationError, match="rolled back"):
-        apply_migrations(connection, tmp_path)
-    assert "a" not in _tables(connection)
+        apply_migrations(writer, tmp_path)
+    assert "a" not in _tables(writer)
 
 
 @pytest.mark.parametrize("newline", ["\n", "\r\n"])
@@ -136,6 +151,51 @@ def test_pragma_lines_are_split_off_with_unix_and_windows_line_endings(
 ) -> None:
     script = newline.join(["PRAGMA journal_mode = WAL;", "create table a (x integer);", ""])
     (tmp_path / "001_a.sql").write_bytes(script.encode("utf-8"))
-    connection = sqlite3.connect(tmp_path / "x.db")
-    assert apply_migrations(connection, tmp_path) == ["001_a.sql"]
-    assert connection.execute("pragma journal_mode").fetchone() == ("wal",)
+    writer = SqliteWriter.open(str(tmp_path / "x.db"))
+    assert apply_migrations(writer, tmp_path) == ["001_a.sql"]
+    assert _scalar(writer, "pragma journal_mode") == ("wal",)
+
+
+def test_migration_002_makes_superseded_reachable_and_changes_nothing_else(tmp_path) -> None:
+    """001 is untouched (checksum recorded); 002 only adds the step ``failed -> superseded``."""
+    box = SqliteWriter.open(":memory:")
+    apply_migrations(box, MIGRATIONS)
+    with box.read() as db:
+        sha = dict(db.execute("SELECT filename, sha256 FROM schema_migrations"))
+    first = (MIGRATIONS / "001_module12_copilot_schema.sql").read_bytes()
+    assert sha["001_module12_copilot_schema.sql"] == hashlib.sha256(first).hexdigest()
+    legal = {
+        ("refused", "dry_run"), ("dry_run", "confirmed"), ("confirmed", "dispatched"),
+        ("dispatched", "executed"), ("dispatched", "failed"), ("failed", "superseded"),
+    }  # fmt: skip
+    states = ("refused", "dry_run", "confirmed", "dispatched", "executed", "failed", "superseded")
+    for old in states:
+        for new in states:
+            if old == new:
+                continue
+            with box.transaction() as db:
+                db.execute("PRAGMA foreign_keys = OFF")
+                db.execute("DELETE FROM proposals")
+                db.execute(
+                    "INSERT INTO sessions (session_id, created_at, updated_at, operator_role,"
+                    " status)"
+                    " VALUES ('sess-0000000000000001', '2026-10-16T15:00:00.000Z',"
+                    " '2026-10-16T15:00:00.000Z', 'role-operations', 'active')"
+                    " ON CONFLICT DO NOTHING"
+                )
+                db.execute(
+                    "INSERT INTO proposals (proposal_id, session_id, state, action, selector,"
+                    " affected_items, snapshot_timestamp, gate_token, confirmed_at, created_at,"
+                    " updated_at) VALUES ('prop-0000000000000001', 'sess-0000000000000001', ?,"
+                    " 'cancel_jobs', '{\"method\": \"jobs_port.select\", \"params\": {}}', '[]',"
+                    " '2026-10-16T15:00:00.000Z', ?, '2026-10-16T15:00:00.000Z',"
+                    " '2026-10-16T15:00:00.000Z', '2026-10-16T15:00:00.000Z')",
+                    (old, "gt-" + "0" * 32),
+                )
+                try:
+                    db.execute("UPDATE proposals SET state = ?", (new,))
+                    allowed = True
+                except sqlite3.IntegrityError:
+                    allowed = False
+            assert allowed == ((old, new) in legal), (old, new)
+    box.close()

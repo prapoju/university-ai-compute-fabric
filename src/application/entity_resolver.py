@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from src.domain.entity_key import parse_entity_key
 from src.domain.result import Failure, Ok, Result, is_failure
 from src.dto import GroupRecordDTO, ModelCatalogEntryDTO, UserRecordDTO
-from src.ports.outbound import CatalogPort, GroupsPort, UsersPort
+from src.ports.outbound import CatalogPort, GroupsPort, JobsPort, NodesPort, PolicyPort, UsersPort
 
 
 @dataclass(frozen=True)
@@ -65,13 +65,49 @@ class ResolvedGroup:
     group: GroupRecordDTO
 
 
+@dataclass(frozen=True)
+class ResolvedTarget:
+    """The key of a destructive request's target, once the provider confirmed it exists."""
+
+    key: str
+
+
 class EntityResolver:
     def __init__(
-        self, *, users: UsersPort, catalog: CatalogPort, groups: GroupsPort | None = None
+        self,
+        *,
+        users: UsersPort,
+        catalog: CatalogPort,
+        groups: GroupsPort | None = None,
+        policy: PolicyPort | None = None,
+        nodes: NodesPort | None = None,
+        jobs: JobsPort | None = None,
     ) -> None:
         self._users = users
         self._catalog = catalog
         self._groups = groups
+        self._policy = policy
+        self._nodes = nodes
+        self._jobs = jobs
+
+    # -- typed ``policy#...`` references of any diagnosis (story 4.1) ----------------------------
+    def missing_policies(self, refs: Sequence[str]) -> Result[tuple[str, ...]]:
+        """The ``policy#...`` references that are not in state, in input order.
+
+        A malformed id is a miss ("no such clause"); a provider failure aborts the turn.
+        """
+        if not refs:
+            return Ok(())
+        if self._policy is None:
+            return Failure("PROVIDER_UNAVAILABLE", observed=("policy port is not wired",))
+        missing: list[str] = []
+        for ref in refs:
+            found = self._lookup(self._policy.get, ref)
+            if is_failure(found):
+                return found
+            if found.value is None:
+                missing.append(ref)
+        return Ok(tuple(missing))
 
     # -- "why can't <group> run their job" (story 3.1) -------------------------------------------
     def resolve_group(self, token: str) -> Result[ResolvedGroup | Unresolved]:
@@ -85,6 +121,24 @@ class EntityResolver:
         if found.value is None:
             return Ok(Unresolved((name,)))
         return Ok(ResolvedGroup(found.value))
+
+    # -- the target of a destructive request (story 2.1) ----------------------------------------
+    def resolve_target(self, kind: str, token: str) -> Result[ResolvedTarget | Unresolved]:
+        """Exact, case-folded lookup of a ``group``, ``job`` or ``node`` target (AD-4, AD-7)."""
+        get = {
+            "group": self._groups.get if self._groups else None,
+            "job": self._jobs.get if self._jobs else None,
+            "node": self._nodes.get if self._nodes else None,
+        }.get(kind)
+        if get is None:
+            return Failure("PROVIDER_UNAVAILABLE", observed=(f"{kind} port is not wired",))
+        key, name = _key(kind, token)
+        found = self._lookup(get, key)
+        if is_failure(found):
+            return found
+        if found.value is None:
+            return Ok(Unresolved((name,)))
+        return Ok(ResolvedTarget(found.value.id))
 
     # -- "why was <user> denied <model>" -------------------------------------------------------
     def resolve_user_and_model(self, user_token: str, model_token: str) -> Result[Resolution]:
@@ -167,5 +221,6 @@ __all__ = [
     "Resolution",
     "Resolved",
     "ResolvedGroup",
+    "ResolvedTarget",
     "Unresolved",
 ]

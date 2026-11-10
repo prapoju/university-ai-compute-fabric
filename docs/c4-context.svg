@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="470" viewBox="0 0 900 470" font-family="Arial, Helvetica, sans-serif" font-size="14">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#000"/>
+    </marker>
+  </defs>
+  <rect width="900" height="470" fill="#ffffff"/>
+  <text x="20" y="28" font-weight="bold" font-size="16">System context: AI Operations Copilot</text>
+
+  <!-- person: Operator -->
+  <g fill="none" stroke="#000" stroke-width="1.5">
+    <circle cx="450" cy="55" r="14"/>
+    <line x1="450" y1="69" x2="450" y2="105"/>
+    <line x1="425" y1="83" x2="475" y2="83"/>
+    <line x1="450" y1="105" x2="430" y2="132"/>
+    <line x1="450" y1="105" x2="470" y2="132"/>
+  </g>
+  <text x="450" y="152" text-anchor="middle" font-weight="bold">Operator</text>
+  <text x="450" y="169" text-anchor="middle" font-size="12">[Person] Helpdesk specialist</text>
+
+  <!-- system: copilot -->
+  <rect x="290" y="215" width="320" height="95" fill="none" stroke="#000" stroke-width="2"/>
+  <text x="450" y="242" text-anchor="middle" font-weight="bold">AI Operations Copilot</text>
+  <text x="450" y="260" text-anchor="middle" font-size="12">[Software System]</text>
+  <text x="450" y="279" text-anchor="middle" font-size="12">Answers questions with cited evidence;</text>
+  <text x="450" y="295" text-anchor="middle" font-size="12">never changes anything by itself</text>
+
+  <!-- external: lab data -->
+  <rect x="40" y="370" width="290" height="80" fill="none" stroke="#000" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <text x="185" y="397" text-anchor="middle" font-weight="bold">Lab data</text>
+  <text x="185" y="415" text-anchor="middle" font-size="12">[External System, simulated]</text>
+  <text x="185" y="433" text-anchor="middle" font-size="12">Users, jobs, machines, policy, events</text>
+
+  <!-- external: executor -->
+  <rect x="570" y="370" width="290" height="80" fill="none" stroke="#000" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <text x="715" y="397" text-anchor="middle" font-weight="bold">Executor</text>
+  <text x="715" y="415" text-anchor="middle" font-size="12">[External System, simulated]</text>
+  <text x="715" y="433" text-anchor="middle" font-size="12">Applies the confirmed action</text>
+
+  <!-- relationships -->
+  <g stroke="#000" stroke-width="1.3" fill="none" marker-end="url(#arrow)">
+    <line x1="450" y1="176" x2="450" y2="212"/>
+    <line x1="350" y1="310" x2="200" y2="367"/>
+    <line x1="550" y1="310" x2="700" y2="367"/>
+  </g>
+  <g font-size="12">
+    <text x="460" y="199">Asks questions, confirms actions</text>
+    <text x="275" y="332" text-anchor="end">Reads data</text>
+    <text x="625" y="332">Sends the confirmed action</text>
+  </g>
+</svg>

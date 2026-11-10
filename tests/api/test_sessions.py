@@ -262,7 +262,7 @@ def test_a_follow_up_is_routed_from_the_session_context_over_http(api) -> None:
 # -- errors never leak, dependencies fail safely -----------------------------------------------
 def test_a_store_failure_is_503_with_only_the_safe_literal(api) -> None:
     sid = create(api)
-    api.store._connection.close()  # noqa: SLF001
+    api.store._writer._connection.close()  # noqa: SLF001
     for response in (
         ask(api, sid),
         api.client.get(f"{BASE}/{sid}"),

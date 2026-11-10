@@ -37,3 +37,13 @@
 
 - `python -m pytest -q` -> **39 passed in 0.99s**
 - `asyncio: mode=Mode.AUTO`; hypothesis example runs under `-m determinism`.
+
+## Impl-2 extension (2026-11-06)
+
+- Stack: fullstack. The pytest harness above is kept as-is; Playwright (`@playwright/test` 1.65) and k6 2.3 are layered on.
+- Added: `playwright.config.ts`, `tests/e2e/smoke.spec.ts`, `tests/e2e/pages/README.md`, `tests/nfr/smoke.js`,
+  `test/atdd/README.md`, npm `test` script; `tests/README.md` updated for the three layers and Impl-2.
+- Makefile: `lint`; `cov` on `src` with branch coverage and a 90% floor; `e2e` and `nfr` (with no-`waitForTimeout` / no-`sleep()` guards);
+  `ci` = lint cov schema e2e nfr; `red-phase` removed from `test` and `ci`.
+- Verification: `npx playwright test` 1 passed; `make cov` 979 passed, branch coverage 95.46%; `make ci` PASS (k6 p95 1.8 ms, 0 failed).
+- Open: `test/ci/quality-gate.yml` still mirrors the Phase-3 gate (left for `/bmad-testarch-ci`).

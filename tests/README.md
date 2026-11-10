@@ -1,8 +1,17 @@
 # Module 12 — Test Harness
 
-Backend test harness for **Module 12 · AI Operations Copilot**. Pure Python: `pytest`
-(+ `pytest-asyncio`, + `hypothesis`). No browser runner — Module 12 is a REST +
-core-domain service with no UI (see `planning/ux/*`; interaction is console/chat text).
+Test harness for **Module 12 · AI Operations Copilot**, in three layers:
+
+| Layer | Runner | Where | Target |
+|---|---|---|---|
+| Unit / integration / API / ATDD | `pytest` (+ `pytest-asyncio`, + `hypothesis`) | `tests/` | `make harness`, `make cov` |
+| E2E | Playwright (`playwright.config.ts`) | `tests/e2e/*.spec.ts`, page objects in `tests/e2e/pages/` | `make e2e`, `npm test` |
+| NFR | k6 | `tests/nfr/*.js` | `make nfr` |
+
+pytest is the primary suite. The E2E and NFR layers drive a real uvicorn process
+(`create_app --factory`, `M12_DB_PATH=:memory:`): Playwright starts it through `webServer`,
+and `make nfr` starts a temporary one and stops it after k6 exits. Today both layers hold a
+`/healthz` smoke. Browser specs and page objects arrive with the React console (story 1-7).
 
 The harness is **independently runnable today**: it imports no Module 12 source, so it
 does not depend on Phase 0 provisioning. Fixtures model the contracts, not the code.
@@ -12,7 +21,10 @@ does not depend on Phase 0 provisioning. Fixtures model the contracts, not the c
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements-test.txt
+npm ci                                   # @playwright/test for the E2E layer
 ```
+
+The NFR layer needs the `k6` binary on `PATH` (k6 2.x).
 
 Requires **Python 3.11+** and **SQLite >= 3.35** (AD-10: `RETURNING` + JSON1). The
 harness asserts the SQLite version at DB-fixture time and fails loudly otherwise.
@@ -24,8 +36,13 @@ pytest                                   # everything (config in pytest.ini)
 pytest -m unit                           # fast, isolated
 pytest -m integration                    # migrated-schema tests
 pytest -m determinism                    # I2 / FR-14 identity checks
-pytest --cov=module12 --cov-report=term-missing   # once module12/ exists
+make cov                                 # pytest, branch coverage of src, floor 90%
+make e2e                                 # Playwright; starts uvicorn itself
+make nfr                                 # k6 smoke against a temporary uvicorn
+make ci                                  # ruff + cov + schemas + e2e + nfr
 ```
+
+Make uses `PY=python3`. Without an activated venv, pass `PY=.venv/bin/python`.
 
 `asyncio_mode = auto`: a plain `async def test_...` is collected and awaited.
 
@@ -45,6 +62,11 @@ tests/
 ├── unit/                  # default share of the pyramid (pure, no I/O)
 ├── integration/           # real DDL, triggers, partial indexes
 ├── api/                   # /api/v1, /executor/v1 (placeholder until FastAPI app lands)
+├── e2e/                   # Playwright specs against the running app
+│   ├── smoke.spec.ts      # GET /healthz
+│   └── pages/             # page objects (console, story 1-7)
+├── nfr/                   # k6 scripts; load paced by executors, never fixed waits
+│   └── smoke.js           # /healthz, constant-arrival-rate, thresholds on p95 and errors
 └── test_example.py        # smoke: every mandatory fixture wired together
 ```
 
@@ -88,6 +110,8 @@ def test_audit_is_append_only(db, sample):
   full key set, not a subset.
 - **Faults are scripted, never slept through.** Reproduce S1–S3 and the mandatory edge
   case (hallucination prevention, test-design.md R-01) with fixtures, not timing tricks.
+- **No fixed waits in E2E or k6.** Use web-first assertions, and pace load
+  with `constant-vus` or `constant-arrival-rate`. `make e2e` and `make nfr` fail on either.
 
 ## Environment knobs
 
@@ -98,12 +122,21 @@ def test_audit_is_append_only(db, sample):
 
 ## Coverage targets
 
-From `test/test-design.md` §3: P0 red tests **100%**; `service/core/` **≥90% line / ≥85%
-branch**; overall floors per test level. Higher coverage is not a goal for prose/rendering.
+Impl-2 gate (`test/test-design.md` §6.5, `docs/impl2-rules.md`): branch coverage of `src/`
+**≥ 90%**, enforced by `make cov` (`--cov=src --cov-branch --cov-fail-under=90`). This
+supersedes the per-area `service/` floors in §3.2. Every P0 case must also be shown red
+before it goes green (§3.4, §6.3): coverage does not prove that. Higher coverage is not a
+goal for prose and rendering.
 
-## Next steps (blocked on Phase 0)
+## Next steps (Impl-2)
 
-- `tests/api/` needs the FastAPI app + a `TestClient` fixture (`httpx` is already installed).
-- `tests/determinism/` (FR-14 3× identity) should be added once `answer_query` exists.
-- The Phase 0 gap register (`test-design.md` §4.1, P0-G1..P0-G10) should be created so these
-  seams have a tracked home.
+- `tests/atdd/test_story_<id>.py`: one ATDD suite per Impl-2 story (2-1..2-4, 1-6, 3-3, 1-7),
+  calling the real app. `test/atdd/` stays a red, read-only source of contract cases
+  (`test/atdd/README.md`).
+- `tests/nfr/copilot-load.js`: the story 1-6 k6 budget (50 `constant-vus`, p95 < 800 ms with
+  the fake prose adapter, `http_req_failed == 0`, `checks == 1.0`), exported to
+  `docs/evidence/impl2/` (§6.3.5).
+- `tests/e2e/`: browser specs and page objects for the React console (story 1-7, §6.3.7).
+- CI: `.github/workflows/quality-gate.yml` mirrors `make ci`: a banned-wait grep, ruff +
+  branch coverage, schema checks, k6 (every `tests/nfr/*.js`, summaries uploaded) and
+  Playwright with `--trace on --fail-on-flaky-tests` (TG-I2-5).

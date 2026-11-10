@@ -165,6 +165,7 @@ def _check_references(estate: Estate) -> None:
         ("policy.model_id", lambda: all(c.model_id in models for c in estate.policy)),
         ("groups.members", lambda: all(m in users for g in estate.groups for m in g.members)),
         ("jobs.group_id", lambda: all(j.group_id in groups for j in estate.jobs)),
+        ("jobs.node", lambda: all(j.node is None or j.node in nodes for j in estate.jobs)),
         ("reservations.node_id", lambda: all(r.node_id in nodes for r in estate.reservations)),
         (
             "events.entity_ref",

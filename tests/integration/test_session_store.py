@@ -6,7 +6,6 @@ on a file database), so every behaviour here runs on both.
 
 from __future__ import annotations
 
-import sqlite3
 import threading
 from pathlib import Path
 
@@ -14,6 +13,7 @@ import pytest
 
 from src.adapters.outbound.db.migrate import apply_migrations
 from src.adapters.outbound.db.session_store import SqliteSessionStore
+from src.adapters.outbound.db.sqlite_writer import SqliteWriter
 from src.config import PROJECT_ROOT
 from src.domain.result import Failure, Ok, is_ok
 from src.dto import AnswerDTO, ClaimDTO, EvidenceDTO, SessionContextDTO, SessionDTO
@@ -24,10 +24,10 @@ NOW = "2026-10-16T15:00:00.000Z"
 LATER = "2026-10-16T15:05:00.000Z"
 
 
-def _connect(path: str) -> sqlite3.Connection:
-    connection = sqlite3.connect(path, check_same_thread=False)
-    apply_migrations(connection, PROJECT_ROOT / "migrations")
-    return connection
+def _connect(path: str) -> SqliteWriter:
+    writer = SqliteWriter.open(path)
+    apply_migrations(writer, PROJECT_ROOT / "migrations")
+    return writer
 
 
 @pytest.fixture(params=["memory", "file"])
@@ -218,7 +218,7 @@ def test_a_claim_citing_something_outside_the_evidence_leaves_nothing_behind(
     stored = _ok(store.get(sid))
     assert stored.session.context.prior_intents == [] and stored.last_turn_at is None
     for table in ("answers", "evidence", "claims", "claim_citations"):
-        rows = store._connection.execute(f"select count(*) from {table}").fetchone()  # noqa: SLF001
+        rows = store._writer._connection.execute(f"select count(*) from {table}").fetchone()  # noqa: SLF001
         assert rows == (0,), table
 
 
@@ -257,7 +257,7 @@ def test_mark_expired_is_idempotent_and_keeps_the_first_timestamp(
     _ok(store.mark_expired(created.session_id, LATER))
     _ok(store.mark_expired(created.session_id, "2026-10-17T00:00:00.000Z"))
     assert _ok(store.get(created.session_id)).session.status == "expired"
-    row = store._connection.execute(  # noqa: SLF001 - verifying persistence, not API
+    row = store._writer._connection.execute(  # noqa: SLF001 - verifying persistence, not API
         "select expired_at from sessions where session_id = ?", (created.session_id,)
     ).fetchone()
     assert row == (LATER,)
@@ -301,9 +301,9 @@ def test_highest_counters_include_stored_claim_ids(store: SqliteSessionStore) ->
 
 # -- robustness --------------------------------------------------------------------------------
 def test_a_closed_connection_is_a_typed_failure_never_an_exception(database: str) -> None:
-    connection = _connect(database)
-    store = SqliteSessionStore(connection)
-    connection.close()
+    writer = _connect(database)
+    store = SqliteSessionStore(writer)
+    writer.close()
     for call in (
         lambda: store.create(session(1), NOW),
         lambda: store.get("sess-0000000000000001"),
@@ -349,7 +349,7 @@ def test_a_file_database_survives_reopening(tmp_path: Path) -> None:
     _ok(first.create(created, NOW))
     sid = created.session_id
     _ok(first.append_turn(sid, answer(sid, 1), context(intents=["i"], answers=["a"]), LATER))
-    first._connection.close()  # noqa: SLF001
+    first._writer.close()  # noqa: SLF001
 
     second = SqliteSessionStore(_connect(path))
     assert _ok(second.get(sid)).session.context.prior_intents == ["i"]
@@ -357,14 +357,14 @@ def test_a_file_database_survives_reopening(tmp_path: Path) -> None:
     assert _ok(second.highest_counters()) == {"session": 1, "answer": 1, "claim": 0}
 
 
-def test_applied_migrations_are_read_through_the_store_lock(store: SqliteSessionStore) -> None:
+def test_applied_migrations_are_read_through_the_writer_lock(store: SqliteSessionStore) -> None:
     assert "001_module12_copilot_schema.sql" in _ok(store.applied_migrations())
 
 
 def test_applied_migrations_on_a_closed_connection_is_a_typed_failure(database: str) -> None:
-    connection = _connect(database)
-    store = SqliteSessionStore(connection)
-    connection.close()
+    writer = _connect(database)
+    store = SqliteSessionStore(writer)
+    writer.close()
     result = store.applied_migrations()
     assert isinstance(result, Failure) and result.code == "PROVIDER_UNAVAILABLE"
 

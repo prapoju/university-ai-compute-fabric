@@ -18,6 +18,8 @@ import re
 import sqlite3
 from pathlib import Path
 
+from src.adapters.outbound.db.sqlite_writer import SqliteWriter
+
 # ``\r?`` because the schema files may carry CRLF line endings (Windows checkouts)
 _PRAGMA_LINE = re.compile(r"^[ \t]*PRAGMA\b[^;\n]*;[ \t]*\r?$", re.IGNORECASE | re.MULTILINE)
 
@@ -33,14 +35,15 @@ _BOOKKEEPING = (
 )
 
 
-def apply_migrations(connection: sqlite3.Connection, directory: Path) -> list[str]:
+def apply_migrations(writer: SqliteWriter, directory: Path) -> list[str]:
     """Apply pending migrations from ``directory``; return the filenames applied now."""
     if not directory.is_dir():
         raise MigrationError(f"Migrations directory not found: {directory}")
 
     try:
-        connection.execute(_BOOKKEEPING)
-        done = dict(connection.execute("select filename, sha256 from schema_migrations"))
+        with writer.read() as connection:
+            connection.execute(_BOOKKEEPING)
+            done = dict(connection.execute("select filename, sha256 from schema_migrations"))
     except sqlite3.Error as exc:
         raise MigrationError(f"cannot read schema_migrations: {exc}") from exc
 
@@ -59,12 +62,12 @@ def apply_migrations(connection: sqlite3.Connection, directory: Path) -> list[st
                     f"{path.name} changed after it was applied; add a new migration."
                 )
             continue
-        _apply_one(connection, path.name, raw, digest)
+        _apply_one(writer, path.name, raw, digest)
         applied.append(path.name)
     return applied
 
 
-def _apply_one(connection: sqlite3.Connection, name: str, raw: bytes, digest: str) -> None:
+def _apply_one(writer: SqliteWriter, name: str, raw: bytes, digest: str) -> None:
     try:
         script = raw.decode("utf-8")
     except UnicodeDecodeError as exc:
@@ -78,10 +81,9 @@ def _apply_one(connection: sqlite3.Connection, name: str, raw: bytes, digest: st
     )
     try:
         if pragmas:
-            connection.executescript(pragmas)
-        # executescript() commits any open transaction first, so BEGIN/COMMIT live in the script
-        connection.executescript(f"BEGIN;\n{body}\n{bookkeeping}\nCOMMIT;")
+            writer.run_script(pragmas)
+        # executescript() commits any open transaction first, so BEGIN/COMMIT live in the script;
+        # on failure the writer rolls the half-applied script back
+        writer.run_script(f"BEGIN;\n{body}\n{bookkeeping}\nCOMMIT;")
     except sqlite3.Error as exc:
-        if connection.in_transaction:
-            connection.rollback()
         raise MigrationError(f"{name} failed and was rolled back: {exc}") from exc

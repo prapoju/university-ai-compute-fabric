@@ -37,6 +37,7 @@ def test_readyz_reports_every_check_when_the_service_is_ready() -> None:
         "estate": "ok",
         "clock": "ok",
         "sessions": "ok",
+        "audit": "ok",
     }
 
 

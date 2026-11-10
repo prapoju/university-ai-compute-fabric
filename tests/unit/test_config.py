@@ -93,3 +93,42 @@ def test_relative_db_path_is_anchored_to_the_project_root_but_memory_is_kept(
     assert Settings.from_env({"M12_DB_PATH": ":memory:"}).db_path == ":memory:"
     absolute = str(tmp_path / "x.db")
     assert Settings.from_env({"M12_DB_PATH": absolute}).db_path == absolute
+
+
+def test_audit_retention_cap_defaults_to_ten_thousand_and_is_overridable() -> None:
+    assert Settings.from_env({}).audit_retention_cap == 10_000
+    assert Settings.from_env({"M12_AUDIT_RETENTION_CAP": "5"}).audit_retention_cap == 5
+    assert Settings.from_env({"M12_AUDIT_RETENTION_CAP": "1"}).audit_retention_cap == 1
+
+
+def test_the_gate_token_lifetime_defaults_to_sixty_seconds_and_is_overridable() -> None:
+    assert Settings.from_env({}).gate_token_ttl_seconds == 60
+    assert Settings.from_env({"M12_GATE_TOKEN_TTL_SECONDS": "5"}).gate_token_ttl_seconds == 5
+    assert Settings.from_env({"M12_GATE_TOKEN_TTL_SECONDS": "1"}).gate_token_ttl_seconds == 1
+
+
+@pytest.mark.parametrize("value", ["0", "-1", "soon", "1.5"])
+def test_a_gate_token_lifetime_below_one_second_or_not_a_number_is_rejected(value: str) -> None:
+    with pytest.raises(ConfigError) as excinfo:
+        Settings.from_env({"M12_GATE_TOKEN_TTL_SECONDS": value})
+    assert "M12_GATE_TOKEN_TTL_SECONDS" in str(excinfo.value)
+
+
+@pytest.mark.parametrize("value", ["0", "-3", "many"])
+def test_audit_retention_cap_below_one_or_not_a_number_is_rejected(value: str) -> None:
+    with pytest.raises(ConfigError) as excinfo:
+        Settings.from_env({"M12_AUDIT_RETENTION_CAP": value})
+    assert "M12_AUDIT_RETENTION_CAP" in str(excinfo.value)
+
+
+# -- story 1.6 (review F-5): the fan-out budget is finite and not below the minimum -----------
+@pytest.mark.parametrize("value", ["inf", "-inf", "nan", "0", "0.001", "-1"])
+def test_the_fanout_budget_rejects_non_finite_and_tiny_values(value: str) -> None:
+    with pytest.raises(ConfigError):
+        Settings.from_env({"M12_TOOL_FANOUT_BUDGET_SECONDS": value})
+
+
+def test_the_fanout_budget_accepts_the_minimum_and_defaults_to_half_a_second() -> None:
+    minimum = Settings.from_env({"M12_TOOL_FANOUT_BUDGET_SECONDS": "0.01"})
+    assert minimum.tool_fanout_budget_seconds == 0.01
+    assert Settings.from_env({}).tool_fanout_budget_seconds == 0.5

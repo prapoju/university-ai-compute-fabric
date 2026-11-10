@@ -6,24 +6,35 @@ generator, so every assertion is about persisted, observable behaviour.
 
 from __future__ import annotations
 
-import sqlite3
 import threading
 from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
 
+from src.adapters.outbound.db.audit_store import SqliteAuditStore
 from src.adapters.outbound.db.migrate import apply_migrations
 from src.adapters.outbound.db.session_store import SqliteSessionStore
+from src.adapters.outbound.db.sqlite_writer import SqliteWriter
 from src.adapters.outbound.sim.clock_adapter import SimClock
+from src.adapters.outbound.sim.fixtures_adapter import SimProviders, SimRunbookRegistry
 from src.adapters.outbound.sim.idgen_adapter import SimIdGen
+from src.adapters.outbound.sim.prose_adapter import SimProse
+from src.application.access_denial_handler import AccessDenialHandler
+from src.application.audit_writer import AuditWriter
+from src.application.entity_resolver import EntityResolver
+from src.application.evidence_assembler import EvidenceAssembler
+from src.application.parallel_reads import ParallelReads
 from src.application.pipeline import AnswerPipeline, TurnOutput
 from src.application.session_service import SessionService
+from src.application.tool_audit import TOOL_PORT_NAMES, ToolCallRecorder, audited
 from src.config import PROJECT_ROOT
 from src.domain import canonical_strings as cs
 from src.domain.result import Failure, Ok, is_ok
+from src.domain.session_rules import empty_context
 from src.dto import AnswerDTO, AnswerEnvelopeDTO, GetSessionResponse, SessionDTO
 from src.ports.inbound import CanonicalOutcome
+from src.ports.outbound import CatalogPort, EventStorePort, PolicyPort, UsersPort
 
 pytestmark = pytest.mark.unit
 
@@ -37,16 +48,32 @@ class Rig:
     clock: SimClock
     store: SqliteSessionStore
     pipeline: AnswerPipeline
+    writer: SqliteWriter
+    audit: SqliteAuditStore
+    recorder: ToolCallRecorder
+    idgen: SimIdGen
 
 
-def build(database: str = ":memory:") -> Rig:
-    connection = sqlite3.connect(database, check_same_thread=False)
-    apply_migrations(connection, PROJECT_ROOT / "migrations")
-    store = SqliteSessionStore(connection)
+def service_for(rig: Rig, clock: SimClock, idgen: SimIdGen) -> SessionService:
+    return SessionService(
+        store=rig.store, clock=clock, idgen=idgen, pipeline=rig.pipeline, uow=rig.writer,
+        audit=AuditWriter(rig.audit, idgen), recorder=rig.recorder,
+    )  # fmt: skip
+
+
+def build(database: str = ":memory:", retention_cap: int = 10_000) -> Rig:
+    writer = SqliteWriter.open(database)
+    apply_migrations(writer, PROJECT_ROOT / "migrations")
+    store = SqliteSessionStore(writer)
     clock = SimClock(START)
     pipeline = AnswerPipeline()
-    service = SessionService(store=store, clock=clock, idgen=SimIdGen(), pipeline=pipeline)
-    return Rig(service, clock, store, pipeline)
+    idgen = SimIdGen()
+    rig = Rig(
+        None, clock, store, pipeline, writer, SqliteAuditStore(writer, retention_cap),
+        ToolCallRecorder(), idgen,
+    )  # fmt: skip
+    rig.service = service_for(rig, clock, idgen)
+    return rig
 
 
 @pytest.fixture(params=["memory", "file"])
@@ -326,7 +353,7 @@ def test_a_clock_failure_is_503_and_changes_nothing(rig: Rig) -> None:
 
 def test_a_store_failure_is_a_typed_503_not_an_exception(rig: Rig) -> None:
     sid = new_session(rig)
-    rig.store._connection.close()  # noqa: SLF001
+    rig.store._writer._connection.close()  # noqa: SLF001
     for result in (rig.service.create_session("role-operations"), ask(rig, sid),
                    rig.service.get_session(sid), rig.service.reset_session(sid)):  # fmt: skip
         assert isinstance(result, Failure) and result.code == "PROVIDER_UNAVAILABLE"
@@ -406,12 +433,9 @@ class TickingClock(SimClock):
 
 def build_ticking() -> Rig:
     rig = build()
-    rig.service = SessionService(
-        store=rig.store,
-        clock=(ticking := TickingClock(START)),
-        idgen=SimIdGen(),
-        pipeline=rig.pipeline,
-    )
+    ticking = TickingClock(START)
+    rig.idgen = SimIdGen()
+    rig.service = service_for(rig, ticking, rig.idgen)
     rig.clock = ticking
     return rig
 
@@ -444,7 +468,7 @@ def test_concurrent_turns_are_stored_in_clock_order(rig: Rig) -> None:
     assert [t.answer_id for t in turns] == context.active_answer_ids  # same order everywhere
     stamps = [
         row[0]
-        for row in ticking.store._connection.execute(  # noqa: SLF001
+        for row in ticking.store._writer._connection.execute(  # noqa: SLF001
             "select created_at from answers where session_id = ? order by answer_id", (sid,)
         )
     ]
@@ -454,10 +478,9 @@ def test_concurrent_turns_are_stored_in_clock_order(rig: Rig) -> None:
 def test_a_corrupt_stored_instant_is_a_typed_failure_not_a_raw_exception(rig: Rig) -> None:
     sid = new_session(rig)
     # matches the table's GLOB check but is not a real date
-    rig.store._connection.execute(  # noqa: SLF001
+    rig.store._writer._connection.execute(  # noqa: SLF001
         "update sessions set created_at = '2026-13-45T00:00:00.000Z' where session_id = ?", (sid,)
     )
-    rig.store._connection.commit()  # noqa: SLF001
     result = ask(rig, sid)
     assert isinstance(result, Failure) and result.code == "PROVIDER_UNAVAILABLE"
 
@@ -468,6 +491,28 @@ def test_a_failed_expiry_write_does_not_hide_the_410(rig: Rig) -> None:
     rig.store.mark_expired = lambda *args: Failure("PROVIDER_UNAVAILABLE", observed=("disk full",))
     result = ask(rig, sid)
     assert isinstance(result, Failure) and result.code == "SESSION_EXPIRED"
+
+
+def test_an_answer_that_could_not_be_saved_is_never_returned(rig: Rig) -> None:
+    failing, healthy = new_session(rig), new_session(rig)
+    # the context UPDATE is append_turn's last statement: the answer row is already inserted in
+    # the open transaction when it aborts, so only the store's rollback can remove it
+    connection = rig.store._writer._connection  # noqa: SLF001
+    connection.execute(
+        "CREATE TEMP TRIGGER disk_full BEFORE UPDATE ON sessions"
+        f" WHEN NEW.session_id = '{failing}' AND NEW.last_turn_at IS NOT NULL"
+        " BEGIN SELECT RAISE(ABORT, 'disk full'); END"
+    )
+
+    result = ask(rig, failing)
+    assert isinstance(result, Failure) and result.code == "PROVIDER_UNAVAILABLE"
+    assert ok(rig.store.list_turns(failing)) == []
+    orphans = connection.execute("SELECT count(*) FROM answers WHERE session_id = ?", (failing,))
+    assert orphans.fetchone() == (0,)
+    assert ok(rig.store.get(failing)).session.context == empty_context()
+
+    answer = ok(ask(rig, healthy)).answers[0]  # the failure is scoped to one session
+    assert [turn.answer_id for turn in ok(rig.store.list_turns(healthy))] == [answer.answer_id]
 
 
 def test_get_session_is_a_consistent_snapshot_while_turns_are_being_written(rig: Rig) -> None:
@@ -539,3 +584,237 @@ def test_a_reused_entity_moves_to_the_end_so_follow_ups_use_the_latest(rig: Rig)
     assert context.resolved_entities == [
         "user#alex", "model#llama-3-8b-instruct", "user#sofia", "model#deepseek-coder",
     ]  # fmt: skip
+
+
+# -- story 1.5: every stored turn is audited, atomically with its Answer (FR-11, AD-10, D1) -----
+S1_TOOL_CALLS = [
+    "toolcall.answer_query",
+    "toolcall.users_port.get",
+    "toolcall.catalog_port.get",
+    "toolcall.policy_port.for_model",
+    "toolcall.event_store_port.query",
+]
+
+
+class _DownUsers(UsersPort):
+    def get(self, id):
+        return Failure("PROVIDER_UNAVAILABLE", observed=("users down",))
+
+    def browse(self, q, page, page_size):
+        return Failure("PROVIDER_UNAVAILABLE", observed=("users down",))
+
+    def by_ids(self, ids):
+        return Failure("PROVIDER_UNAVAILABLE", observed=("users down",))
+
+
+def audited_rig(database: str = ":memory:", *, users: UsersPort | None = None) -> Rig:
+    """The rig with the real S1 diagnoser reading through audited fixture ports."""
+    rig = build(database)
+    providers = SimProviders.from_fixtures(PROJECT_ROOT / "fixtures", START)
+    raw = {**providers.as_ports(), **({UsersPort: users} if users else {})}
+    ports = {
+        port: audited(port, raw[port], name=name, recorder=rig.recorder)
+        for port, name in TOOL_PORT_NAMES.items()
+    }
+    rig.pipeline.register(
+        "diagnose_access_denial",
+        AccessDenialHandler(
+            resolver=EntityResolver(users=ports[UsersPort], catalog=ports[CatalogPort]),
+            assembler=EvidenceAssembler(
+                policy=ports[PolicyPort],
+                events=ports[EventStorePort],
+                reads=ParallelReads(recorder=rig.recorder),
+            ),
+            prose=SimProse(),
+            idgen=rig.idgen,
+            runbooks=SimRunbookRegistry(()),
+        ),
+    )
+    return rig
+
+
+@pytest.fixture(params=["memory", "file"])
+def arig(request, tmp_path: Path) -> Rig:
+    return audited_rig(":memory:" if request.param == "memory" else str(tmp_path / "m12.db"))
+
+
+def audit_rows(rig: Rig, sid: str) -> list:
+    entries, total = ok(rig.audit.page(sid, 0, 100))
+    assert total == len(entries)
+    return entries
+
+
+def count(rig: Rig, table: str) -> int:
+    with rig.writer.read() as db:
+        return db.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
+
+
+def test_an_s1_turn_writes_one_row_per_tool_call_in_call_order(arig: Rig) -> None:
+    sid = new_session(arig)
+    answer = ok(ask(arig, sid)).answers[0]
+    rows = audit_rows(arig, sid)
+    assert [r.result_summary["tool_name"] for r in rows] == S1_TOOL_CALLS
+    assert [r.audit_id for r in rows] == [f"aud-{n:016x}" for n in range(1, 6)]
+    assert [r.tool_call_id for r in rows] == [f"tc-{n:016x}" for n in range(1, 6)]
+    assert {r.timestamp for r in rows} == {START}
+    assert {(r.session_id, r.operator_role, r.actor) for r in rows} == {
+        (sid, "role-operations", "copilot")
+    }
+    assert rows[0].result_summary["diagnosis_class"] == answer.diagnosis_class
+    assert count(arig, "tool_calls") == count(arig, "audit_records") == 5
+    with arig.writer.read() as db:
+        params = db.execute(
+            "SELECT params_summary FROM tool_calls WHERE tool_call_id = 'tc-0000000000000001'"
+        ).fetchone()[0]
+    assert S1 not in params and "answer_id" in params  # the query text is never stored
+
+
+def test_a_canonical_entity_not_found_turn_is_audited(arig: Rig) -> None:
+    sid = new_session(arig)
+    outcome = ok(ask(arig, sid, "why was ghost denied deepseek-coder"))
+    assert isinstance(outcome, CanonicalOutcome) and outcome.code == "ENTITY_NOT_FOUND"
+    rows = audit_rows(arig, sid)
+    assert rows[0].result_summary == {
+        "tool_name": "toolcall.answer_query", "status": "ok", "canonical": "ENTITY_NOT_FOUND",
+    }  # fmt: skip
+    assert rows[1].result_summary == {
+        "tool_name": "toolcall.users_port.get", "status": "ok", "result_count": 0,
+    }  # fmt: skip
+
+
+def test_a_503_turn_writes_no_audit_row_and_draws_no_audit_id() -> None:
+    down = audited_rig(users=_DownUsers())
+    sid = new_session(down)
+    result = ask(down, sid)
+    assert isinstance(result, Failure) and result.code == "PROVIDER_UNAVAILABLE"
+    assert count(down, "tool_calls") == count(down, "audit_records") == 0
+    assert ok(down.idgen.new_id("tool_call")) == "tc-0000000000000001"
+    assert ok(down.idgen.new_id("audit")) == "aud-0000000000000001"
+
+
+def test_404_410_and_400_turns_write_no_audit_row(arig: Rig) -> None:
+    sid = new_session(arig)
+    assert ask(arig, "sess-00000000000000ff").code == "SESSION_NOT_FOUND"
+    assert ask(arig, sid, "   ").code == "VALIDATION_EMPTY_QUERY"
+    arig.clock.advance(minutes=31)
+    assert ask(arig, sid).code == "SESSION_EXPIRED"
+    assert count(arig, "tool_calls") == count(arig, "audit_records") == 0
+    fresh = new_session(arig)
+    ok(ask(arig, fresh))
+    assert audit_rows(arig, fresh)[0].tool_call_id == "tc-0000000000000001"  # nothing drawn
+
+
+def test_an_audit_write_failure_rolls_back_the_answer_too(arig: Rig) -> None:
+    sid = new_session(arig)
+    with arig.writer.read() as db:
+        db.execute(
+            "CREATE TEMP TRIGGER audit_disk_full BEFORE INSERT ON audit_records"
+            " BEGIN SELECT RAISE(ABORT, 'disk full'); END"
+        )
+    result = ask(arig, sid)
+    assert isinstance(result, Failure) and result.code == "AUDIT_WRITE_FAILED"
+    assert result.message == "Audit write failed for tool call tc-0000000000000001."
+    assert ok(arig.store.list_turns(sid)) == []
+    assert count(arig, "answers") == count(arig, "tool_calls") == 0
+    stored = ok(arig.store.get(sid))
+    assert stored.session.context == empty_context() and stored.last_turn_at is None
+
+
+def test_an_answer_write_failure_writes_no_audit_row(arig: Rig) -> None:
+    sid = new_session(arig)
+    with arig.writer.read() as db:
+        db.execute(
+            "CREATE TEMP TRIGGER answers_disk_full BEFORE INSERT ON answers"
+            " BEGIN SELECT RAISE(ABORT, 'disk full'); END"
+        )
+    result = ask(arig, sid)
+    assert isinstance(result, Failure) and result.code == "PROVIDER_UNAVAILABLE"
+    assert count(arig, "tool_calls") == count(arig, "audit_records") == 0
+
+
+def test_a_commit_failure_is_a_typed_503(arig: Rig) -> None:
+    sid = new_session(arig)
+    arig.writer.close()
+    result = arig.service.reset_session(sid)
+    assert isinstance(result, Failure) and result.code == "PROVIDER_UNAVAILABLE"
+
+
+def test_an_idgen_failure_while_minting_audit_ids_stores_nothing(arig: Rig) -> None:
+    sid = new_session(arig)
+    real = arig.idgen.new_id
+    arig.idgen.new_id = lambda kind: (
+        Failure("PROVIDER_UNAVAILABLE", observed=("idgen down",)) if kind == "audit" else real(kind)
+    )
+    assert ask(arig, sid).code == "PROVIDER_UNAVAILABLE"
+    assert arig.service.reset_session(sid).code == "PROVIDER_UNAVAILABLE"
+    assert ok(arig.store.list_turns(sid)) == []
+    assert ok(arig.store.get(sid)).session.status == "active"
+    assert count(arig, "audit_records") == 0
+
+
+def test_reset_writes_exactly_one_audit_row(arig: Rig) -> None:
+    sid = new_session(arig)
+    assert arig.service.reset_session(sid) == Ok(None)
+    rows = audit_rows(arig, sid)
+    assert [(r.result_summary, r.timestamp, r.operator_role) for r in rows] == [
+        ({"tool_name": "toolcall.reset_session", "status": "ok"}, START, "role-operations")
+    ]
+    assert arig.service.reset_session("sess-00000000000000ff").code == "SESSION_NOT_FOUND"
+    assert len(audit_rows(arig, sid)) == 1 and count(arig, "audit_records") == 1
+
+
+def test_reads_outside_a_turn_record_nothing(arig: Rig) -> None:
+    sid = new_session(arig)
+    ok(ask(arig, sid))
+    before = count(arig, "audit_records")
+    ok(arig.service.get_session(sid))
+    assert count(arig, "audit_records") == before
+
+
+class _RefusingAudit(SqliteAuditStore):
+    """Returns a typed failure without the database ever raising (e.g. a remote audit sink)."""
+
+    def append(self, entries):
+        return Failure("PROVIDER_UNAVAILABLE", observed=("audit sink refused",))
+
+
+class _FailsAfterWriting(SqliteSessionStore):
+    """Writes through the real store, then returns a typed failure without the database raising."""
+
+    def append_turn(self, *args, **kwargs):
+        ok(super().append_turn(*args, **kwargs))
+        return Failure("PROVIDER_UNAVAILABLE", observed=("failed after the write",))
+
+    def reset(self, *args, **kwargs):
+        ok(super().reset(*args, **kwargs))
+        return Failure("PROVIDER_UNAVAILABLE", observed=("failed after the write",))
+
+
+def test_a_store_failure_without_a_driver_error_rolls_back_what_it_already_wrote() -> None:
+    rig = audited_rig()
+    rig.service = SessionService(
+        store=_FailsAfterWriting(rig.writer), clock=rig.clock, idgen=rig.idgen,
+        pipeline=rig.pipeline, uow=rig.writer, audit=AuditWriter(rig.audit, rig.idgen),
+        recorder=rig.recorder,
+    )  # fmt: skip
+    sid = new_session(rig)
+    assert ask(rig, sid).code == "PROVIDER_UNAVAILABLE"
+    assert rig.service.reset_session(sid).code == "PROVIDER_UNAVAILABLE"
+    assert count(rig, "answers") == 0  # only tx.abort() can undo the answer the store inserted
+    assert count(rig, "audit_records") == 0 and count(rig, "tool_calls") == 0
+    stored = ok(rig.store.get(sid))
+    assert stored.session.status == "active" and stored.session.context == empty_context()
+
+
+def test_an_audit_failure_without_a_driver_error_still_rolls_back_the_answer() -> None:
+    rig = audited_rig()
+    rig.service = SessionService(
+        store=rig.store, clock=rig.clock, idgen=rig.idgen, pipeline=rig.pipeline, uow=rig.writer,
+        audit=AuditWriter(_RefusingAudit(rig.writer, 10_000), rig.idgen), recorder=rig.recorder,
+    )  # fmt: skip
+    sid = new_session(rig)
+    assert ask(rig, sid).code == "AUDIT_WRITE_FAILED"
+    assert rig.service.reset_session(sid).code == "AUDIT_WRITE_FAILED"
+    assert count(rig, "answers") == 0  # only tx.abort() can undo the already-inserted answer
+    stored = ok(rig.store.get(sid))
+    assert stored.session.status == "active" and stored.session.context == empty_context()

@@ -22,5 +22,10 @@
       "user#sofia",
       "user#lucas"
     ]
+  },
+  {
+    "id": "group#CS-101",
+    "name": "CS-101",
+    "members": []
   }
 ]

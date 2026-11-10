@@ -1,0 +1,110 @@
+:root {
+  --ink: #1d2433;
+  --muted: #5b6475;
+  --paper: #f7f8fa;
+  --card: #ffffff;
+  --line: #d9dee7;
+  --accent: #2456a6;
+  --warn: #9b2c2c;
+  --ok: #1e7a4a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --ink: #e7ebf3;
+    --muted: #a3acbd;
+    --paper: #14171e;
+    --card: #1c212b;
+    --line: #353d4c;
+    --accent: #8db4ff;
+    --warn: #ff8f8f;
+    --ok: #7fd4a0;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: system-ui, sans-serif;
+}
+
+.page {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 1rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.composer {
+  display: grid;
+  gap: 0.5rem;
+}
+
+textarea {
+  font: inherit;
+  padding: 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--card);
+  color: var(--ink);
+}
+
+button {
+  justify-self: start;
+  font: inherit;
+  padding: 0.5rem 0.9rem;
+  border-radius: 6px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.error {
+  border: 1px solid var(--warn);
+  color: var(--warn);
+  border-radius: 6px;
+  padding: 0.75rem;
+}
+
+.answer,
+.runbook {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 1rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.badge {
+  justify-self: start;
+  margin: 0;
+  color: var(--ok);
+  font-weight: 600;
+}
+
+.provenance,
+.warnings {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.runbook-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.copy-success {
+  color: var(--ok);
+  font-weight: 600;
+}

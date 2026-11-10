@@ -64,8 +64,16 @@ def _read(backing: Backing, fn: Callable[[RecordStore[Any]], Result[Any]]) -> Re
     return backing if isinstance(backing, Failure) else fn(backing)
 
 
+def _same(actual: object, wanted: object) -> bool:
+    """Exact-type equality; a list ``wanted`` means "one of" (story 2.2 D4)."""
+    if isinstance(wanted, list):
+        return any(type(actual) is type(w) and actual == w for w in wanted)
+    # exact type match: Python's == would let True match 1 and 1.0 match 1
+    return type(actual) is type(wanted) and actual == wanted
+
+
 def _select(backing: Backing, selector: SelectorDTO) -> Result[list[Any]]:
-    """Equality filter over record fields; ordered by id, bounded by ``SELECT_CAP``."""
+    """Equality filter over record fields (a list value is "one of"); ordered by id, capped."""
 
     def run(store: RecordStore[Any]) -> Result[list[Any]]:
         if selector.method != SELECT_METHOD:
@@ -77,12 +85,7 @@ def _select(backing: Backing, selector: SelectorDTO) -> Result[list[Any]]:
         if unknown:
             return Failure("VALIDATION_MALFORMED_BODY", observed=(f"unknown fields: {unknown}",))
         wanted = selector.params
-        # exact type match: Python's == would let True match 1 and 1.0 match 1
-        matching = [
-            r
-            for r in records
-            if all(type(getattr(r, k)) is type(v) and getattr(r, k) == v for k, v in wanted.items())
-        ]
+        matching = [r for r in records if all(_same(getattr(r, k), v) for k, v in wanted.items())]
         return Ok(matching[:SELECT_CAP])
 
     return _read(backing, run)
@@ -198,7 +201,10 @@ class SimNodes(NodesPort):
         return _read(self._backing, lambda s: s.get(node_id))
 
     def select(self, selector: SelectorDTO) -> Result[list[NodeRecordDTO]]:
-        return _select(self._backing, selector)
+        params = dict(selector.params)
+        if "node_ids" in params:  # D55: the resolved target_refs of a node action
+            params["id"] = params.pop("node_ids")
+        return _select(self._backing, SelectorDTO(method=selector.method, params=params))
 
     def browse(self, q: str, page: int, page_size: int) -> Result[list[NodeRecordDTO]]:
         return _read(self._backing, lambda s: s.browse(q, page, page_size))
@@ -225,10 +231,16 @@ class SimWindows(WindowsPort):
     def list(self) -> Result[list[PolicyWindowDTO]]:
         return _read(self._backing, lambda s: Ok(s.all()))
 
+    def browse(self, q: str, page: int, page_size: int) -> Result[list[PolicyWindowDTO]]:
+        return _read(self._backing, lambda s: s.browse(q, page, page_size))
+
 
 class SimEventStore(EventStorePort):
     def __init__(self, backing: Backing) -> None:
         self._backing = backing
+
+    def get(self, event_id: str) -> Result[OperationalEventDTO | None]:
+        return _read(self._backing, lambda s: s.get(event_id))
 
     def query(
         self, entity_ref: str, type: str, window: EventWindow
@@ -259,6 +271,9 @@ class SimEventStore(EventStorePort):
             return Ok(hits)
 
         return _read(self._backing, run)
+
+    def browse(self, q: str, page: int, page_size: int) -> Result[list[OperationalEventDTO]]:
+        return _read(self._backing, lambda s: s.browse(q, page, page_size))
 
 
 class SimPolicyContent(PolicyContentPort):
@@ -311,6 +326,8 @@ class SimProviders:
     clock: SimClock
     estate: Result[Estate]
     fixtures_dir: Path
+    # the stores the read ports wrap, for the simulated executor, the only writer (story 2.4 D2)
+    executor_stores: dict[str, Backing]
 
     @classmethod
     def from_fixtures(cls, fixtures_dir: Path, clock_start: str) -> SimProviders:
@@ -322,13 +339,15 @@ class SimProviders:
             return RecordStore(getattr(estate.value, attr), id_of)
 
         catalog = store("catalog", lambda r: r.id)
+        jobs_store = store("jobs", lambda r: r.id)
+        nodes_store = store("nodes", lambda r: r.id)
         return cls(
             users=SimUsers(store("users", lambda r: r.id)),
             catalog=SimCatalog(catalog),
             policy=SimPolicy(store("policy", lambda r: r.clause_id), catalog),
             groups=SimGroups(store("groups", lambda r: r.id)),
-            jobs=SimJobs(store("jobs", lambda r: r.id)),
-            nodes=SimNodes(store("nodes", lambda r: r.id)),
+            jobs=SimJobs(jobs_store),
+            nodes=SimNodes(nodes_store),
             reservations=SimReservations(store("reservations", lambda r: r.id)),
             windows=SimWindows(store("windows", lambda r: r.window_id)),
             event_store=SimEventStore(store("events", lambda r: r.event_id)),
@@ -341,6 +360,7 @@ class SimProviders:
             clock=SimClock(clock_start),
             estate=estate,
             fixtures_dir=fixtures_dir,
+            executor_stores={"jobs": jobs_store, "nodes": nodes_store},
         )
 
     def as_ports(self) -> dict[type, object]:

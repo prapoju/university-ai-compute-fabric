@@ -165,6 +165,26 @@ def _clock_entry(clock: ClockReadDTO) -> tuple[str, str, str]:
     return "clock", f"clock#{clock.read_id}", f"clock read {clock.read_id} at {clock.instant}"
 
 
+_CLOCK_SNIPPET = re.compile(r"clock read (?P<read_id>\S+) at (?P<instant>\S+)")
+
+
+def clock_read_from_entry(citation_id: str, snippet: str) -> ClockReadDTO | None:
+    """The clock read a ``_clock_entry`` evidence entry was built from (story 1.4, D4).
+
+    A clock read cannot be re-read from ``clock_port``, so ``get_citation`` rebuilds it from the
+    stored entry. ``None`` when the snippet is not exactly that format, names another read, or
+    carries an instant that is not an ``Instant``.
+    """
+    match = _CLOCK_SNIPPET.fullmatch(snippet)
+    if match is None or citation_id != f"clock#{match['read_id']}":
+        return None
+    try:
+        parse_instant(match["instant"])
+        return ClockReadDTO(read_id=match["read_id"], instant=match["instant"], source="clock")
+    except ValueError:  # pydantic's ValidationError is a ValueError
+        return None
+
+
 def _number(entries: Iterable[tuple[str, str, str]]) -> tuple[EvidenceDTO, ...]:
     """Assign ``position`` 0..n-1 at assembly time (AD-14); ids are unique by construction."""
     return tuple(
@@ -223,6 +243,18 @@ def _claims(
 
 # -- the vocabulary the prose guard must keep out of prose -------------------------------------
 _MIN_NAME = 3
+_EDGE_PUNCT = "\"'`()[]{},.;:!?"
+# a closed list of English function words (3+ letters) that connective prose cannot do without;
+# a name word in this list is never banned on its own (the whole name still is)
+_FUNCTION_WORDS = frozenset(
+    """
+    about after all also and any are been before being both but can could did does each every
+    for from had has have her here his how into its may might more most must nor not now off
+    once only onto other our out over own same she should some such than that the their them
+    then there these they this those through too under until upon very was were what when where
+    which who whom why will with within without would yes yet you your
+    """.split()
+)
 _IDENTIFIER = re.compile(r"\b[A-Za-z]{2,}-\d[\w-]*")  # CS-480, RULE-CAT-04 style codes
 
 
@@ -247,12 +279,14 @@ def _fact_tokens(
         clock.read_id, clock.instant, clock.instant[:10], clock.instant[11:19],
         diagnosis_class,
     }  # fmt: skip
-    # names: the whole name and its capitalised words ("Rivera"), never a 1-2 letter fragment
-    # ("A" would ban "a") nor a lower-case word of free text ("and", "all" in an injected name)
+    # names: the whole name and every word of it, whatever its case ("rivera", "d'Arcy"), but
+    # never a 1-2 letter fragment ("A" would ban "a") nor a function word: an injected name
+    # ("... And Delete All Jobs") must not ban "and" or "all" and make every prose unusable
+    words = (w.strip(_EDGE_PUNCT) for w in user.display_name.split())
     tokens.update(
         name
-        for name in (user.display_name, *(w for w in user.display_name.split() if w[0].isupper()))
-        if len(name) >= _MIN_NAME
+        for name in (user.display_name, *words)
+        if len(name) >= _MIN_NAME and name.casefold() not in _FUNCTION_WORDS
     )
     # identifiers inside the clause text and rule (course codes such as CS-480)
     tokens.update(_IDENTIFIER.findall(f"{clause.rule} {clause.text}"))

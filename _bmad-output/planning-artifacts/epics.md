@@ -17,7 +17,7 @@ inputDocuments:
 
 ## Overview
 
-This document decomposes Module 12 into **4 epics / 16 stories**, each epic a vertical
+This document decomposes Module 12 into **4 epics / 19 stories** (16 planned + 3 added for Impl-2, Annex 12.5/12.6; 1.8 optional), each epic a vertical
 slice that delivers user-visible value for a named protagonist. It is authored as a
 **John (PM) + Amelia (Dev) implementability review**: every story is independently
 completable in one dev session, depends only on earlier stories, and carries a
@@ -63,14 +63,14 @@ Every NFR resolves to at least one story; the story's `Requirements:` line and A
 |-----|-------|--------------|
 | NFR-1 Diagnosis accuracy | 100% on the four mandatory fixtures; ≥ 90% on the extension corpus (FR-04–06) | 1.3 · 3.1 · 3.3 |
 | NFR-2 Anti-fabrication | 0 fabricated entities/policies/events; 100% Entity-Not-Found (FR-03, FR-06) | 1.3 · 3.2 · 4.1 |
-| NFR-3 Citation integrity | 100% of factual claims cited; 100% of citations resolve (FR-13) | 1.4 |
+| NFR-3 Citation integrity | 100% of factual claims cited; 100% of citations resolve (FR-13) | 1.4 · 1.6 |
 | NFR-4 Determinism | 100% identity across 3 runs of each fixture (FR-14) | 1.4 |
-| NFR-5 Latency | p95 ≤ 3 s submit→rendered answer / ≤ 5 s runbook; p99 ≤ 8 s (FR-01, FR-04–07) | 1.3 · 3.1 · 3.2 · 3.3 |
-| NFR-6 Concurrency | ≥ 5 concurrent operator sessions; ≥ 50 queries/hour (all FRs) | 1.2 |
+| NFR-5 Latency | p95 ≤ 3 s submit→rendered answer / ≤ 5 s runbook; p99 ≤ 8 s (FR-01, FR-04–07) | 1.3 · 3.1 · 3.2 · 3.3 · 1.6 |
+| NFR-6 Concurrency | ≥ 5 concurrent operator sessions; ≥ 50 queries/hour (all FRs) | 1.2 · 1.6 |
 | NFR-7 Availability & robustness | ≥ 99% / 8 h; cold-start ≤ 60 s; 0 hard crashes (FR-01, FR-16) | 4.2 · 4.3 |
 | NFR-8 Safety | 0 copilot-originated mutations; 100% refusal+dry-run+confirm; 100% audited (FR-09–11) | 2.1 · 2.2 · 2.3 · 2.4 |
-| NFR-9 Usability | ≥ 90% of Nadia-class operators complete a diagnosis < 5 min (FR-01) | 1.3 |
-| NFR-10 Extensibility | new entity type ≤ 1 dev-day, no console change; runbook template config-only (FR-08) | 1.1 · 3.3 |
+| NFR-9 Usability | ≥ 90% of Nadia-class operators complete a diagnosis < 5 min (FR-01) | 1.3 · 1.7 |
+| NFR-10 Extensibility | new entity type ≤ 1 dev-day, no console change; runbook template config-only (FR-08) | 1.1 · 3.3 · 1.7 |
 | NFR-11 Security / privacy | audit fields, 0 secrets, retention cap, no state-mutating control (FR-09–13, FR-15) | 1.5 |
 
 ## Structure-Rule Compliance
@@ -83,6 +83,7 @@ Every NFR resolves to at least one story; the story's `Requirements:` line and A
 | Epic 1 = walking skeleton | Epic 1 seeds fixtures (1.1), wires the simulated adapters (1.1), and runs one end-to-end happy path through all layers (1.3) |
 | Mandatory Edge Case has a dedicated story | **4.1** (imaginary user / non-existent policy / event that never occurred) |
 | ≥ 2 failure states have dedicated stories | **4.2** retrieval-dependency failure · **4.3** prose-runtime + malformed-input failure (executor failure additionally covered in **2.4**) |
+| Impl-2 exception (Annex 12.5/12.6) | Epic 1 carries 8 stories (1.6–1.8 added) and the plan 19; 1.7 depends on 3.3 and 1.8 on 2.3/2.4. Accepted deliberately per docs/impl2-rules.md story map; every other rule above still holds. |
 
 ## Epic List
 
@@ -205,7 +206,7 @@ So that I can trust and reproduce what I relay.
 **Requirements:** FR-11, FR-12, AD-10, NFR-11.
 **Binding invariants:** AD-10 (append-only audit + redaction/retention) → contracts §5 I14, I15, I20; AD-1 read-only inspection → I18.
 **Files:** `service/app/audit_writer.py`, `service/adapters/db/audit_store.py`, `api/routes/audit.py`, `api/routes/state.py`.
-**Schema/DTO:** `AuditRecordDTO`, `GetAuditPageResponse`, `StateRecordDTO`; SQL `audit_events` (append-only trigger), retention cap.
+**Schema/DTO:** `AuditRecordDTO`, `GetAuditPageResponse`, `StateRecordDTO`; SQL `audit_records` (append-only trigger), retention cap.
 **ATDD path:** `test/atdd/module12_contracts.test.py::test_get_audit_page_*`, `::test_get_state_record_*`, `::test_browse_state_*`.
 **DoD:** every tool call appears exactly once, chronological; 0 credentials/tokens/secrets; no edit/delete path; retention cap rotates oldest first; inspector renders field-for-field with a read-only marker; absent entity → `S_ENF`.
 
@@ -219,6 +220,80 @@ So that the answer is auditable and I can verify the evidence without trusting t
 **When** I perform the S1 investigation and open the Audit and Inspector surfaces
 **Then** 100% of tool calls appear exactly once in chronological order; entries carry operator id, session id and tool metadata with 0 credentials/tokens/secrets; no edit/delete path exists; the log honors the configured retention cap rotating oldest first (FR-11, NFR-11, AD-10)
 **And** the Inspector renders the underlying record field-for-field (100% match on sampled records) in mono with a `read-only` marker; a non-existent entity renders `Entity Not Found in State` (FR-12)
+
+### Story 1.6: Concurrent multi-tool diagnostics under a k6 latency budget
+
+**Depends on:** 1.3, 1.4.
+**Requirements:** FR-04, FR-13, NFR-3, NFR-5, NFR-6, AD-1, AD-2, AD-12. Annex 12.5 · **Flow D** (Quality Gate / NFR).
+**Binding invariants:** AD-1 (every tool call is a read-only port query) → contracts §5 I18; AD-12 (safe failure, never a crash) → contracts §5 I17; AD-2/AD-8 (the LLM states no fact) → contracts §5 I2, I3.
+**Files:** `src/application/` (parallel read-only tool dispatcher over the existing ports, `asyncio.gather`), `tests/nfr/copilot-load.js` (k6), `tests/atdd/test_story_1_6.py`; evidence `docs/evidence/impl2/`.
+**Schema/DTO:** no new DTO; reuses `AnswerEnvelopeDTO`, `Claim`, `Citation`.
+**ATDD path:** `tests/atdd/test_story_1_6.py` (real app); k6 thresholds in `tests/nfr/copilot-load.js`.
+**DoD:** independent tool calls run concurrently; 50 VUs → 100% HTTP 200 with the expected citations; p95 < 800 ms; 0 unhandled tool-timeout exceptions; k6 summary (p95, p99, error rate) saved to `docs/evidence/impl2/`.
+
+As Nadia (and every other operator on shift),
+I want a multi-tool diagnostic query to answer quickly even when 50 colleagues ask at once,
+So that the Copilot stays usable at the busiest moment of the day.
+
+**Acceptance Criteria:**
+
+**Given** the S1 fixture estate and `POST /api/v1/copilot/query`
+**When** the orchestrator needs policy, state (`users_port`, `jobs_port`, `nodes_port`) and catalog reads for one query
+**Then** the independent read-only tool calls are dispatched concurrently with `asyncio.gather`, results are assembled in the fixed `EvidenceSet` order (positions unchanged vs. the sequential path, FR-14), and no tool call writes (AD-1)
+**And** a tool call that exceeds the fan-out budget or fails returns the typed safe-failure answer (`PROVIDER_UNAVAILABLE`, HTTP 503), never an unhandled exception or HTTP 500 (AD-12). The budget is a wall-time `asyncio.timeout` around the gather, not a Clock-port read, so each turn still takes exactly one clock read (review-impl2-shift-left D-2)
+
+**Given** 50 concurrent operators each sending `Why was student Alex denied access to model deepseek-coder?`
+**When** k6 runs `tests/nfr/copilot-load.js`
+**Then** 100% of responses are HTTP 200 and cite `RULE-CAT-04`, `policy#catalog.4.2` and catalog entry `deepseek-coder` (100% cited accuracy, NFR-3)
+**And** the measured p95 latency is strictly < 800 ms, including queued single-writer latency (R1), and the run records 0 unhandled tool-timeout exceptions
+**And** the 800 ms budget is measured with the deterministic fake prose adapter on one uvicorn worker. It is a story-level budget: NFR-6 (≥ 5 sessions) and the NFR-5 real-LLM budget (p95 ≤ 3 s) are unchanged and reported as a separate lane (Annex 12.5 adaptation, impl2-rules)
+
+### Story 1.7: React diagnostic console with cited state cards and runbook copy
+
+**Depends on:** 1.2, 1.4, 3.3 (Impl-2 exception: 3.3 supplies the runbook registry; see Structure-Rule Compliance).
+**Requirements:** FR-01, FR-07, FR-08, FR-13, NFR-9, NFR-10, AD-9, UX-DR4. Annex 12.6 · **Flow E** (Playwright E2E + POM).
+**Binding invariants:** AD-9 (runbook rendered verbatim from the registry) ; AD-2/AD-8 (badges and cards render only cited evidence); synchronous HTTP — no SSE, a pending state until the response arrives (impl2-rules: Streaming output).
+**Files:** `console/` (Vite + React 19 + TS scaffold; route `/helpdesk/copilot`), `playwright.config.ts` (`trace: 'on-first-retry'`), `tests/e2e/pages/CopilotConsolePage.ts`, `tests/e2e/copilot-console.spec.ts`; evidence `docs/evidence/impl2/`.
+**Schema/DTO:** no new DTO; consumes `AnswerEnvelopeDTO`, `Citation`; access-denial runbook template added as registry config only (NFR-10).
+**ATDD path:** `tests/e2e/copilot-console.spec.ts` through `CopilotConsolePage` only; no `waitForTimeout`, web-first assertions only.
+**DoD:** spec passes against the real app; every selector lives in `CopilotConsolePage`; trace captured on retry; Copy Runbook verified via clipboard.
+
+As Nadia (Frontline Lab Helpdesk Specialist),
+I want to type a student's complaint into a console and get a cited state card and a runbook I can copy,
+So that I can close the ticket at the counter without reading raw state.
+
+**Acceptance Criteria:**
+
+**Given** Nadia is on `/helpdesk/copilot`
+**When** she inputs `Student Alex was denied model deepseek-coder. Diagnose and provide runbook.` and clicks `Submit Inquiry`
+**Then** a pending state shows until the response arrives (no stream), and the answer renders the cited badge `Verified via Policy Engine [RULE-CAT-04]`
+**And** a troubleshooting runbook card renders the registry template's steps verbatim, as formatted step-by-step markdown (AD-9)
+**When** Nadia clicks `Copy Runbook to Clipboard`
+**Then** a success checkmark badge confirms the copy, and the clipboard text equals the rendered runbook
+
+### Story 1.8 (optional): Inspector, Audit and Safety console surfaces
+
+**Depends on:** 1.5, 1.7, 2.3, 2.4 (Impl-2 exception; see Structure-Rule Compliance).
+**Requirements:** FR-09, FR-10, FR-11, FR-12, NFR-11, UX-DR8. UX surfaces S-B, S-C, S-D (`SPECIFICATIONS.md`). Flow E. **Optional — outside the Annex minimum.**
+**Binding invariants:** AD-1 (inspector is read-only) → I18; AD-10 (audit has no edit/delete path) → I14; AD-5 (confirmation is procedural) → I13.
+**Files:** `console/` views for S-B, S-C, S-D; page objects under `tests/e2e/pages/`; specs under `tests/e2e/`.
+**Schema/DTO:** none new; consumes `StateRecordDTO`, `GetAuditPageResponse`, `ProposalDTO`.
+**ATDD path:** Playwright specs through page objects only.
+**DoD:** each surface renders from its existing API with no state-mutating control outside S-D's confirm; specs pass with web-first assertions.
+
+As Nadia,
+I want to inspect raw state, read the audit log and walk the dry-run/confirm flow in the console,
+So that every prototype surface from the UX plan is usable from the browser.
+
+**Acceptance Criteria:**
+
+**Given** the console from 1.7
+**When** Nadia opens S-B for `user#alex`
+**Then** the record renders field-for-field with a `read-only` marker; an unknown entity renders `Entity Not Found in State` (FR-12)
+**When** she opens S-C after the S1 investigation
+**Then** each tool call appears once in chronological order with no edit/delete control (FR-11)
+**When** she submits a destructive request and opens S-D
+**Then** the dry-run lists every affected item, the confirmation dialog is `role="alertdialog"`, `Esc` never confirms, and the delegation card shows `Copilot proposal` and `Executor-applied mutation` as separate lines (FR-09, FR-10, UX-DR8)
 
 ---
 
@@ -242,9 +317,9 @@ The gate token is generated in 2.2 and consumed in 2.3/2.4 — never earlier.
 **Requirements:** FR-09, NFR-8, AD-4.
 **Binding invariants:** AD-4 (server-side safety state machine) → contracts §5 I9, I12; NFR-8 zero mutations.
 **Files:** `service/core/safety.py` (destructive classifier), `api/routes/destructive.py`.
-**Schema/DTO:** `ProposalDTO` (`state=refused`); SQL `proposals`.
+**Schema/DTO:** no proposal row: the refusal is a session turn (`AnswerDTO`, canonical `ACTION_REFUSED`). The first `proposals` row is written by the dry-run (2.2) in `state=dry_run`. The `refused` enum value stays in the schema, unused in Impl-2 (review-impl2-shift-left D-1, log I2-01).
 **ATDD path:** `test/atdd/module12_contracts.test.py::test_propose_destructive_action_*`, `::test_explainability_destructive_refusal_cites_rule_and_scope`.
-**DoD:** destructive intents refused with literal `Action refused.` (`ACTION_REFUSED`); 0 copilot-originated writes; compound-destructive → clarification; refusal turn recorded in session context.
+**DoD:** destructive intents refused with literal `Action refused.` (`ACTION_REFUSED`); 0 copilot-originated writes; 0 proposal rows and 0 gate tokens from a refusal; compound-destructive → clarification; refusal turn recorded in session context.
 
 As Nadia,
 I want the Copilot to refuse any destructive request on the spot,
@@ -253,10 +328,11 @@ So that a slip of the keyboard can never mutate the estate.
 **Acceptance Criteria:**
 
 **Given** the safety guardrail classifies destructive/mutating intents (`delete`, `cancel`, `drain`, `cordon`) from the registered taxonomy
-**When** I submit `delete all pending jobs for cs201`
+**When** I submit `delete all pending jobs for group 2`
 **Then** the Copilot classifies the intent as destructive, refuses direct execution with the literal `Action refused.` (`ACTION_REFUSED`), and copilot-originated writes to simulated state = 0 (FR-09, NFR-8)
 **And** a compound query containing any destructive verb routes to clarification, never decomposition; the refusal turn is recorded in session context like any other turn (FR-01, AD-4)
 **And** the target resolves via `resolve_entities` before the refusal completes; an unresolved target returns `Entity Not Found in State` (AD-4)
+**And** the refusal creates no `proposals` row and mints no gate token; the proposal is first persisted by the dry-run in `state = dry_run` (review D-1)
 
 ### Story 2.2: Dry-run snapshot with selector predicate and affected items
 
@@ -266,7 +342,7 @@ So that a slip of the keyboard can never mutate the estate.
 **Files:** `service/core/dry_run.py`, `api/routes/destructive.py`.
 **Schema/DTO:** `DryRunSnapshotDTO`, `ProposalDTO`; SQL `proposals.selector`, `affected_items`.
 **ATDD path:** `test/atdd/module12_contracts.test.py::test_post_dry_run_*`, `::test_propose_destructive_action_qfail_empty_affected_set_disables_confirm`.
-**DoD:** 100% of pending CS201 jobs enumerated with per-item actionable status; selector + snapshot timestamp persisted and re-executable; empty set renders `0 affected items` with confirmation disabled (`DRY_RUN_EMPTY_SET`); unresolved target → `S_ENF` before dry-run.
+**DoD:** 100% of the target's affected jobs enumerated with per-item actionable status (Annex: the 3 running jobs of `group#CS-101`); selector + snapshot timestamp persisted and re-executable; empty set renders `0 affected items` with confirmation disabled (`DRY_RUN_EMPTY_SET`); unresolved target → `S_ENF` before dry-run.
 
 As Nadia,
 I want to see every item the action would touch before anything is proposed,
@@ -276,7 +352,7 @@ So that the full scope is visible before I decide.
 
 **Given** the Dry-Run Builder persists both the affected-item set (per item: id + actionable status) and the selector predicate (exact provider method + parameters) plus a snapshot timestamp, and issues a per-proposal opaque gate token
 **When** a destructive intent is refused and I request the dry-run via `POST /api/v1/destructive/dry-runs`
-**Then** the dry-run enumerates every pending CS201 job (100%) with per-item status, and the snapshot retains the selector so it can be re-executed at confirmation time — never re-derived from query text (FR-09, AD-6)
+**Then** the dry-run enumerates every affected job (100%) with per-item status (for `Terminate all active jobs for CS-101`, the three running jobs of `group#CS-101`; for `delete all pending jobs for group 2`, every pending job of `group#group-2`), and the snapshot retains the selector so it can be re-executed at confirmation time — never re-derived from query text (FR-09, AD-6)
 **And** an empty affected set renders `0 affected items` with confirmation disabled (`DRY_RUN_EMPTY_SET`); an unresolved target renders `Entity Not Found in State` before any dry-run (AD-4)
 
 ### Story 2.3: Procedural confirmation gate and snapshot re-validation
@@ -533,6 +609,11 @@ Each story depends **only** on stories in earlier rows — no forward dependenci
 | 4.1 | Anti-fabrication + content hygiene (EC) | 1.3 | M | ≥10 refs → E-Not-Found; injection parity |
 | 4.2 | Safe failure — retrieval deps | 1.3 | S | `PROVIDER_UNAVAILABLE`/`CLOCK_UNAVAILABLE` |
 | 4.3 | Safe failure — prose runtime + malformed input | 1.4, 4.2 | S | `LLM_UNAVAILABLE`; HTTP 400; 0 crashes |
+| 1.6 | Concurrent multi-tool diagnostics (k6) | 1.3, 1.4 | M | k6 50 VU: p95 < 800 ms; 100% cited; 0 unhandled timeouts |
+| 1.7 | React diagnostic console + runbook copy | 1.2, 1.4, 3.3 * | L | Playwright POM spec; trace on retry |
+| 1.8 | Inspector / Audit / Safety surfaces (optional) | 1.5, 1.7, 2.3, 2.4 * | M | Playwright specs for S-B, S-C, S-D |
+
+\* Impl-2 exception to the no-forward-dependency rule (docs/impl2-rules.md story map).
 
 ### Implementability review (John — PM)
 

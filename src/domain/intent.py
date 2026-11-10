@@ -15,6 +15,9 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from src.domain import canonical_strings as cs
+from src.domain.safety import INTENT_CODE as DESTRUCTIVE_INTENT
+from src.domain.safety import RULE_ID as DESTRUCTIVE_RULE_ID
+from src.domain.safety import Compound, Unnamed, parse_destructive
 
 
 @dataclass(frozen=True)
@@ -57,15 +60,17 @@ INTENT_RULES: tuple[IntentRule, ...] = (
             _rx(r"\bwhy\b.*\b(?:can't|cannot|can not|unable to|not allowed to)\b.*\baccess\b"),
             # "alex was denied access to deepseek-coder"
             _rx(r"\b(?:denied|blocked|refused)\b.*\baccess\b"),
+            # "alex was denied deepseek-coder. diagnose and provide runbook" (annex 12.6)
+            _rx(r"\b(?:denied|blocked|refused)\b.*\bdiagnose\b"),
         ),
     ),
     IntentRule(
         intent_code="diagnose_schedule_window",
         rule_id="RULE-INTENT-SCHEDULE-WINDOW",
         patterns=(
-            # "why can't group 4 run their fine-tuning job right now"
+            # "why can't group 4 run their fine-tuning job right now" (and "cant" without it)
             _rx(
-                r"\bwhy\b.*\b(?:can't|cannot|can not|won't|unable to|not able to"
+                r"\bwhy\b.*\b(?:can'?t|cannot|can not|won't|unable to|not able to"
                 r"|(?:isn't|is not|aren't)\b.*\bable to)\b.*\b(?:run|start|launch|execute)\b"
             ),
             # "why is group 4's job pending / not running / waiting"
@@ -75,6 +80,17 @@ INTENT_RULES: tuple[IntentRule, ...] = (
             # "when can group 4 run their job" / "when does the next window open"
             _rx(r"\bwhen\b.*\b(?:can|will|could)\b.*\b(?:run|start|launch)\b"),
             _rx(r"\bwhen\b.*\bnext\b.*\bwindow\b"),
+        ),
+    ),
+    IntentRule(
+        intent_code="diagnose_node_triage",
+        rule_id="RULE-INTENT-NODE-TRIAGE",
+        patterns=(
+            # "node ws-gpu-11 is cordoned with code ERR_THERMAL_88. what should i do?" (S3)
+            _rx(r"\bnode\b.*\bcordoned\b.*\bcode\b"),
+            # "ws-gpu-11 cordoned err_thermal_88, what do i do?": the node has no word "node", and
+            # the code follows "cordoned with" without the word "code"
+            _rx(r"\bcordoned\b.*\berr_\w+"),
         ),
     ),
 )
@@ -94,9 +110,7 @@ _DESTRUCTIVE = _rx(
 # it was drained") or a perfect passive ("why have the jobs been cancelled"): the text between
 # the marker and the participle never crosses into one. "got" is past ("it got cancelled"), and
 # "get" with no object is a passive ("did it get cancelled"); neither is a request.
-_PARTICIPLE = (
-    r"(?:deleted|cancel(?:l)?ed|drained|cordoned|removed|killed|purged|wiped|terminated)"
-)
+_PARTICIPLE = r"(?:deleted|cancel(?:l)?ed|drained|cordoned|removed|killed|purged|wiped|terminated)"
 _REPORTED = (
     r"\b(?:why|how|whether|been)\b"
     # "which"/"who"/"what" are also relative pronouns ("the jobs which are pending"), so like
@@ -136,6 +150,11 @@ def _normalise(query: str) -> str:
     return " ".join(text.translate(_APOSTROPHES).split())
 
 
+def normalise_query(query: str) -> str:
+    """The text every rule runs on (also what ``safety.parse_destructive`` expects)."""
+    return _normalise(query)
+
+
 def classify(
     query: str,
     prior_intents: Sequence[str],
@@ -163,5 +182,14 @@ def classify(
             if code in registered:
                 return Routed(code, FOLLOW_UP_RULE_ID)
         return Clarify(cs.R_FOLLOWUP_NO_CONTEXT)
+
+    if destructive:
+        # a destructive request that no diagnostic intent claims is refused by its own handler
+        # (story 2.1); one that also asks for something else is never split (FR-01, AD-4)
+        request = parse_destructive(text)
+        if isinstance(request, Compound | Unnamed):
+            return Clarify(request.reason)
+        if request is not None:
+            return Routed(DESTRUCTIVE_INTENT, DESTRUCTIVE_RULE_ID)
 
     return Clarify(cs.R_NO_INTENT)

@@ -1,15 +1,36 @@
 """Stand-in use cases for a service whose session store is down.
 
-The composition root registers this when the database cannot be opened or migrated, so every
-session route answers with the typed safe failure (503, ``PROVIDER_UNAVAILABLE``) instead of a
-crash, while ``/readyz`` reports the cause (AD-12).
+The composition root registers these when the database cannot be opened or migrated, so every
+session, evidence and citation route answers with the typed safe failure (503,
+``PROVIDER_UNAVAILABLE``) instead of a crash, while ``/readyz`` reports the cause (AD-12).
 """
 
 from __future__ import annotations
 
 from src.domain.result import Failure, Result
-from src.dto import AnswerEnvelopeDTO, GetSessionResponse, SessionDTO
-from src.ports.inbound import CanonicalOutcome, SessionUseCases
+from src.domain.safety import DestructiveRequest
+from src.dto import (
+    AnswerEnvelopeDTO,
+    ExecutorRequestDTO,
+    ExecutorResultDTO,
+    GetAnswerEvidenceResponse,
+    GetAuditPageResponse,
+    GetCitationResponse,
+    GetSessionResponse,
+    ProposalDTO,
+    SessionDTO,
+)
+from src.ports.inbound import (
+    AuditUseCases,
+    CanonicalOutcome,
+    ConfirmUseCases,
+    DestructiveUseCases,
+    DryRunOutcome,
+    EvidenceUseCases,
+    ProposalUseCases,
+    SessionUseCases,
+)
+from src.ports.outbound import ExecutorPort
 
 
 class UnavailableSessionUseCases(SessionUseCases):
@@ -28,4 +49,74 @@ class UnavailableSessionUseCases(SessionUseCases):
         return self._failure
 
     def reset_session(self, session_id: str) -> Result[None]:
+        return self._failure
+
+
+class UnavailableEvidenceUseCases(EvidenceUseCases):
+    def __init__(self, reason: str) -> None:
+        self._failure = Failure("PROVIDER_UNAVAILABLE", observed=(reason,))
+
+    def get_answer_evidence(self, answer_id: str) -> Result[GetAnswerEvidenceResponse]:
+        return self._failure
+
+    def get_citation(self, citation_id: str) -> Result[GetCitationResponse]:
+        return self._failure
+
+
+class UnavailableDestructiveUseCases(DestructiveUseCases):
+    def __init__(self, reason: str) -> None:
+        self._failure = Failure("PROVIDER_UNAVAILABLE", observed=(reason,))
+
+    def post_dry_run(
+        self, query_text: str, action: str, target_refs: list[str], session_id: str
+    ) -> Result[DryRunOutcome | CanonicalOutcome]:
+        return self._failure
+
+    def dry_run_request(
+        self, session_id: str, request: DestructiveRequest
+    ) -> Result[DryRunOutcome | CanonicalOutcome]:
+        return self._failure
+
+
+class UnavailableConfirmUseCases(ConfirmUseCases):
+    def __init__(self, reason: str) -> None:
+        self._failure = Failure("PROVIDER_UNAVAILABLE", observed=(reason,))
+
+    def post_confirm(self, proposal_id: str, gate_token: str) -> Result[ProposalDTO]:
+        return self._failure
+
+
+class UnavailableProposalUseCases(ProposalUseCases):
+    def __init__(self, reason: str) -> None:
+        self._failure = Failure("PROVIDER_UNAVAILABLE", observed=(reason,))
+
+    def get_proposal(self, proposal_id: str) -> Result[ProposalDTO]:
+        return self._failure
+
+    def post_re_dispatch(
+        self, parent_proposal_id: str, query_text: str, action: str, target_refs: list[str]
+    ) -> Result[DryRunOutcome | CanonicalOutcome]:
+        return self._failure
+
+
+class UnavailableExecutor(ExecutorPort):
+    """The executor of a service whose database cannot open: a typed failure, never a crash."""
+
+    def __init__(self, reason: str) -> None:
+        self._failure = Failure("EXECUTOR_UNAVAILABLE", observed=(reason,))
+
+    def dispatch(self, request: ExecutorRequestDTO) -> Result[ExecutorResultDTO]:
+        return self._failure
+
+    def get(self, proposal_id: str) -> Result[ExecutorResultDTO | None]:
+        return self._failure
+
+
+class UnavailableAuditUseCases(AuditUseCases):
+    def __init__(self, reason: str) -> None:
+        self._failure = Failure("PROVIDER_UNAVAILABLE", observed=(reason,))
+
+    def get_audit_page(
+        self, session_id: str, page: int, page_size: int
+    ) -> Result[GetAuditPageResponse]:
         return self._failure
