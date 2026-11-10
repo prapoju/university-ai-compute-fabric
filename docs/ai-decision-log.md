@@ -455,17 +455,17 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 | I2-21 | Story 2.2 · create story (Flow A) | Decision | The chat reply gets its own schema; the persisted selector names the port operation and the select vocabulary grows (`node_ids`, list = one of); the status filter comes from the action; `cs201` is no longer enumerated | Juan (D1, D4), Pending (the rest) |
 | I2-22 | - | Correction | Story 2.2: one frozen 2.1 case encoded the chat reply of the refusal-only state | see entry |
 | I2-23 | - | Correction | Code review of story 2.2: one request could flood the audit | see entry |
-| I2-24 | - | Decision | Story 2.2 closed: trap audit and the evidence it rests on | see entry |
-| I2-25 | - | Decision | Story 2.3: what the contract fixes, what the split with 2.4 forces, and what the user decided | see entry |
+| I2-24 | - | Decision | Story 2.2 closed: trap audit and the evidence it rests on | Juan |
+| I2-25 | - | Decision | Story 2.3: what the contract fixes, what the split with 2.4 forces, and what the user decided | Juan |
 | I2-26 | - | Correction | Code review of story 2.3: a rejected confirmation left no trace | see entry |
-| I2-27 | - | Decision | Story 2.3 closed: trap audit and the evidence it rests on | see entry |
-| I2-28 | - | Decision | Story 2.4: the executor changes what the earlier stories could assume | see entry |
-| I2-29 | - | Decision | Story 2.4: decisions confirmed and the red phase committed without a review of the log | see entry |
-| I2-30 | - | Decision | Story 2.4: the delivered schema could not reach `superseded` | see entry |
-| I2-31 | - | Decision | Story 2.4: the confirm dispatches, so the frozen 2.3 tests were adapted | see entry |
-| I2-32 | - | Correction | Story 2.4: two cases of the committed ATDD were wrong about themselves | see entry |
-| I2-33 | - | Correction | Code review of story 2.4: a readable token behind a guessable id | see entry |
-| I2-34 | - | Decision | Story 2.4 closed, and with it epic 2: trap audit and the evidence it rests on | see entry |
+| I2-27 | - | Decision | Story 2.3 closed: trap audit and the evidence it rests on | Juan |
+| I2-28 | - | Decision | Story 2.4: the executor changes what the earlier stories could assume | Juan |
+| I2-29 | - | Decision | Story 2.4: decisions confirmed and the red phase committed without a review of the log | Juan |
+| I2-30 | - | Decision | Story 2.4: the delivered schema could not reach `superseded` | Juan |
+| I2-31 | - | Decision | Story 2.4: the confirm dispatches, so the frozen 2.3 tests were adapted | Juan |
+| I2-32 | - | Correction | Story 2.4: two cases of the committed ATDD were wrong about themselves | Juan |
+| I2-33 | - | Correction | Code review of story 2.4: a readable token behind a guessable id | Juan |
+| I2-34 | - | Decision | Story 2.4 closed, and with it epic 2: trap audit and the evidence it rests on | Juan |
 | I2-35 | - | Decision | Story 1.6 created: the route stays sync and the fan-out budget is 0.5 s | Julio |
 | I2-36 | - | Correction | Story 1.6 ATDD: the tool-call ids are hexadecimal, the test parsed them as decimal | Julio |
 | I2-37 | - | Correction | Story 1.6: a policy-outage unit case asserted sequential reads, which parallel reads change | Julio |
@@ -1119,7 +1119,7 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
   audit rows of a request depends on the caller. The 2.1 handler had no such exposure (one target per query).
 - **Outcome:** fix in `c502192`; Review Findings added to the story; the story stays in `review` until the D.4 audit and the D.5 closure. Reviewer: Juan.
 
-## I2-24 - Story 2.2 closed: trap audit and the evidence it rests on  *(AI audit, reviewer pending)*
+## I2-24 - Story 2.2 closed: trap audit and the evidence it rests on  *(AI audit, Reviewer: Juan)*
 - **Date / phase:** 2026-11-07, D.4 and D.5 of story 2.2 (Flow A).
 - **Prompt (intent):** "si" to continue after the review fixes with the trap audit and the closure.
 - **What the AI checked:** the four traps over the 8 test files of the story. No Ice Cream Cone (61 API cases over 83 unit and integration cases), no
@@ -1128,7 +1128,7 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 - **AI slip kept on record:** the first run of the mutants left one survivor, the list filter ignoring exact types, because the AI's own test used
   `True`, which no node value equals. The test was corrected, not the production code, and the mutant is now killed.
 - **Outcome:** story 2.2 is `done` in the story file and in both `sprint-status.yaml` copies; the epic stays `in-progress`. Final gate: 1824 passed,
-  branch coverage 97.52%. Next: story 2-3 (confirmation gate). Reviewer: Pending.
+  branch coverage 97.52%. Next: story 2-3 (confirmation gate). Reviewer: Juan.
 
 ## I2-25 - Story 2.3: what the contract fixes, what the split with 2.4 forces, and what the user decided  *(decision, proposed by the AI)*
 - **Date / phase:** 2026-11-08, `bmad-create-story` for story 2.3 (Flow A) from baseline `4e8f902`, before any test or code. Full text in
@@ -1156,7 +1156,7 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 - **AI slips:** none yet. The plan sizes this story M; with the store reads, the use case, the route, the contract text and the hammer it is closer
   to M-L but it stays one story because the gate cannot be tested without all of them.
 - **Outcome:** story 2.3 is `ready-for-dev` in both `sprint-status.yaml` copies. No test or production code yet. Next: the ATDD red phase after
-  the user confirms D1 and D6. Reviewer: Juan (D2), Pending (the rest).
+  the user confirms D1 and D6. Reviewer: Juan.
 
 ## I2-26 - Code review of story 2.3: a rejected confirmation left no trace  *(AI code corrected, user approved)*
 - **Date / phase:** 2026-11-08, `bmad-code-review` of story 2.3 (Flow A), before the D.4 trap audit.
@@ -1172,7 +1172,7 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
   security-relevant attempt. The commit message of `6d70e5d` says `pytest 1932 passed`; the run was 1933 (a message slip, the code is right).
 - **Outcome:** fix in `6d70e5d`; Review Findings added to the story; the story stays in `review` until the D.4 audit and the D.5 closure. Reviewer: Juan.
 
-## I2-27 - Story 2.3 closed: trap audit and the evidence it rests on  *(AI audit, reviewer pending)*
+## I2-27 - Story 2.3 closed: trap audit and the evidence it rests on  *(AI audit, Reviewer: Juan)*
 - **Date / phase:** 2026-11-08, D.4 and D.5 of story 2.3 (Flow A).
 - **Prompt (intent):** "Si" to continue after the review fix with the trap audit and the closure.
 - **What the AI checked:** the four traps over the 4 test files of the story. No Ice Cream Cone (50 API cases over 72 unit and integration cases), no Flaky
@@ -1181,7 +1181,7 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 - **AI slips kept on record:** the red case that passed on a 404 and the unit rig whose recorder did not match its audited ports, both found by the AI
   before commit; and the `1932` in the message of `6d70e5d` (the run was 1933).
 - **Outcome:** story 2.3 is `done` in the story file and in both `sprint-status.yaml` copies; the epic stays `in-progress`. Final gate: 1933 passed, branch
-  coverage 97.66%. Next: story 2-4 (the executor and the dispatch). Reviewer: Pending.
+  coverage 97.66%. Next: story 2-4 (the executor and the dispatch). Reviewer: Juan.
 
 ## I2-28 - Story 2.4: the executor changes what the earlier stories could assume  *(decision, proposed by the AI)*
 - **Date / phase:** 2026-11-08, `bmad-create-story` for story 2.4 (Flow A) from baseline `3054c0a`, before any test or code. Full text in
@@ -1210,7 +1210,7 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 - **AI slips:** none yet. The plan sizes this story M; it is L (a port and an adapter, a mutable estate, a dispatcher, four routes, the re-dispatch and
   a change to 2.3), but it stays one story because the Annex scenario cannot reach `executed` without all of it.
 - **Outcome:** story 2.4 is `ready-for-dev` in both `sprint-status.yaml` copies. No test or production code yet. Next: the ATDD red phase after the
-  user confirms D1, D2, D5, D7 and D9. Reviewer: Pending.
+  user confirms D1, D2, D5, D7 and D9. Reviewer: Juan.
 
 ## I2-29 - Story 2.4: decisions confirmed and the red phase committed without a review of the log  *(user decision)*
 - **Date / phase:** 2026-11-08, ATDD red phase of story 2.4 (Flow A).
@@ -1223,7 +1223,7 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
   through a roundabout `hasattr`, an assertion about the executor's call count written as a conditional, and a last case that tested only its own
   imports; all were rewritten or deleted before the official run. The first official run also showed 14 chained `ImportError`s in the log; the helper now
   fails with `pytrace=False` so the log holds only the assertion that states the missing behaviour.
-- **Outcome:** red committed. Next: Tasks 2 to 6 of the story. Reviewer: Juan (the confirmations and the waiver), Pending (the rest).
+- **Outcome:** red committed. Next: Tasks 2 to 6 of the story. Reviewer: Juan.
 
 ## I2-30 - Story 2.4: the delivered schema could not reach `superseded`  *(AI finding, schema fixed with a new migration)*
 - **Date / phase:** 2026-11-08, `bmad-dev-story` Task 3 of story 2.4, when the store test for `supersede` first ran on the real schema.
@@ -1236,7 +1236,7 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
   ones pass. Two Impl-1 tests that listed the applied migrations as only `001` (`test_migrations.py`) now list both; they encoded a state of the schema that
   the contract itself does not allow to stay.
 - **AI slip:** the story (and the plan) said "do not touch the migration" without checking that the contract's own transitions were all reachable under it.
-- **Outcome:** Task 3 commit carries the migration and the two adjusted tests. Reviewer: Pending.
+- **Outcome:** Task 3 commit carries the migration and the two adjusted tests. Reviewer: Juan.
 
 ## I2-31 - Story 2.4: the confirm dispatches, so the frozen 2.3 tests were adapted  *(AI-written tests changed, user approved in advance)*
 - **Date / phase:** 2026-11-08, `bmad-dev-story` Task 4 of story 2.4, when the dispatcher was wired into the confirmation.
@@ -1251,7 +1251,7 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 - **AI slips:** the first run of the adaptation script aborted twice on an assertion about how many literals it would replace (15 occurrences on 14 lines,
   not 14) and once on an import anchor that the formatter had changed; each time nothing had been written and the script was corrected, not the tests.
   The message of commit `c8af915` says `pytest 2000 passed`; the run was 1985.
-- **Outcome:** Task 4 commit carries the adaptation. Reviewer: Juan (approved D1), Pending (the rest).
+- **Outcome:** Task 4 commit carries the adaptation. Reviewer: Juan.
 
 ## I2-32 - Story 2.4: two cases of the committed ATDD were wrong about themselves  *(AI-written tests corrected, user approved)*
 - **Date / phase:** 2026-11-08, `bmad-dev-story` Task 5 of story 2.4, at the first full run with the routes in place (guide E.6: stop and ask).
@@ -1265,7 +1265,7 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
 - **AI slips:** both defects were mine: a miscount, and a helper I had not exercised against the real app before committing the red phase (I had checked
   only that the failures were missing behaviour, not that the two cases could ever pass). The red log `red-2-4.log` records the red state of the file at
   commit `db44749`; the file differs from it only by these two corrections, so its green evidence is `flow-a-2-4-atdd-x3.log`.
-- **Outcome:** 36 of 36 cases pass three times in a row. Reviewer: Juan (approved), Pending (the rest).
+- **Outcome:** 36 of 36 cases pass three times in a row. Reviewer: Juan.
 
 ## I2-33 - Code review of story 2.4: a readable token behind a guessable id  *(AI code corrected, user approved)*
 - **Date / phase:** 2026-11-08, `bmad-code-review` of story 2.4 (Flow A), before the D.4 trap audit.
@@ -1285,9 +1285,9 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
   Three mutants (ids sequential again, an id of the wrong width, a token of the wrong width) are killed.
 - **AI slip:** story 2.4 added a read route that returns the secret of a proposal without asking whether the identifier that unlocks it was guessable; the
   2.2 design (D9) had chosen counter ids for reproducibility and the 2.3 review had checked token entropy only.
-- **Outcome:** fixes in `7d283cf` and the follow-up commit; D-1 and D-2 go to `deferred-work.md`. Reviewer: Juan (approved), Pending (the rest).
+- **Outcome:** fixes in `7d283cf` and the follow-up commit; D-1 and D-2 go to `deferred-work.md`. Reviewer: Juan.
 
-## I2-34 - Story 2.4 closed, and with it epic 2: trap audit and the evidence it rests on  *(AI audit, reviewer pending)*
+## I2-34 - Story 2.4 closed, and with it epic 2: trap audit and the evidence it rests on  *(AI audit, Reviewer: Juan)*
 - **Date / phase:** 2026-11-08, D.4 and D.5 of story 2.4 (Flow A).
 - **Prompt (intent):** the user asked to continue after the review fix, without intermediate output.
 - **What the AI checked:** the four traps over the new test files. No Ice Cream Cone (47 API cases over 51 unit cases and the integration cases of the store,
@@ -1298,7 +1298,7 @@ Provenance of AI-assisted work in Impl-2, on branch `impl-2`. Same conventions a
   guessable proposal id behind a readable token (I2-33), found by a probe of the real app, not by any test; the migration trigger that made `superseded`
   unreachable (I2-30); one commit message with a wrong test count (`c8af915` says 2000, the run was 1985).
 - **Outcome:** story 2.4 and epic 2 are `done` in the story file and in both `sprint-status.yaml` copies (the epic retrospective stays optional). Next
-  in the plan: story 1-6 (k6 and the concurrent diagnostics), 3-3, 1-7. Reviewer: Pending.
+  in the plan: story 1-6 (k6 and the concurrent diagnostics), 3-3, 1-7. Reviewer: Juan.
 
 ## I2-35 - Story 1.6 created: the route stays sync and the fan-out budget is 0.5 s  *(user decision, Reviewer: Julio)*
 - **Date / phase:** 2026-11-08, story creation of 1-6 (Flow D), before the ATDD red phase.
